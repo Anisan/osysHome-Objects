@@ -1,0 +1,108 @@
+{% extends "admin.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="Objects">Objects</a></li>
+{% endblock %}
+
+{% block module_content %}
+<div class="d-flex justify-content-between">
+<div>
+<a href="?view=class" class="btn btn-outline-success" role="button">Add class</a>
+<a href="?view=object" class="btn btn-outline-success" role="button">Add object</a>
+</div>
+<a href="#" class="btn btn-outline-primary" role="button"  data-bs-toggle="modal" data-bs-target="#uploadModal">Import from file</a>
+</div>
+<div class="accordion mt-2" id="accordionExample">
+  {% for class in classes %}
+  {% include 'class_template.html' %}
+  {% endfor %}
+</div>
+
+<!-- Модальное окно -->
+<div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-labelledby="uploadModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="uploadModalLabel">Upload JSON File</h5>
+          </div>
+          <form id="uploadForm" enctype="multipart/form-data">
+              <div class="modal-body">
+                  <div class="form-group">
+                      <label for="file">Select JSON File:</label>
+                      <input type="file" class="form-control-file" id="file" name="file" accept=".json">
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="button" class="btn btn-primary" onclick="uploadFile()">Upload</button>
+              </div>
+          </form>
+      </div>
+  </div>
+</div>
+<script>
+function loadConfiguration() {
+  // Check if local storage is available
+  if (typeof(Storage) !== "undefined") {
+    // Check if the collapse state is stored
+    if (localStorage.getItem('collapseClasses')) {
+      // Get the collapse state from local storage
+      var collapseState = JSON.parse(localStorage.getItem('collapseClasses'));
+      // Loop through each collapse element
+      collapseState.forEach(function(item) {
+        // Set the collapse state
+        var element = $('#' + item.id);
+        if (!item.collapsed) {
+          element.addClass('show');
+        } else {
+          element.removeClass('show');
+        }
+      });
+    } else {
+      // Initialize collapseState if it's not stored
+      var collapseState = [];
+      $('[id^="collapse"]').each(function() {
+        collapseState.push({id: $(this).attr('id'), collapsed: !$(this).hasClass('show')});
+      });
+      localStorage.setItem('collapseClasses', JSON.stringify(collapseState));
+    }
+  
+    // Store the collapse state when a collapse element is toggled
+    $('[data-bs-toggle="collapse"]').on('click', function () {
+      setTimeout(function() {
+        var collapseState = [];
+        $('[id^="collapse"]').each(function() {
+          collapseState.push({id: $(this).attr('id'), collapsed: !$(this).hasClass('show')});
+        });
+        localStorage.setItem('collapseClasses', JSON.stringify(collapseState));
+      }, 500);
+    });
+  }
+}
+
+function uploadFile() {
+            var formData = new FormData($('#uploadForm')[0]);
+            console.log(formData)
+            $.ajax({
+                url: '/api/import',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function(response){
+                    alert(response.message);
+                    window.location.href = 'Objects';
+                },
+                error: function(xhr, status, error) {
+                  console.error(xhr.responseText);
+                }
+            });
+        }
+
+  // Call the function to load configuration after document is loaded
+$(document).ready(function() {
+  loadConfiguration();
+});
+
+</script>
+{% endblock %}

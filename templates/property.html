@@ -1,0 +1,54 @@
+{% extends "admin.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="Objects">Objects</a></li>
+{% if class %}
+<li class="breadcrumb-item"><a href="Objects?view=class&class={{class.id}}&tab=properties">{{class.name}}</a></li>
+{%endif%}
+{% if object %}
+<li class="breadcrumb-item"><a href="Objects?view=class&object={{object.id}}&tab=properties">{{object.name}}</a></li>
+{% endif %}
+{% endblock %}
+
+{% block module_content %}
+{% if form.errors %}
+    <ul>
+    {% for field, errors in form.errors.items() %}
+        {% for error in errors %}
+            <li>{{field}}: {{ error }}</li>
+        {% endfor %}
+    {% endfor %}
+    </ul>
+{% endif %}
+<form method="POST">
+  <!-- Поля формы -->
+  {{ form.hidden_tag() }}
+  <div class="mb-3">
+      {{ form.name.label(class="form-label") }}
+      {{ form.name(class="form-control") }}
+  </div>
+  <div class="mb-3">
+      {{ form.description.label(class="form-label") }}
+      {{ form.description(class="form-control") }}
+  </div>
+  <div class="mb-3">
+      {{ form.method_id.label(class="form-label") }}
+      {{ form.method_id(class="form-control") }}
+  </div>
+  <div class="mb-3">
+    {{ form.history.label(class="form-label") }}
+    {{ form.history(class="form-control") }}
+</div>
+<div class="mb-3">
+    {{ form.type.label(class="form-label") }}
+    {{ form.type(class="form-control") }}
+</div>
+<!-- Кнопка отправки формы -->
+  <button type="submit" class="btn btn-primary">Submit</button>
+  {% if object %}
+  <a href="?view=object&object={{object.id}}&tab=properties" class="btn btn-secondary">Cancel</a>
+  {% else %}
+  <a href="?view=class&class={{class.id}}&tab=properties" class="btn btn-secondary">Cancel</a>
+  {% endif %}
+</form>
+{% endblock %}
