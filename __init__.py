@@ -1,6 +1,7 @@
 from sqlalchemy import or_
+from flask import render_template
 from app.core.main.BasePlugin import BasePlugin
-from app.core.models.Clasess import Class, Object, Property, Method, Object
+from app.core.models.Clasess import Class, Object, Property, Method, Object, Value
 from plugins.Objects.forms.ClassForm import routeClass
 from plugins.Objects.forms.ObjectForm import routeObject
 from plugins.Objects.forms.PropertyForm import routeProperty
@@ -13,7 +14,7 @@ class Objects(BasePlugin):
         self.title = "Objects Plugin"
         self.version = 1
         self.description = """Objects editor"""
-        self.actions=["search"]
+        self.actions=["search", "widget"]
 
     def initialization(self):
         pass
@@ -71,6 +72,14 @@ class Objects(BasePlugin):
                 obj = Object.get_by_id(method.object_id)
                 res.append({"url":f'Objects?view=method&object={method.object_id}&method={method.id}&op=edit', "title":f'{obj.name}.{method.name} ({method.description})', "tags":[{"name":"Method","color":"primary"}]})    
         return res
+    
+    def widget(self):
+        content = {}
+        content['classes_cnt'] = Class.query.count()
+        content['objects_cnt'] = Object.query.count()
+        content['values_cnt'] = Value.query.count()
+
+        return render_template("widget_objects.html",**content)
 
     def getClassInfo(self, cls):
 
