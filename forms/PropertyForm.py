@@ -74,7 +74,7 @@ def routeProperty(request):
                 id = property.id
             else:
                 form.populate_obj(item)  # Обновляем значения объекта данными из формы
-                item.method_id = int(form.method_id.data) if form.method_id.data else None,
+                item.method_id = int(form.method_id.data) if form.method_id.data else None
 
         else:
             new_item = Property(

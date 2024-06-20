@@ -8,6 +8,8 @@
 <li class="breadcrumb-item"><a href="Objects?view=object&object={{id}}">{{form.name.data}}</a></li>
 {% endblock %}
 
+{% block title %} {{form.name.data}} {% endblock %} 
+
 {% block module_content %}
 <ul class="nav nav-tabs mb-3" id="configTabs" role="tablist">
     <li class="nav-item"><a class="nav-link tab-button{% if tab == ''%} active{%endif%}" href="#general" data-bs-toggle="tab" role="tab">General</a></li>
