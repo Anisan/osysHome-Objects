@@ -25,6 +25,7 @@ def routeMethod(request):
     class_id = request.args.get('class', None)
     object_id = request.args.get('object', None)
     op = request.args.get('op', '')
+    saved = False
 
     object_owner = None
     if object_id:
@@ -96,7 +97,7 @@ def routeMethod(request):
             reload_objects_by_class(class_id)
         
         
-        return redirect(url) # Перенаправляем на другую страницу после успешного редактирования
+        saved = True
     if op == "redefine":
         form.code.data = ""
     content = {
@@ -104,5 +105,6 @@ def routeMethod(request):
             'form':form,
             'class': class_owner,
             'object': object_owner,
+            'saved': saved,
         }
     return render_template('method.html', **content)

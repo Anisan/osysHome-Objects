@@ -24,6 +24,11 @@
     </ul>
 </div>
 {% endif %}
+{% if saved %}
+<div class="alert alert-success mt-3">
+    Method saved successfully!
+</div>
+{% endif %}
 <form id="form" method="POST">
   <!-- Поля формы -->
   {{ form.hidden_tag() }}
@@ -54,7 +59,7 @@
         {{ form.periodic.label(class="form-label me-2") }}
         {{ form.periodic(class="form-check-input", id="checkbox", onclick="toggleHiddenField()") }}
     </div>
-    <diw class="col-auto mb-3 hidden" id="hidden_field_wrapper">
+    <diw class="col-auto mb-3 d-none" id="hidden_field_wrapper">
         {{ form.crontab.label(class="form-label") }}
         {{ form.crontab(class="form-control") }}
     </div>
@@ -64,13 +69,14 @@
   <button type="submit" class="btn btn-primary">Submit</button>
   {% if object %}
   <a href="?view=object&object={{object.id}}&tab=methods" class="btn btn-secondary">Cancel</a>
+  <a href="#" class="btn btn-success" onClick="callMethod('{{object.name}}.{{form.name.data}}')" role="button">Run</a>
   {% else %}
   <a href="?view=class&class={{class.id}}&tab=methods" class="btn btn-secondary">Cancel</a>
   {% endif %}
 </form>
 
 {% if object %}
-<div class="alert alert-success mt-3">
+<div class="alert alert-info mt-3">
     <i class="fas fa-exclamation-circle me-3"></i>callMethod('{{object.name}}.{{form.name.data}}');
 </div>
 {%endif%}
@@ -81,9 +87,9 @@ function toggleHiddenField() {
     var checkbox = document.getElementById('checkbox');
     var hiddenField = document.getElementById('hidden_field_wrapper');
     if (checkbox.checked) {
-        hiddenField.classList.remove('hidden');
+        hiddenField.classList.remove('d-none');
     } else {
-        hiddenField.classList.add('hidden');
+        hiddenField.classList.add('d-none');
     }
 }
 

@@ -3,4 +3,41 @@
 {% block module %}
 {% block module_content %}
 {% endblock module_content %}
+<!-- Модальное окно результата callMethod-->
+<div class="modal fade" id="resultModal">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+      
+        <!-- Заголовок модального окна -->
+        <div class="modal-header">
+          <h4 class="modal-title" id="result_name">Result</h4>
+        </div>
+        
+        <!-- Основное содержимое модального окна -->
+        <div class="modal-body">
+            <div id="result_data" style="white-space: pre-wrap;"></div>
+        </div>
+        
+        <!-- Подвал модального окна с кнопками -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+        
+      </div>
+    </div>
+</div>
 {% endblock %}
+{% block javascripts %}
+<script>
+socket.on('resultCallMethod', function(data) {
+    console.log("resultCallMethod", data)
+    var divName = document.querySelector('#result_name');
+    divName.innerHTML = 'Result call method "'+data.name+'"';
+    var divData = document.querySelector('#result_data');
+    divData.innerHTML = data.data ? data.data : 'Empty' ;
+    var myModal = new bootstrap.Modal(document.getElementById('resultModal'))
+    myModal.show()
+    
+});
+</script>
+{% endblock javascripts %}
