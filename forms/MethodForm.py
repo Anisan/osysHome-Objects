@@ -2,17 +2,18 @@ from flask import redirect, render_template
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, RadioField, BooleanField
 from wtforms.validators import DataRequired
+from sqlalchemy import delete
 
 from app.core.models.Clasess import Class, Object, Method
 from app.core.lib.common import getJob, addCronJob, clearScheduledJob
 from app.database import db
-from sqlalchemy import delete
 from app.core.main.ObjectsStorage import reload_object,reload_objects_by_class
+from plugins.Objects.forms.utils import *
 
 
 # Определение класса формы
 class MethodForm(FlaskForm):
-    name = StringField('Name', validators=[DataRequired()])
+    name = StringField('Name', validators=[DataRequired(), no_spaces_or_dots])
     description = StringField('Description')
     code = TextAreaField("Code", render_kw={"rows": 15})
     call_parent = RadioField("Call parent", choices=[('-1','Before'),('0','No'),('1','After')])
@@ -46,6 +47,7 @@ def routeMethod(request):
             url = "?view=class&class="+str(class_id)+"&tab=methods"
             reload_objects_by_class(class_id)
         return redirect(url)
+    
     if id:
         item = Method.query.get_or_404(id)  # Получаем объект из базы данных или возвращаем 404, если не найден
         form = MethodForm(obj=item)  # Передаем объект в форму для редактирования
@@ -56,6 +58,8 @@ def routeMethod(request):
                 form.crontab.data = job['crontab']
     else:
         form = MethodForm()
+        form.call_parent.data = '0'
+        
     if form.validate_on_submit():
         if id:
             if op == "redefine":
@@ -75,6 +79,8 @@ def routeMethod(request):
             item = Method(
                 name=form.name.data,
                 description=form.description.data,
+                code = form.code.data,
+                call_parent = form.call_parent.data,
             )
             if class_id:
                 item.class_id = class_id
@@ -98,6 +104,7 @@ def routeMethod(request):
         
         
         saved = True
+    
     if op == "redefine":
         form.code.data = ""
     content = {

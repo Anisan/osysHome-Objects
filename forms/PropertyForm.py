@@ -1,19 +1,20 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, TextAreaField, IntegerField
+from wtforms import StringField, SubmitField, SelectField, IntegerField
 from wtforms.validators import DataRequired, Optional
 
 from sqlalchemy import delete
 from flask import redirect, render_template
 from app.database import db
-from app.core.models.Clasess import Class, Object, Method, Property, Method, Value
+from app.core.models.Clasess import Class, Object, Property, Value
 from app.core.main.ObjectsStorage import reload_object,reload_objects_by_class
+from plugins.Objects.forms.utils import *
 
 # Определение класса формы
 class PropertyForm(FlaskForm):
-    name = StringField('Name', validators=[DataRequired()])
+    name = StringField('Name', validators=[DataRequired(), no_spaces_or_dots, no_reserved])
     description = StringField('Description')
     method_id = SelectField("Method")
-    history = IntegerField("History", validators=[Optional()])
+    history = IntegerField("History", validators=[DataRequired()])
     type = SelectField("Type")
     submit = SubmitField('Submit')
 
@@ -24,13 +25,21 @@ def routeProperty(request):
     op = request.args.get('op', '')
 
     if op == 'delete':
-        # TODO delete linked
-        # todo delete value
-        #sql = delete(Value).where(Value.object_id == id)
-        #db.session.execute(sql)
-        sql = delete(Property).where(Property.id == id)
-        db.session.execute(sql)
-        db.session.commit()
+        if object_id:
+            prop_o = Property.query.filter(Property.object_id == object_id, Property.id == id).one_or_none()
+            name = prop_o.name
+            prop_c = Property.query.filter(Property.class_id == class_id, Property.id == id).one_or_none()
+            if not prop_c:
+                sql = delete(Value).where(Value.object_id == object_id, Value.name == name)
+                db.session.execute(sql)
+                sql = delete(Property).where(Property.id == id)
+                db.session.execute(sql)
+                db.session.commit()
+        else:
+            # todo delete value
+            sql = delete(Property).where(Property.id == id)
+            db.session.execute(sql)
+            db.session.commit()
 
         if object_id: 
             url = "?view=object&object="+str(object_id)+"&tab=properties"
@@ -45,6 +54,7 @@ def routeProperty(request):
         form = PropertyForm(obj=item)  # Передаем объект в форму для редактирования
     else:
         form = PropertyForm()
+        form.history.data = 0
 
     object_owner = None
     if object_id:
@@ -53,25 +63,24 @@ def routeProperty(request):
     else:
         class_owner = Class.get_by_id(class_id)
     methods = []
-    from .utils import getMethodsParents
     methods = getMethodsParents(class_owner.id, methods)
 
-    form.method_id.choices = [('','')] +  [(method.id, method.name) for method in methods]
+    form.method_id.choices = [('','')] +  [(method['id'], method['name']) for method in methods]
     form.type.choices = [('',''),('int','Integer'),('float','Float'),('str','String'),('datetime','Datetime'),('dict','Dictionary'),('object','Object')] #TODO add types
     if form.validate_on_submit():
         if id:
             if op == "redefine":
-                property = Property()
-                property.class_id = class_id
-                property.object_id = object_id
-                property.name = item.name
-                property.description = item.description
-                property.method_id = int(form.method_id.data) if form.method_id.data else None
-                property.history = form.history.data
-                property.type = form.type.data
-                db.session.add(property)
+                prop = Property()
+                prop.class_id = class_id
+                prop.object_id = object_id
+                prop.name = item.name
+                prop.description = item.description
+                prop.method_id = int(form.method_id.data) if form.method_id.data else None
+                prop.history = form.history.data
+                prop.type = form.type.data
+                db.session.add(prop)
                 db.session.commit()
-                id = property.id
+                id = prop.id
             else:
                 form.populate_obj(item)  # Обновляем значения объекта данными из формы
                 item.method_id = int(form.method_id.data) if form.method_id.data else None

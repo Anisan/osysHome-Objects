@@ -1,24 +1,33 @@
+from flask import redirect, render_template
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, TextAreaField
 from wtforms.validators import DataRequired
-
-from app.core.models.Clasess import Class, Object, Property, Method, Value
-from app.core.lib.object import getProperty
-from flask import redirect, render_template
-from app.database import db, row2dict
-from .utils import *
 from sqlalchemy import delete
-from app.core.main.ObjectsStorage import remove_object, reload_object
+
+from app.database import db, row2dict
 from app.core.lib.common import getJob
+from app.core.models.Clasess import Class, Object, Property, Method, Value
+from app.core.main.ObjectsStorage import remove_object, reload_object, objects
+from plugins.Objects.forms.utils import *
 
 
 # Определение класса формы
 class ObjectForm(FlaskForm):
-    name = StringField('Name', validators=[DataRequired()])
+    id = None
+    name = StringField('Name', validators=[DataRequired(), no_spaces_or_dots])
     description = StringField('Description')
     class_id = SelectField("Class")
     template = TextAreaField("Template", render_kw={"rows": 15})
     submit = SubmitField('Submit')
+
+    def validate_name(self, name):
+        obj = Object.query.filter(Object.name==name.data).first()
+        if self.id is None:
+            if obj is not None:
+                raise ValidationError('Object already taken. Please choose a different one.')
+        else:
+            if obj is not None and obj.id != self.id:
+                raise ValidationError('Object already taken. Please choose a different one.')
 
 def routeObject(request):
     id = request.args.get('object', None)
@@ -50,13 +59,13 @@ def routeObject(request):
         item = Object.query.get_or_404(id)  # Получаем объект из базы данных или возвращаем 404, если не найден
         class_id = item.class_id
         form = ObjectForm(obj=item)  # Передаем объект в форму для редактирования
+        form.id = item.id
         parent_properties = []
         parent_properties = getPropertiesParents(item.class_id, parent_properties)
         object_properties = Property.query.filter(Property.object_id == item.id).order_by(Property.name).all()
         # исключить переопределенные
-        parent_properties = [item for item in parent_properties if item.name not in [subitem.name for subitem in object_properties]]
-        for c in parent_properties:
-            properties.append(row2dict(c))
+        parent_properties = [item for item in parent_properties if item['name'] not in [subitem.name for subitem in object_properties]]
+        properties += parent_properties
         for c in object_properties:
             properties.append(row2dict(c))
         for property in properties:
@@ -71,11 +80,10 @@ def routeObject(request):
         class_methods = []
         class_methods = getMethodsParents(item.class_id,class_methods)
         object_methods = Method.query.filter(Method.object_id == item.id).order_by(Method.name).all()
-        for c in class_methods:
-            cls = row2dict(c)
+        for cls in class_methods:
             cls['redefined'] = False
             for o in object_methods:
-                if o.name == c.name and o.class_id == None:
+                if o.name == cls["name"] and o.class_id == None:
                     cls['redefined'] = True
             methods.append(cls)
 
@@ -85,7 +93,8 @@ def routeObject(request):
         for method in methods:
             if method['class_id']:
                 method["class_name"] = dict_classes[method["class_id"]]
-            job = getJob(f'{item.name}_{c.name}_periodic')
+            job_name = item.name +"_"+ method['name']+"_periodic"
+            job = getJob(job_name)
             if job:
                 m['crontab'] = job['crontab']
         for property in properties:
@@ -123,6 +132,9 @@ def routeObject(request):
     class_owner = None
     if class_id:
         class_owner = Class.get_by_id(class_id)
+    obj = None
+    if id:
+        obj = objects[item.name]
     content = {
             'id': id,
             'form':form,
@@ -130,5 +142,6 @@ def routeObject(request):
             'properties': properties,
             'methods': methods,
             'tab': tab,
+            'obj': obj
             }
     return render_template('object.html', **content)

@@ -118,7 +118,7 @@
                     {% for property in parent_properties %}
                     <tr>
                         <th scope="row">{{ property.id }}</th>
-                        <td><b>{{ property.name }}</b></td>
+                        <td>{{property.class_name}} -> <b>{{ property.name }}</b></td>
                         <td>{{ property.description }}
                             {%if property.method%}<p style="color: gray;margin: 0px;">↳ <span class="badge bg-primary">Method: {{property.method}}</span></p>{%endif%}
                         </td>
@@ -166,7 +166,7 @@
                     {% for method in parent_methods %}
                     <tr>
                         <th scope="row">{{ method.id }}</th>
-                        <td><b>{{ method.name }}</b></td>
+                        <td>{{method.class_name}} -> <b>{{ method.name }}</b></td>
                         <td>{{ method.description }}</td>
                         <td>
                             {% set has_method = False %}
@@ -205,7 +205,9 @@
                         <td>{{ object.name }}</td>
                         <td>{{ object.description }}</td>
                         <td>
-                            <a href="?view=object&object={{object.id}}&op=edit" class="btn btn-success btn-sm" role="button"><i class="fas fa-pencil-alt"></i></a>
+                            <a href="?view=object&object={{object.id}}&op=edit" class="btn btn-outline-primary btn-sm" role="button"><i class="fas fa-pencil-alt"></i></a>
+                            <a type="button" class="btn btn-success btn-sm" href="?view=object&object={{object.id}}&tab=properties"><i class="feather icon-list"></i></a>
+                            <a type="button" class="btn btn-warning btn-sm" href="?view=object&object={{object.id}}&tab=methods"><i class="fas fa-cog"></i></a>
                             <a href="?view=object&object={{object.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button"><i class="fas fa-trash"></i></a>
                         </td>
                     </tr>

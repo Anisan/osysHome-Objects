@@ -12,6 +12,7 @@
 
 {% block module_content %}
 {% if form.errors %}
+<div class="alert alert-warning mt-3">
     <ul>
     {% for field, errors in form.errors.items() %}
         {% for error in errors %}
@@ -19,6 +20,7 @@
         {% endfor %}
     {% endfor %}
     </ul>
+</div>
 {% endif %}
 <form method="POST">
   <!-- Поля формы -->
