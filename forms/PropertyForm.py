@@ -14,7 +14,7 @@ class PropertyForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), no_spaces_or_dots, no_reserved])
     description = StringField('Description')
     method_id = SelectField("Method")
-    history = IntegerField("History", validators=[DataRequired()])
+    history = IntegerField("History", validators=[Optional()])
     type = SelectField("Type")
     submit = SubmitField('Submit')
 
