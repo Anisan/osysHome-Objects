@@ -63,7 +63,12 @@ def routeProperty(request):
     else:
         class_owner = Class.get_by_id(class_id)
     methods = []
-    methods = getMethodsParents(class_owner.id, methods)
+    if class_owner:
+        methods = getMethodsParents(class_owner.id, methods)
+    if object_id:
+        obj_method = Method.query.filter(Method.object_id == object_id).all()
+        for method in obj_method:
+            methods.append(row2dict(method))
 
     form.method_id.choices = [('','')] +  [(method['id'], method['name']) for method in methods]
     form.type.choices = [('',''),('int','Integer'),('float','Float'),('str','String'),('datetime','Datetime'),('dict','Dictionary'),('object','Object')] #TODO add types

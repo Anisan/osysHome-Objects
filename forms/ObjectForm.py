@@ -54,7 +54,7 @@ def routeObject(request):
     methods = []
     classes = Class.query.order_by(Class.name).all()
     dict_classes = {obj.id: obj.name for obj in classes}
-    choices = [(_class.id, _class.name) for _class in classes]
+    choices = [('','')] + [(_class.id, _class.name) for _class in classes]
     if id:
         item = Object.query.get_or_404(id)  # Получаем объект из базы данных или возвращаем 404, если не найден
         class_id = item.class_id
@@ -115,12 +115,13 @@ def routeObject(request):
     if form.validate_on_submit():
         if id:
             form.populate_obj(item)  # Обновляем значения объекта данными из формы
+            item.class_id = int(form.class_id.data) if form.class_id.data else None
         else:
             item = Object(
                 name=form.name.data,
                 description=form.description.data,
-                class_id=form.class_id.data,
             )
+            item.class_id = int(form.class_id.data) if form.class_id.data else None
             db.session.add(item)
         db.session.commit()  # Сохраняем изменения в базе данных
         # update object to storage

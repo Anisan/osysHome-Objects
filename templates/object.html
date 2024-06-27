@@ -200,7 +200,7 @@
                     {% endfor %}
                 {%endif%}
                 {% if prop.history > 0 %}
-                    <span class="badge bg-warning">History: {{prop.history}} days</span>
+                    <a href="HistoryView?name={{prop.name}}&object={{id}}" class="badge bg-warning text-dark">History: {{prop.history}} days</a>
                 {% endif %}
                 {% if prop.method %}
                     <span class="badge bg-primary">{{prop.method}}</span>

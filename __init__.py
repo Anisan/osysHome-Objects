@@ -35,14 +35,21 @@ class Objects(BasePlugin):
             return routeMethod(request)
 
         classes = Class.query.filter(Class.parent_id == None).order_by(Class.name).all()
-        list_of_dicts = [
+        cls_of_dicts = [
                 {'id': c.id, 'name': c.name, 'description': c.description} 
                 for c in classes
         ]
-        for cls in list_of_dicts:
+        for cls in cls_of_dicts:
                 self.getClassInfo(cls)
+        objects = Object.query.filter(Object.class_id == None).order_by(Object.name).all()
+        objs_of_dicts = [
+                {'id': obj.id, 'name': obj.name, 'description': obj.description} 
+                for obj in objects
+        ]
         content = {
-                'classes' : list_of_dicts,
+                'classes' : cls_of_dicts,
+                'objects' : objs_of_dicts,
+                
         }
             
         return self.render('objects.html', content)

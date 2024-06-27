@@ -14,7 +14,7 @@
             <a type="button" class="btn btn-primary btn-sm" href="?view=class&class={{class.id}}&tab=objects"><i class="feather icon-grid"></i></a>
             {% if not class.objects and not class.children%}
             <a type="button" class="btn btn-danger btn-sm" href="?view=class&class={{class.id}}&op=delete"
-            onClick="return confirm('Delete record?')"><i class="feather icon-trash"></i></a>
+            onClick="return confirm('Delete class {{class.name}}?')"><i class="feather icon-trash"></i></a>
             {%endif%}
       </div>
     </div>
@@ -26,26 +26,7 @@
             {%if class.objects %}
             <ul class="ps-4 mb-0 me-2">
                 {% for obj in class.objects %}
-                    <div class="d-flex justify-content-between align-items-center py-0">
-                        <h5 class="mb-0 d-flex">
-                            <i class="fas fa-file h3 mt-2"></i>
-                            <div class="px-3">
-                            {{ obj.name }}
-                            <pre style="margin: 0px;color: #cacaca;">{%if obj.description!=""%}{{obj.description}}{%else%}Description is empty{%endif%}</pre>
-                            </div>
-                        </h5>
-                        <div class="d-flex justify-content-center ">
-                            <div class="btn-group" role="group">
-                                <a type="button" class="btn btn-outline-primary btn-sm" href="?view=object&object={{obj.id}}"><i class="fas fa-pencil-alt"></i></a>
-                                <a type="button" class="btn btn-success btn-sm" href="?view=object&object={{obj.id}}&tab=properties"><i class="feather icon-list"></i></a>
-                                <a type="button" class="btn btn-warning btn-sm" href="?view=object&object={{obj.id}}&tab=methods"><i class="fas fa-cog"></i></a>
-                                <a type="button" class="btn btn-danger btn-sm"  href="?view=object&object={{obj.id}}&op=delete" 
-                                    onClick="return confirm('Delete record?')" >
-                                    <i class="feather icon-trash"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+                    {% include 'object_template.html' %}
                 {% endfor %}
             </ul>
             {% else %}
