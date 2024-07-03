@@ -1,5 +1,6 @@
 from sqlalchemy import or_
 from flask import render_template
+from app.database import session_scope
 from app.core.main.BasePlugin import BasePlugin
 from app.core.models.Clasess import Class, Object, Property, Method, Object, Value
 from plugins.Objects.forms.ClassForm import routeClass
@@ -82,10 +83,10 @@ class Objects(BasePlugin):
     
     def widget(self):
         content = {}
-        content['classes_cnt'] = Class.query.count()
-        content['objects_cnt'] = Object.query.count()
-        content['values_cnt'] = Value.query.count()
-
+        with session_scope() as session:
+            content['classes_cnt'] = session.query(Class).count()
+            content['objects_cnt'] = session.query(Object).count()
+            content['values_cnt'] = session.query(Value).count()
         return render_template("widget_objects.html",**content)
 
     def getClassInfo(self, cls):

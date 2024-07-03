@@ -32,9 +32,9 @@ def routeProperty(request):
             if not prop_c:
                 sql = delete(Value).where(Value.object_id == object_id, Value.name == name)
                 db.session.execute(sql)
-                sql = delete(Property).where(Property.id == id)
-                db.session.execute(sql)
-                db.session.commit()
+            sql = delete(Property).where(Property.id == id)
+            db.session.execute(sql)
+            db.session.commit()
         else:
             # todo delete value
             sql = delete(Property).where(Property.id == id)
