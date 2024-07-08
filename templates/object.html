@@ -29,16 +29,16 @@
     <li class="nav-item"><a class="nav-link tab-button{% if tab == ''%} active{%endif%}" href="#general" data-bs-toggle="tab" role="tab">General</a></li>
     <li class="nav-item">
         <button class="nav-link tab-button{% if tab == 'properties'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#properties" data-bs-toggle="tab" role="tab">
-            Properties <a href="?view=property&object={{id}}" class="btn btn-success btn-sm ms-2"><i class="fas fa-plus"></i></a>
+            Properties <a href="?view=property&object={{id}}" class="btn btn-success btn-sm ms-2" title="App property"><i class="fas fa-plus"></i></a>
         </button>
     </li>
     <li class="nav-item">
         <button class="nav-link tab-button{% if tab == 'methods'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#methods" data-bs-toggle="tab" role="tab">
-            Methods <a href="?view=method&object={{id}}" class="btn btn-success btn-sm ms-2"><i class="fas fa-plus"></i></a>
+            Methods <a href="?view=method&object={{id}}" class="btn btn-success btn-sm ms-2" title="Add method"><i class="fas fa-plus"></i></a>
         </a>
     </li>
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#template_tab" data-bs-toggle="tab" role="tab">Template</a></li>
-    <li class="nav-item"><a class="nav-link tab-button {% if not obj %} disabled{%endif%}" href="#object_tab" data-bs-toggle="tab" role="tab">Structure</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'structure'%} active{%endif%}{% if not obj %} disabled{%endif%}" href="#object_tab" data-bs-toggle="tab" role="tab">Structure</a></li>
     <li class="nav-item flex-grow-1"> <!-- flex-grow-1 для заполнения промежутка -->
         <!-- Пустой элемент, чтобы создать промежуток -->
       </li>
@@ -105,7 +105,7 @@
                         <td>{{ property.type }}</td>
                         <td>
                             <span id="prop:{{form.name.data}}.{{property.name}}">{{ property.value }}</span>
-                            <a href="#" class="btn btn-link py-0" type="button" onclick="openModal('{{form.name.data}}.{{property.name}}')"><i class="fas fa-edit mt-2"></i></a>
+                            <a href="#" class="btn btn-link py-0" type="button" onclick="openModal('{{form.name.data}}.{{property.name}}')" title="Edit value"><i class="fas fa-edit mt-2"></i></a>
                             <p style="color: gray;margin: 0px;">↳ {{property.changed}} 
                                 {% if property.source%}
                                 - {{property.source}}
@@ -115,8 +115,8 @@
                         </td>
                         <td>
                             {% if not property.class_id %}
-                                <a href="?view=property&object={{id}}&property={{property.id}}&op=edit" class="btn btn-info btn-sm" role="button">Edit</a>
-                                <a href="?view=property&object={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-warning btn-sm" role="button">Delete</a>
+                                <a href="?view=property&object={{id}}&property={{property.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="Edit"><i class="fas fa-pencil-alt"></i></a>
+                                <a href="?view=property&object={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
                             {%else%}
                                 <a href="?view=property&object={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button">Redefine</a>
                             {% endif %}
@@ -158,13 +158,15 @@
                             {% if method.class_id %}
                                 {% if not method.redefined %}
                                 <a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button">Redefine</a>
-                                <a href="#" class="btn btn-success btn-sm" onClick="callMethod('{{form.name.data}}.{{method.name}}')" role="button">Run</a>
                                 {%endif%}
                             {%else%}
-                                <a href="?view=method&object={{id}}&method={{method.id}}&op=edit" class="btn btn-info btn-sm" role="button">Edit</a>
-                                <a href="?view=method&object={{id}}&method={{method.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-warning btn-sm" role="button">Delete</a>
-                                <a href="#" class="btn btn-success btn-sm" onClick="callMethod('{{form.name.data}}.{{method.name}}')" role="button">Run</a>
-                                {% endif %}
+                                <a href="?view=method&object={{id}}&method={{method.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="Edit"><i class="fas fa-pencil-alt"></i></a>
+                                <a href="?view=method&object={{id}}&method={{method.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
+                            {% endif %}
+                            {% if not method.redefined %}
+                                <a href="#" class="btn btn-secondary btn-sm" onClick="openCrontabForm('{{form.name.data}}.{{method.name}}','{{method.crontab}}')" role="button"><i class="fa-solid fa-calendar-days me-2"></i>Cron task</a>
+                                <a href="#" class="btn btn-warning btn-sm" onClick="callMethod('{{form.name.data}}.{{method.name}}')" role="button"><i class="fa-solid fa-gears me-2"></i>Run</a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -178,6 +180,10 @@
         <form id="formTemplate" method="POST">
             <!-- Поля формы -->
             {{ form.hidden_tag() }}
+            <div class="mb-3" hidden>
+                {{ form.class_id.label(class="form-label") }}
+                {{ form.class_id(class="form-control") }}
+            </div>
             <div class="mb-3">
                 {{ form.template.label(class="form-label") }}
                 {{ render_editor(form.template, 'html')}}
@@ -188,7 +194,7 @@
         </form>
     </div>
     {% if obj %}
-    <div class="tab-pane fade" id="object_tab" role="tabpanel" aria-labelledby="object-tab">
+    <div class="tab-pane fade {% if tab == 'structure'%} show active{%endif%}" id="object_tab" role="tabpanel" aria-labelledby="object-tab">
         <h5><b>{{ obj.name }}</b>: {{ obj.description }}</h5>
             <ul>
             <b>Properties</b>
@@ -254,6 +260,31 @@
     </div>
 </div>
 
+<div class="modal fade" id="cronModal">
+    <div class="modal-dialog  modal-dialog-centered">
+      <div class="modal-content">
+      
+        <!-- Заголовок модального окна -->
+        <div class="modal-header">
+          <h4 class="modal-title">Enter crontab</h4>
+        </div>
+        
+        <!-- Основное содержимое модального окна -->
+        <div class="modal-body">
+          <h6 id="methodValue">Enter crontab</h6>
+          <input type="text" id="cronValue" class="form-control" placeholder="Enter new value">
+        </div>
+        
+        <!-- Подвал модального окна с кнопками -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveCronButton">Save</button>
+        </div>
+        
+      </div>
+    </div>
+</div>
+
 <script>
     var nameProperty = ""
     // Функция для открытия модального окна
@@ -273,7 +304,37 @@
         setProperty(nameProperty,newValue)
         $('#myModal').modal('hide');
     });
+    function openCrontabForm(method, crontab) {
 
+        document.getElementById("cronValue").value = crontab;
+        document.getElementById("methodValue").innerHTML = method;
+        $('#cronModal').modal('show');
+    }
+    document.getElementById("saveCronButton").addEventListener("click", function() {
+        // Получаем значение из поля ввода
+        var newValue = document.getElementById("cronValue").value;
+        // Выполняем функцию с новым значением
+        payload = {
+            "method": document.getElementById("methodValue").innerHTML,
+            "crontab": document.getElementById("cronValue").value
+        }
+        $.ajax({
+                url: '/api/utils/crontask',
+                type: 'POST',
+                data: JSON.stringify(payload),
+                contentType: 'application/json; charset=utf-8', // Тип контента отправляемых данных
+                dataType: 'json', // Ожидаемый тип данных в ответе
+                success: function(response){
+                    window.location.reload();
+                },
+                error: function(xhr, status, error) {
+                    alert(error);
+                    console.error(xhr.responseText);
+                }
+            });
+        
+        $('#cronModal').modal('hide');
+    });
 
 </script>
 <!-- Подключение скриптов Prism -->

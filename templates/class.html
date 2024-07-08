@@ -38,17 +38,17 @@
     </li>
     <li class="nav-item">
         <button class="nav-link tab-button{% if tab == 'properties'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#properties" data-bs-toggle="tab" role="tab">
-            Properties <a href="?view=property&class={{id}}" class="btn btn-success btn-sm ms-2"><i class="fas fa-plus"></i></a>
+            Properties <a href="?view=property&class={{id}}" class="btn btn-success btn-sm ms-2" title="Add property"><i class="fas fa-plus"></i></a>
         </button>
     </li>
     <li class="nav-item">
         <button class="nav-link tab-button{% if tab == 'methods'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#methods" data-bs-toggle="tab" role="tab">
-            Methods <a href="?view=method&class={{id}}" class="btn btn-success btn-sm ms-2"><i class="fas fa-plus"></i></a>
+            Methods <a href="?view=method&class={{id}}" class="btn btn-success btn-sm ms-2" title="Add method"><i class="fas fa-plus"></i></a>
         </a>
     </li>
     <li class="nav-item">
         <button class="nav-link tab-button{% if tab == 'objects'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#objects" data-bs-toggle="tab" role="tab">
-            Objects <a href="?view=object&class={{id}}" class="btn btn-success btn-sm ms-2"><i class="fas fa-plus"></i></a>
+            Objects <a href="?view=object&class={{id}}" class="btn btn-success btn-sm ms-2" title="Add object"><i class="fas fa-plus"></i></a>
         </a>
     </li>
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#template_tab" data-bs-toggle="tab" role="tab">Template</a></li>
@@ -105,8 +105,8 @@
                         <td>{{ property.history }}</td>
                         <td>{{ property.type }}</td>
                         <td>
-                            <a href="?view=property&class={{id}}&property={{property.id}}&op=edit" class="btn btn-success btn-sm" role="button"><i class="fas fa-pencil-alt"></i></a>
-                            <a href="?view=property&class={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button"><i class="fas fa-trash"></i></a>
+                            <a href="?view=property&class={{id}}&property={{property.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="Edit"><i class="fas fa-pencil-alt"></i></a>
+                            <a href="?view=property&class={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -153,8 +153,8 @@
                         <td>{{ method.name }}</td>
                         <td>{{ method.description }}</td>
                         <td>
-                            <a href="?view=method&class={{id}}&method={{method.id}}&op=edit" class="btn btn-success btn-sm" role="button"><i class="fas fa-pencil-alt"></i></a>
-                            <a href="?view=method&class={{id}}&method={{method.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button"><i class="fas fa-trash"></i></a>
+                            <a href="?view=method&class={{id}}&method={{method.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="Edit"><i class="fas fa-pencil-alt"></i></a>
+                            <a href="?view=method&class={{id}}&method={{method.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -195,20 +195,26 @@
                         <th>#</th>
                         <th>Name</th>
                         <th>Description</th>
-                        <th></th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for object in objects %}
+                    {% for obj in objects %}
                     <tr>
-                        <th scope="row">{{ object.id }}</th>
-                        <td>{{ object.name }}</td>
-                        <td>{{ object.description }}</td>
+                        <th scope="row">{{ obj.id }}</th>
+                        <td>{{ obj.name }}</td>
+                        <td>{{ obj.description }}</td>
                         <td>
-                            <a href="?view=object&object={{object.id}}&op=edit" class="btn btn-outline-primary btn-sm" role="button"><i class="fas fa-pencil-alt"></i></a>
-                            <a type="button" class="btn btn-success btn-sm" href="?view=object&object={{object.id}}&tab=properties"><i class="feather icon-list"></i></a>
-                            <a type="button" class="btn btn-warning btn-sm" href="?view=object&object={{object.id}}&tab=methods"><i class="fas fa-cog"></i></a>
-                            <a href="?view=object&object={{object.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button"><i class="fas fa-trash"></i></a>
+                            <div class="btn-group" role="group">
+                                <a type="button" class="btn btn-outline-primary btn-sm" href="?view=object&object={{obj.id}}" title="Edit"><i class="fas fa-pencil-alt"></i></a>
+                                <a type="button" class="btn btn-success btn-sm" href="?view=object&object={{obj.id}}&tab=properties" title="Properties"><i class="feather icon-list"></i></a>
+                                <a type="button" class="btn btn-warning btn-sm" href="?view=object&object={{obj.id}}&tab=methods" title="Methods"><i class="fas fa-cog"></i></a>
+                                <a type="button" class="btn btn-secondary btn-sm" href="?view=object&object={{obj.id}}&tab=structure" title="Structure"><i class="fa-solid fa-diagram-project"></i></a>
+                                <a type="button" class="btn btn-danger btn-sm"  href="?view=object&object={{obj.id}}&op=delete" title="Delete"
+                                    onClick="return confirm('Delete object {{obj.name}}?')" >
+                                    <i class="feather icon-trash"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

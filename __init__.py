@@ -34,7 +34,7 @@ class Objects(BasePlugin):
             return routeProperty(request)
         elif view == "method":
             return routeMethod(request)
-
+        
         classes = Class.query.filter(Class.parent_id == None).order_by(Class.name).all()
         cls_of_dicts = [
                 {'id': c.id, 'name': c.name, 'description': c.description} 

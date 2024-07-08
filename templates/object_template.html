@@ -1,4 +1,4 @@
-<div class="d-flex justify-content-between align-items-center py-0">
+<div class="list-group-item-action d-flex justify-content-between align-items-center py-0 ps-2">
     <h5 class="mb-0 d-flex">
         <i class="fas fa-file h3 mt-2"></i>
         <div class="px-3">
@@ -8,10 +8,11 @@
     </h5>
     <div class="d-flex justify-content-center ">
         <div class="btn-group" role="group">
-            <a type="button" class="btn btn-outline-primary btn-sm" href="?view=object&object={{obj.id}}"><i class="fas fa-pencil-alt"></i></a>
-            <a type="button" class="btn btn-success btn-sm" href="?view=object&object={{obj.id}}&tab=properties"><i class="feather icon-list"></i></a>
-            <a type="button" class="btn btn-warning btn-sm" href="?view=object&object={{obj.id}}&tab=methods"><i class="fas fa-cog"></i></a>
-            <a type="button" class="btn btn-danger btn-sm"  href="?view=object&object={{obj.id}}&op=delete" 
+            <a type="button" class="btn btn-outline-primary btn-sm" href="?view=object&object={{obj.id}}" title="Edit"><i class="fas fa-pencil-alt"></i></a>
+            <a type="button" class="btn btn-success btn-sm" href="?view=object&object={{obj.id}}&tab=properties" title="Properties"><i class="feather icon-list"></i></a>
+            <a type="button" class="btn btn-warning btn-sm" href="?view=object&object={{obj.id}}&tab=methods" title="Methods"><i class="fas fa-cog"></i></a>
+            <a type="button" class="btn btn-secondary btn-sm" href="?view=object&object={{obj.id}}&tab=structure" title="Structure"><i class="fa-solid fa-diagram-project"></i></a>
+            <a type="button" class="btn btn-danger btn-sm"  href="?view=object&object={{obj.id}}&op=delete" title="Delete"
                 onClick="return confirm('Delete object {{obj.name}}?')" >
                 <i class="feather icon-trash"></i>
             </a>

@@ -96,7 +96,7 @@ def routeObject(request):
             job_name = item.name +"_"+ method['name']+"_periodic"
             job = getJob(job_name)
             if job:
-                m['crontab'] = job['crontab']
+                method['crontab'] = job['crontab']
         for property in properties:
             if property['method_id']:
                 for method in methods:
