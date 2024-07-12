@@ -218,14 +218,18 @@
             <b>Methods</b>
             {% for key_meth, method in obj.methods.items() %}
             <li>{{ method.name }}: {{ method.description }} <a href="#" onclick="callMethod('{{obj.name}}.{{method.name}}')">Run</a>
-                {% if method.code %}
+                {% if method.methods %}
                 <a class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#spoiler{{obj.name}}{{method.name}}" aria-expanded="true" aria-controls="spoiler{{obj.name}}{{method.name}}">
                     Code
                 </a>
-                <div id="spoiler{{obj.name}}{{method.name}}" class="collapse hide" aria-labelledby="headingOne">
-                    <pre><code class="language-python">{{method.code}}</code></pre>
+                <div id="spoiler{{obj.name}}{{method.name}}" class="collapse hide ms-3" aria-labelledby="headingOne">
+                    {% for item in method.methods %}
+                        {%if item.class_id %}<b>{{item.owner}}</b>->{{item.name}}{%endif%}
+                        {%if item.object_id %}{{ item.owner }}->{{item.name}}{%endif%}
+                        <pre><code class="language-python">{{item.code}}</code></pre>
+                    {% endfor %} 
                 </div>
-              {%endif%}
+                {%endif%}
             </li>
             {% endfor %}    
             </ul>
