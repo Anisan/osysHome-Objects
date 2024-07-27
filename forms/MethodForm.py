@@ -8,7 +8,7 @@ from app.core.models.Clasess import Class, Object, Method
 from app.core.lib.common import getJob, addCronJob, clearScheduledJob
 from app.database import db
 from app.core.main.ObjectsStorage import reload_object,reload_objects_by_class
-from plugins.Objects.forms.utils import *
+from plugins.Objects.forms.utils import no_spaces_or_dots
 
 
 # Определение класса формы
@@ -23,6 +23,13 @@ class MethodForm(FlaskForm):
 
 def routeMethod(request):
     id = request.args.get('method', None)
+    if id is None:
+        id = request.form.get('method',None)
+        if id is not None:
+            if id == 'None':
+                id = None
+            else:
+                id = int(id)
     class_id = request.args.get('class', None)
     object_id = request.args.get('object', None)
     op = request.args.get('op', '')
@@ -34,20 +41,20 @@ def routeMethod(request):
         class_owner = Class.get_by_id(object_owner.class_id)
     else:
         class_owner = Class.get_by_id(class_id)
-    
+
     if op == 'delete':
         sql = delete(Method).where(Method.id == id)
         db.session.execute(sql)
         db.session.commit()
 
-        if object_id: 
-            url = "?view=object&object="+str(object_id)+"&tab=methods"
+        if object_id:
+            url = "?view=object&object=" + str(object_id) + "&tab=methods"
             reload_object(object_id)
         else:
-            url = "?view=class&class="+str(class_id)+"&tab=methods"
+            url = "?view=class&class=" + str(class_id) + "&tab=methods"
             reload_objects_by_class(class_id)
         return redirect(url)
-    
+
     if id:
         item = Method.query.get_or_404(id)  # Получаем объект из базы данных или возвращаем 404, если не найден
         form = MethodForm(obj=item)  # Передаем объект в форму для редактирования
@@ -59,7 +66,7 @@ def routeMethod(request):
     else:
         form = MethodForm()
         form.call_parent.data = '0'
-        
+
     if form.validate_on_submit():
         if id:
             if op == "redefine":
@@ -79,39 +86,40 @@ def routeMethod(request):
             item = Method(
                 name=form.name.data,
                 description=form.description.data,
-                code = form.code.data,
-                call_parent = form.call_parent.data,
+                code=form.code.data,
+                call_parent=form.call_parent.data,
             )
             if class_id:
                 item.class_id = class_id
             if object_id:
                 item.object_id = object_id
             db.session.add(item)
+            db.session.commit()
+            id = item.id
 
         if object_owner:
             # cron job
             clearScheduledJob(f'{object_owner.name}_{item.name}_periodic')
-            if form.periodic.data == True and form.crontab.data != '':
+            if form.periodic.data and form.crontab.data != '':
                 addCronJob(f'{object_owner.name}_{item.name}_periodic',f'callMethod("{object_owner.name}.{item.name}")',form.crontab.data)
         db.session.commit()  # Сохраняем изменения в базе данных
-        
-        if object_id: 
-            url = "?view=object&object="+str(object_id)+"&tab=methods"
+
+        if object_id:
+            url = "?view=object&object=" + str(object_id) + "&tab=methods"
             reload_object(object_id)
         else:
-            url = "?view=class&class="+str(class_id)+"&tab=methods"
+            url = "?view=class&class=" + str(class_id) + "&tab=methods"
             reload_objects_by_class(class_id)
-        
-        
+
         saved = True
-    
+
     if op == "redefine":
         form.code.data = ""
     content = {
-            'id': id,
-            'form':form,
-            'class': class_owner,
-            'object': object_owner,
-            'saved': saved,
-        }
+        'id': id,
+        'form':form,
+        'class': class_owner,
+        'object': object_owner,
+        'saved': saved,
+    }
     return render_template('method.html', **content)

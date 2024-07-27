@@ -32,6 +32,7 @@
 <form id="form" method="POST">
   <!-- Поля формы -->
   {{ form.hidden_tag() }}
+  <input type="hidden" id="method" name="method" value="{{id}}">
   <div class="mb-3">
       {{ form.name.label(class="form-label") }}
       {{ form.name(class="form-control") }}
