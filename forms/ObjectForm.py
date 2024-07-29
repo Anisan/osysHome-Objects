@@ -1,14 +1,16 @@
+import json
 from flask import redirect, render_template
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, TextAreaField
+from wtforms import StringField, SubmitField, SelectField, TextAreaField, ValidationError
 from wtforms.validators import DataRequired
 from sqlalchemy import delete
 
 from app.database import db, row2dict
 from app.core.lib.common import getJob
+from app.core.utils import CustomJSONEncoder
 from app.core.models.Clasess import Class, Object, Property, Method, Value
 from app.core.main.ObjectsStorage import remove_object, reload_object, objects
-from plugins.Objects.forms.utils import *
+from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents
 
 
 # Определение класса формы
@@ -21,7 +23,7 @@ class ObjectForm(FlaskForm):
     submit = SubmitField('Submit')
 
     def validate_name(self, name):
-        obj = Object.query.filter(Object.name==name.data).first()
+        obj = Object.query.filter(Object.name == name.data).first()
         if self.id is None:
             if obj is not None:
                 raise ValidationError('Object already taken. Please choose a different one.')
@@ -49,7 +51,7 @@ def routeObject(request):
         db.session.commit()
         remove_object(name)
         return redirect("Objects")
-    
+
     properties = []
     methods = []
     classes = Class.query.order_by(Class.name).all()
@@ -73,8 +75,8 @@ def routeObject(request):
             value = Value.query.filter(Value.object_id == id, Value.name == property['name']).one_or_none()
             if value:
                 property['value'] = value.value
-                property['source'] = value.source
-                property['changed'] = value.changed
+                property['source'] = value.source if value.source else ''
+                property['changed'] = value.changed if value.changed else ''
                 if value.linked:
                     property['linked'] = value.linked.split(",")
         class_methods = []
@@ -83,27 +85,36 @@ def routeObject(request):
         for cls in class_methods:
             cls['redefined'] = False
             for o in object_methods:
-                if o.name == cls["name"] and o.class_id == None:
+                if o.name == cls["name"] and o.class_id is None:
                     cls['redefined'] = True
             methods.append(cls)
 
         for c in object_methods:
             m = row2dict(c)
+            m['redefined'] = False
             methods.append(m)
+        om = objects[item.name]
         for method in methods:
             if method['class_id']:
                 method["class_name"] = dict_classes[method["class_id"]]
-            job_name = item.name +"_"+ method['name']+"_periodic"
+            job_name = item.name + "_" + method['name'] + "_periodic"
             job = getJob(job_name)
             if job:
                 method['crontab'] = job['crontab']
+            if method['name'] in om.methods and not method['redefined']:
+                mm = om.methods[method['name']]
+                method['source'] = mm.source if mm.source else ''
+                method['executed'] = mm.executed if mm.executed else ''
+                method['exec_params'] = json.dumps(mm.exec_params, cls=CustomJSONEncoder) if mm.exec_params else ''
+                method['exec_result'] = mm.exec_result if mm.exec_result else ''
+
         for property in properties:
             if property['method_id']:
                 for method in methods:
                     if method['id'] == property['method_id']:
                         property['method'] = method['name']
                         break
-        
+
     else:
         form = ObjectForm()
         if class_id:
@@ -128,7 +139,7 @@ def routeObject(request):
         if old_name != item.name:
             remove_object(old_name)
         reload_object(item.id)
-        
+
         return redirect("Objects")  # Перенаправляем на другую страницу после успешного редактирования
     class_owner = None
     if class_id:
@@ -137,12 +148,12 @@ def routeObject(request):
     if id:
         obj = objects[item.name]
     content = {
-            'id': id,
-            'form':form,
-            'class': class_owner,
-            'properties': properties,
-            'methods': methods,
-            'tab': tab,
-            'obj': obj
-            }
+        'id': id,
+        'form':form,
+        'class': class_owner,
+        'properties': properties,
+        'methods': methods,
+        'tab': tab,
+        'obj': obj
+    }
     return render_template('object.html', **content)

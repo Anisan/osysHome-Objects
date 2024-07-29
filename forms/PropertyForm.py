@@ -1,13 +1,13 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, IntegerField
-from wtforms.validators import DataRequired, Optional
+from wtforms.validators import DataRequired, Optional, ValidationError
 
 from sqlalchemy import delete
 from flask import redirect, render_template
-from app.database import db
-from app.core.models.Clasess import Class, Object, Property, Value
+from app.database import db, row2dict
+from app.core.models.Clasess import Class, Object, Property, Value, Method
 from app.core.main.ObjectsStorage import reload_object,reload_objects_by_class
-from plugins.Objects.forms.utils import *
+from plugins.Objects.forms.utils import no_spaces_or_dots, no_reserved, getMethodsParents
 
 # Определение класса формы
 class PropertyForm(FlaskForm):
@@ -17,6 +17,18 @@ class PropertyForm(FlaskForm):
     history = IntegerField("History", validators=[Optional()])
     type = SelectField("Type")
     submit = SubmitField('Submit')
+    id = None
+    class_id = None
+    object_id = None
+
+    def validate_name(self, name):
+        """Проверка на повторяющиеся значения в базе данных"""
+        if self.object_id:
+            if Property.query.filter(Property.name == name.data, Property.object_id == self.object_id, Property.id != self.id).first():
+                raise ValidationError('Name already registered. Please choose a different one.')
+        if self.class_id:
+            if Property.query.filter(Property.name == name.data, Property.class_id == self.class_id, Property.id != self.id).first():
+                raise ValidationError('Name already registered. Please choose a different one.')
 
 def routeProperty(request):
     id = request.args.get('property', None)
@@ -42,19 +54,23 @@ def routeProperty(request):
             db.session.commit()
 
         if object_id: 
-            url = "?view=object&object="+str(object_id)+"&tab=properties"
+            url = "?view=object&object=" + str(object_id) + "&tab=properties"
             reload_object(object_id)
         else:
-            url = "?view=class&class="+str(class_id)+"&tab=properties"
+            url = "?view=class&class=" + str(class_id) + "&tab=properties"
             reload_objects_by_class(class_id)
         return redirect(url)
 
     if id:
         item = Property.query.get_or_404(id)  # Получаем объект из базы данных или возвращаем 404, если не найден
         form = PropertyForm(obj=item)  # Передаем объект в форму для редактирования
+        form.id = id
     else:
         form = PropertyForm()
         form.history.data = 0
+
+    form.class_id = class_id
+    form.object_id = object_id
 
     object_owner = None
     if object_id:
@@ -70,8 +86,8 @@ def routeProperty(request):
         for method in obj_method:
             methods.append(row2dict(method))
 
-    form.method_id.choices = [('','')] +  [(method['id'], method['name']) for method in methods]
-    form.type.choices = [('',''),('int','Integer'),('float','Float'),('str','String'),('datetime','Datetime'),('dict','Dictionary'),('object','Object')] #TODO add types
+    form.method_id.choices = [('','')] + [(method['id'], method['name']) for method in methods]
+    form.type.choices = [('',''),('int','Integer'),('float','Float'),('str','String'),('datetime','Datetime'),('dict','Dictionary'),('object','Object')]  # TODO add types
     if form.validate_on_submit():
         if id:
             if op == "redefine":
@@ -87,14 +103,20 @@ def routeProperty(request):
                 db.session.commit()
                 id = prop.id
             else:
+                old_name = item.name
                 form.populate_obj(item)  # Обновляем значения объекта данными из формы
                 item.method_id = int(form.method_id.data) if form.method_id.data else None
-
+                if old_name != item.name and object_id:
+                    db.session.query(Value).filter(Value.object_id == object_id, Value.name == old_name).update({'name': item.name})
+                if old_name != item.name and class_id:
+                    objs = db.session.query(Object).filter(Object.class_id == class_id).all()
+                    for obj in objs:
+                        db.session.query(Value).filter(Value.object_id == obj.id, Value.name == old_name).update({'name': item.name})
         else:
             new_item = Property(
                 name=form.name.data,
                 description=form.description.data,
-                method_id = int(form.method_id.data) if form.method_id.data else None,
+                method_id=int(form.method_id.data) if form.method_id.data else None,
                 history=form.history.data,
                 type=form.type.data,
             )
@@ -104,20 +126,19 @@ def routeProperty(request):
                 new_item.object_id = object_id
             db.session.add(new_item)
         db.session.commit()  # Сохраняем изменения в базе данных
-        
+
         if object_id: 
-            url = "?view=object&object="+str(object_id)+"&tab=properties"
+            url = "?view=object&object=" + str(object_id) + "&tab=properties"
             reload_object(object_id)
         else:
-            url = "?view=class&class="+str(class_id)+"&tab=properties"
+            url = "?view=class&class=" + str(class_id) + "&tab=properties"
             reload_objects_by_class(class_id)
-        
-        
-        return redirect(url) # Перенаправляем на другую страницу после успешного редактирования
+
+        return redirect(url)  # Перенаправляем на другую страницу после успешного редактирования
     content = {
-            'id': id,
-            'form':form,
-            'class': class_owner,
-            'object': object_owner,
-        } 
+        'id': id,
+        'form':form,
+        'class': class_owner,
+        'object': object_owner,
+    } 
     return render_template('property.html', **content)

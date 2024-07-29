@@ -105,11 +105,10 @@
                         <td>{{ property.type }}</td>
                         <td>
                             <span id="prop:{{form.name.data}}.{{property.name}}">{{ property.value }}</span>
-                            <a href="#" class="btn btn-link py-0" type="button" onclick="openModal('{{form.name.data}}.{{property.name}}')" title="Edit value"><i class="fas fa-edit mt-2"></i></a>
-                            <p style="color: gray;margin: 0px;">↳ {{property.changed}} 
-                                {% if property.source%}
-                                - {{property.source}}
-                                {%endif%}
+                            <a href="#" class="btn btn-link py-0 px-1" type="button" onclick="openModal('{{form.name.data}}.{{property.name}}')" title="Edit value"><i class="fas fa-edit mt-0"></i></a>
+                            <p style="color: gray;margin: 0px;">
+                                <span class="badge bg-secondary" id="prop_changed:{{form.name.data}}.{{property.name}}">{{property.changed}}</span>
+                                <span class="badge bg-success" id="prop_source:{{form.name.data}}.{{property.name}}">{{property.source}}</span>
                             </p>
                             
                         </td>
@@ -136,6 +135,7 @@
                         <th>#</th>
                         <th>Name</th>
                         <th>Description</th>
+                        <th>Executed</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -143,18 +143,33 @@
                     {% for method in methods %}
                     <tr>
                         <th scope="row">{{ method.id }}</th>
-                        <td>
+                        <td style="white-space: nowrap;">
                             {% if method.class_id %}{{method.class_name}} -> <b>{% endif %}
                             {{ form.name.data }}.{{ method.name }}
                             {% if method.class_id %}</b>{% endif %}
                         </td>
-                        <td>
+                        <td style="white-space: nowrap;">
                             {{ method.description }}
                             {% if method.crontab%}
                             <p style="color: gray;margin: 0px;">↳ <span class="badge bg-warning text-dark">Periodic: {{method.crontab}}</span></p>
                             {% endif%}
                         </td>
                         <td>
+                            {% if not method.redefined %}
+                            <div>
+                                <span class="badge bg-secondary" id="method_executed:{{form.name.data}}.{{method.name}}">{{method.executed}}</span>
+                                <span class="badge bg-success" id="method_source:{{form.name.data}}.{{method.name}}">{{method.source}}</span>
+                            </div>
+                            <a class="btn btn-link p-0" data-bs-toggle="collapse" data-bs-target="#spoiler_info{{form.name.name}}{{method.name}}" aria-expanded="true" aria-controls="spoiler{{form.name.name}}{{method.name}}">
+                                Info
+                            </a>
+                            <div id="spoiler_info{{form.name.name}}{{method.name}}" class="collapse hide ms-3">
+                                <p style="color: gray;margin: 0px;">↳ Params: <span id="method_exec_params:{{form.name.data}}.{{method.name}}">{{method.exec_params}}</span></p>
+                                <p style="color: gray;margin: 0px;">↳ Result: <span id="method_exec_result:{{form.name.data}}.{{method.name}}">{{method.exec_result}}</span></p>                
+                            </div>
+                            {%endif%}
+                        </td>
+                        <td style="white-space: nowrap;">
                             {% if method.class_id %}
                                 {% if not method.redefined %}
                                 <a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button">Redefine</a>
@@ -211,6 +226,8 @@
                 {% if prop.method %}
                     <span class="badge bg-primary">{{prop.method}}</span>
                 {% endif %}
+                <span class="ms-1 badge bg-secondary" id="prop_changed:{{form.name.data}}.{{prop.name}}">{{prop.changed}}</span>
+                <span class="ms-1 badge bg-success" id="prop_source:{{form.name.data}}.{{prop.name}}">{{prop.source}}</span>
             </li>
             {% endfor %}    
             </ul>
@@ -222,6 +239,10 @@
                 <a class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#spoiler{{obj.name}}{{method.name}}" aria-expanded="true" aria-controls="spoiler{{obj.name}}{{method.name}}">
                     Code
                 </a>
+                <p style="color: gray;margin: 0px;">↳ Source: <span id="method_source:{{form.name.data}}.{{method.name}}">{{method.source}}</span></p>
+                <p style="color: gray;margin: 0px;">↳ Executed: <span id="method_executed:{{form.name.data}}.{{method.name}}">{{method.executed}}</span></p>
+                <p style="color: gray;margin: 0px;">↳ Params: <span id="method_exec_params:{{form.name.data}}.{{method.name}}">{{method.exec_params}}</span></p>
+                <p style="color: gray;margin: 0px;">↳ Result: <span id="method_exec_result:{{form.name.data}}.{{method.name}}">{{method.exec_result}}</span></p>
                 <div id="spoiler{{obj.name}}{{method.name}}" class="collapse hide ms-3" aria-labelledby="headingOne">
                     {% for item in method.methods %}
                         {%if item.class_id %}<b>{{item.owner}}</b>->{{item.name}}{%endif%}

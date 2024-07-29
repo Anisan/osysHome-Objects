@@ -1,7 +1,7 @@
 from flask import redirect, render_template
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, RadioField, BooleanField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, ValidationError
 from sqlalchemy import delete
 
 from app.core.models.Clasess import Class, Object, Method
@@ -20,6 +20,18 @@ class MethodForm(FlaskForm):
     periodic = BooleanField('Run periodic')
     crontab = StringField('Crontab')
     submit = SubmitField('Submit')
+    id = None
+    class_id = None
+    object_id = None
+
+    def validate_name(self, name):
+        """Проверка на повторяющиеся значения в базе данных"""
+        if self.object_id:
+            if Method.query.filter(Method.name == name.data, Method.object_id == self.object_id, Method.id != self.id).first():
+                raise ValidationError('Name already registered. Please choose a different one.')
+        if self.class_id:
+            if Method.query.filter(Method.name == name.data, Method.class_id == self.class_id, Method.id != self.id).first():
+                raise ValidationError('Name already registered. Please choose a different one.')
 
 def routeMethod(request):
     id = request.args.get('method', None)
@@ -58,6 +70,7 @@ def routeMethod(request):
     if id:
         item = Method.query.get_or_404(id)  # Получаем объект из базы данных или возвращаем 404, если не найден
         form = MethodForm(obj=item)  # Передаем объект в форму для редактирования
+        form.id = id
         if object_owner and request.method == 'GET':
             job = getJob(f'{object_owner.name}_{item.name}_periodic')
             if job:
@@ -66,6 +79,9 @@ def routeMethod(request):
     else:
         form = MethodForm()
         form.call_parent.data = '0'
+    
+    form.class_id = class_id
+    form.object_id = object_id
 
     if form.validate_on_submit():
         if id:
