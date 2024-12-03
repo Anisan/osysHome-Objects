@@ -9,10 +9,10 @@
 {% block module_content %}
 <div class="d-flex justify-content-between">
 <div>
-<a href="?view=class" class="btn btn-outline-success" role="button">Add class</a>
-<a href="?view=object" class="btn btn-outline-success" role="button">Add object</a>
+<a href="?view=class" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>Add class</a>
+<a href="?view=object" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>Add object</a>
 </div>
-<a href="#" class="btn btn-outline-primary" role="button"  data-bs-toggle="modal" data-bs-target="#uploadModal">Import from file</a>
+<a href="#" class="btn btn-outline-primary" role="button"  data-bs-toggle="modal" data-bs-target="#uploadModal"><i class="fas fa-file-import me-2"></i>Import from file</a>
 </div>
 <div class="accordion mt-2" id="accordionExample">
   {% for class in classes %}

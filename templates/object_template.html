@@ -2,7 +2,7 @@
     <h5 class="mb-0 d-flex">
         <i class="fas fa-file h3 mt-2"></i>
         <div class="px-3">
-        {{ obj.name }}
+        <a href="?view=object&object={{obj.id}}">{{ obj.name }}</a>
         <pre style="margin: 0px;color: #cacaca;">{%if obj.description!=""%}{{obj.description}}{%else%}Description is empty{%endif%}</pre>
         </div>
     </h5>
