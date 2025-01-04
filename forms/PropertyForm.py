@@ -87,7 +87,7 @@ def routeProperty(request):
             methods.append(row2dict(method))
 
     form.method_id.choices = [('','')] + [(method['id'], method['name']) for method in methods]
-    form.type.choices = [('',''),('int','Integer'),('float','Float'),('str','String'),('datetime','Datetime'),('dict','Dictionary'),('object','Object')]  # TODO add types
+    form.type.choices = [('',''),('int','Integer'),('float','Float'),('str','String'),('datetime','Datetime'),('dict','Dictionary'),('list','List')]
     if form.validate_on_submit():
         if id:
             if op == "redefine":

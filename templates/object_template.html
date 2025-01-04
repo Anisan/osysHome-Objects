@@ -1,17 +1,23 @@
 <div class="list-group-item-action d-flex justify-content-between align-items-center py-0 ps-2">
-    <h5 class="mb-0 d-flex">
+    <h5 class="mb-0 col d-flex">
         <i class="fas fa-file h3 mt-2"></i>
         <div class="px-3">
         <a href="?view=object&object={{obj.id}}">{{ obj.name }}</a>
         <pre style="margin: 0px;color: #cacaca;">{%if obj.description!=""%}{{obj.description}}{%else%}Description is empty{%endif%}</pre>
         </div>
     </h5>
+    {%if obj.template!=""%}
+    <div class="d-flex justify-content-between card p-2 me-3" style="height:100%;min-width:200px;" id="obj:{{obj.name}}">
+        {{obj.template|safe}}
+    </div>
+    {%endif%}
     <div class="d-flex justify-content-center ">
         <div class="btn-group" role="group">
             <a type="button" class="btn btn-outline-primary btn-sm" href="?view=object&object={{obj.id}}" title="Edit"><i class="fas fa-pencil-alt"></i></a>
             <a type="button" class="btn btn-success btn-sm" href="?view=object&object={{obj.id}}&tab=properties" title="Properties"><i class="feather icon-list"></i></a>
             <a type="button" class="btn btn-warning btn-sm" href="?view=object&object={{obj.id}}&tab=methods" title="Methods"><i class="fas fa-cog"></i></a>
             <a type="button" class="btn btn-secondary btn-sm" href="?view=object&object={{obj.id}}&tab=structure" title="Structure"><i class="fa-solid fa-diagram-project"></i></a>
+            <a type="button" class="btn btn-info btn-sm" href="?view=object&object={{obj.id}}&tab=schedule" title="Schedule"><i class="fa-solid fa-calendar-days"></i></a>
             <a type="button" class="btn btn-danger btn-sm"  href="?view=object&object={{obj.id}}&op=delete" title="Delete"
                 onClick="return confirm('Delete object {{obj.name}}?')" >
                 <i class="feather icon-trash"></i>

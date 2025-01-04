@@ -70,7 +70,7 @@
   <button type="submit" class="btn btn-primary">Submit</button>
   {% if object %}
   <a href="?view=object&object={{object.id}}&tab=methods" class="btn btn-secondary">Cancel</a>
-  <a href="#" class="btn btn-success" onClick="callMethod('{{object.name}}.{{form.name.data}}')" role="button">Run</a>
+  <a href="#" class="btn btn-success" onClick="callMethodWithResult('{{object.name}}.{{form.name.data}}')" role="button">Run</a>
   {% else %}
   <a href="?view=class&class={{class.id}}&tab=methods" class="btn btn-secondary">Cancel</a>
   {% endif %}

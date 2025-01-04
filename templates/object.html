@@ -11,6 +11,8 @@
 {% block title %} {{form.name.data}} {% endblock %} 
 
 {% block module_content %}
+<div class="row">
+<div class="col">
 {% if form.errors %}
 <div class="alert alert-warning mt-3">
     <ul>
@@ -22,9 +24,13 @@
     </ul>
 </div>
 {% endif %}
+{% if saved %}
+<div class="alert alert-success mt-3">
+    Object saved successfully!
+</div>
+{% endif %}
 <!-- Подключение стилей Prism -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism.min.css">
-
 <ul class="nav nav-tabs mb-3" id="configTabs" role="tablist">
     <li class="nav-item"><a class="nav-link tab-button{% if tab == ''%} active{%endif%}" href="#general" data-bs-toggle="tab" role="tab">General</a></li>
     <li class="nav-item">
@@ -39,6 +45,7 @@
     </li>
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#template_tab" data-bs-toggle="tab" role="tab">Template</a></li>
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'structure'%} active{%endif%}{% if not obj %} disabled{%endif%}" href="#object_tab" data-bs-toggle="tab" role="tab">Structure</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'schedule'%} active{%endif%}{% if not obj %} disabled{%endif%}" href="#schedule_tab" data-bs-toggle="tab" role="tab">Schedules</a></li>
     <li class="nav-item flex-grow-1"> <!-- flex-grow-1 для заполнения промежутка -->
         <!-- Пустой элемент, чтобы создать промежуток -->
       </li>
@@ -101,6 +108,18 @@
                             {%endif%}
                             {%if property.history%}<p style="color: gray;margin: 0px;">↳ <a href="HistoryView?name={{property.name}}&object={{id}}" class="badge bg-warning text-dark">History: {{property.history}} days</a></p>{%endif%}
                             {%if property.method%}<p style="color: gray;margin: 0px;">↳ <span class="badge bg-primary">Method: {{property.method}}</span></p>{%endif%}
+                            {% if property.jobs%}
+                                {%for job in property.jobs%}
+                                <p style="color: gray;margin: 0px;">
+                                    ↳ <span class="badge bg-warning text-dark">Runtime: {{job.runtime}} 
+                                    {%if job.crontab%}
+                                        (Period: {{job.crontab}})
+                                    {%endif%}
+                                    </span>
+                                    <a href="?view=schedule&object={{id}}&tab=properties&schedule={{job.id}}&op=delete" onClick="return confirm('Delete task?')" class="btn btn-tertiary btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
+                                </p>
+                                {%endfor%}
+                            {% endif%}
                         </td>
                         <td>{{ property.type }}</td>
                         <td>
@@ -115,8 +134,10 @@
                         <td>
                             {% if not property.class_id %}
                                 <a href="?view=property&object={{id}}&property={{property.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="Edit"><i class="fas fa-pencil-alt"></i></a>
+                                <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>Add task</a>
                                 <a href="?view=property&object={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
                             {%else%}
+                                <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>Add task</a>
                                 <a href="?view=property&object={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button">Redefine</a>
                             {% endif %}
                         </td>
@@ -150,8 +171,17 @@
                         </td>
                         <td style="white-space: nowrap;">
                             {{ method.description }}
-                            {% if method.crontab%}
-                            <p style="color: gray;margin: 0px;">↳ <span class="badge bg-warning text-dark">Periodic: {{method.crontab}}</span></p>
+                            {% if method.jobs%}
+                                {%for job in method.jobs%}
+                                <p style="color: gray;margin: 0px;">
+                                    ↳ <span class="badge bg-warning text-dark">Runtime: {{job.runtime}} 
+                                    {%if job.crontab%}
+                                        (Period: {{job.crontab}})
+                                    {%endif%}
+                                    </span>
+                                    <a href="?view=schedule&object={{id}}&tab=methods&schedule={{job.id}}&op=delete" onClick="return confirm('Delete task?')" class="btn btn-tertiary btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
+                                </p>
+                                {%endfor%}
                             {% endif%}
                         </td>
                         <td>
@@ -179,8 +209,8 @@
                                 <a href="?view=method&object={{id}}&method={{method.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
                             {% endif %}
                             {% if not method.redefined %}
-                                <a href="#" class="btn btn-secondary btn-sm" onClick="openCrontabForm('{{form.name.data}}.{{method.name}}','{{method.crontab}}')" role="button"><i class="fa-solid fa-calendar-days me-2"></i>Cron task</a>
-                                <a href="#" class="btn btn-warning btn-sm" onClick="callMethod('{{form.name.data}}.{{method.name}}')" role="button"><i class="fa-solid fa-gears me-2"></i>Run</a>
+                                <a href="?view=schedule&object={{id}}&method={{method.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>Add task</a>
+                                <a href="#" class="btn btn-warning btn-sm" onClick="callMethodWithResult('{{form.name.data}}.{{method.name}}',)" role="button"><i class="fa-solid fa-gears me-2"></i>Run</a>
                             {% endif %}
                         </td>
                     </tr>
@@ -234,7 +264,7 @@
             <ul>
             <b>Methods</b>
             {% for key_meth, method in obj.methods.items() %}
-            <li>{{ method.name }}: {{ method.description }} <a href="#" onclick="callMethod('{{obj.name}}.{{method.name}}')">Run</a>
+            <li>{{ method.name }}: {{ method.description }} <a href="#" onclick="callMethodWithResult('{{obj.name}}.{{method.name}}')">Run</a>
                 {% if method.methods %}
                 <a class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#spoiler{{obj.name}}{{method.name}}" aria-expanded="true" aria-controls="spoiler{{obj.name}}{{method.name}}">
                     Code
@@ -256,9 +286,58 @@
             </ul>
     </div>
     {%endif%}
+    <div class="tab-pane fade {% if tab == 'schedule'%}show active{%endif%}" id="schedule_tab" role="tabpanel" aria-labelledby="schedule-tab">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Code</th>
+                        <th>Date</th>
+                        <th>Cron</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for schedule in schedules %}
+                    <tr class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-bottom: 5px;">
+                        <th scope="row">{{ schedule.id }}</th>
+                        <td>
+                            {{ schedule.name }}
+                        </td>
+                        <td>
+                            {{ schedule.code }}
+                        </td>
+                        <td>
+                            {{ schedule.runtime }}
+                        </td>
+                        <td>
+                            {{ schedule.crontab }}
+                        </td>
+                        <td>
+                            <a href="?view=schedule&object={{id}}&tab=schedule&schedule={{schedule.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="Edit"><i class="fas fa-pencil-alt"></i></a>
+                            <a href="?view=schedule&object={{id}}&tab=schedule&schedule={{schedule.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <a href="Objects" class="btn btn-secondary">Cancel</a>
+    </div>
     <div class="tab-pane fade" id="tools" role="tabpanel" aria-labelledby="tools-tab">
         <a href="../api/export/object/{{id}}" class="btn btn-primary btn-sm" role="button">Export object</a>
     </div>
+</div>
+</div>
+{%if template!=''%}
+<div class="col col-2">
+<div class="card p-2" id="obj:{{form.name.data}}">
+    {{template|safe}}
+</div>
+</div>
+{%endif%}
 </div>
 <!-- Модальное окно нового значения-->
 <div class="modal fade" id="myModal">
@@ -329,38 +408,14 @@
         setProperty(nameProperty,newValue)
         $('#myModal').modal('hide');
     });
-    function openCrontabForm(method, crontab) {
 
-        document.getElementById("cronValue").value = crontab;
-        document.getElementById("methodValue").innerHTML = method;
-        $('#cronModal').modal('show');
-    }
-    document.getElementById("saveCronButton").addEventListener("click", function() {
-        // Получаем значение из поля ввода
-        var newValue = document.getElementById("cronValue").value;
-        // Выполняем функцию с новым значением
-        payload = {
-            "method": document.getElementById("methodValue").innerHTML,
-            "crontab": document.getElementById("cronValue").value
-        }
-        $.ajax({
-                url: '/api/utils/crontask',
-                type: 'POST',
-                data: JSON.stringify(payload),
-                contentType: 'application/json; charset=utf-8', // Тип контента отправляемых данных
-                dataType: 'json', // Ожидаемый тип данных в ответе
-                success: function(response){
-                    window.location.reload();
-                },
-                error: function(xhr, status, error) {
-                    alert(error);
-                    console.error(xhr.responseText);
-                }
+    $(document).ready(function () {
+        window.setTimeout(function() {
+            $(".alert").fadeTo(1000, 0).slideUp(1000, function(){
+                $(this).remove(); 
             });
-        
-        $('#cronModal').modal('hide');
+        }, 5000);
     });
-
 </script>
 <!-- Подключение скриптов Prism -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>

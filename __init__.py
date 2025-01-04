@@ -7,6 +7,9 @@ from plugins.Objects.forms.ClassForm import routeClass
 from plugins.Objects.forms.ObjectForm import routeObject
 from plugins.Objects.forms.PropertyForm import routeProperty
 from plugins.Objects.forms.MethodForm import routeMethod
+from plugins.Objects.forms.ScheduleForm import routeSchedule
+from plugins.Objects.forms.SettingForms import SettingsForm
+from app.core.lib.object import getObject
 
 class Objects(BasePlugin):
 
@@ -15,15 +18,13 @@ class Objects(BasePlugin):
         self.title = "Objects Plugin"
         self.version = 1
         self.description = """Objects editor"""
-        self.actions=["search", "widget"]
+        self.actions = ["search", "widget"]
 
     def initialization(self):
         pass
 
     def admin(self, request):
         args = request.args
-        data = request.data
-
         view = args.get('view', '')
 
         if view == "class":
@@ -34,23 +35,34 @@ class Objects(BasePlugin):
             return routeProperty(request)
         elif view == "method":
             return routeMethod(request)
+        elif view == "schedule":
+            return routeSchedule(request)
         
+        settings = SettingsForm()
+        if request.method == 'GET':
+            settings.render.data = self.config.get('render',False)
+        else:
+            if settings.validate_on_submit():
+                self.config["render"] = settings.render.data
+                self.saveConfig()
+
         classes = Class.query.filter(Class.parent_id == None).order_by(Class.name).all()
         cls_of_dicts = [
-                {'id': c.id, 'name': c.name, 'description': c.description} 
-                for c in classes
+            {'id': c.id, 'name': c.name, 'description': c.description} 
+            for c in classes
         ]
         for cls in cls_of_dicts:
-                self.getClassInfo(cls)
+            self.getClassInfo(cls)
         objects = Object.query.filter(Object.class_id == None).order_by(Object.name).all()
         objs_of_dicts = [
-                {'id': obj.id, 'name': obj.name, 'description': obj.description} 
-                for obj in objects
+            {'id': obj.id, 'name': obj.name, 'description': obj.description, 'template': getObject(obj.name).render() if self.config.get("render", None) else ''} 
+            for obj in objects
         ]
+        
         content = {
-                'classes' : cls_of_dicts,
-                'objects' : objs_of_dicts,
-                
+            'classes': cls_of_dicts,
+            'objects': objs_of_dicts,
+            'form': settings,              
         }
             
         return self.render('objects.html', content)
@@ -94,13 +106,17 @@ class Objects(BasePlugin):
         childrens = Class.query.filter(Class.parent_id == cls["id"]).order_by(Class.name)
 
         list_of_dicts = [
-                {'id': c.id, 'name': c.name, 'description': c.description} 
-                for c in childrens
+            {'id': c.id, 'name': c.name, 'description': c.description} 
+            for c in childrens
         ]
         cls["children"] = list_of_dicts
         for child in list_of_dicts:
             self.getClassInfo(child)
         
         objects = Object.query.filter(Object.class_id == cls["id"]).order_by(Object.name).all()
-        cls["objects"] = objects
+        objs_of_dicts = [
+            {'id': obj.id, 'name': obj.name, 'description': obj.description, 'template': getObject(obj.name).render() if self.config.get("render", None) else ''} 
+            for obj in objects
+        ]
+        cls["objects"] = objs_of_dicts
 

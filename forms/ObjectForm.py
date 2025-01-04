@@ -6,7 +6,7 @@ from wtforms.validators import DataRequired
 from sqlalchemy import delete
 
 from app.database import db, row2dict
-from app.core.lib.common import getJob
+from app.core.lib.common import getJob, getJobs
 from app.core.utils import CustomJSONEncoder
 from app.core.models.Clasess import Class, Object, Property, Method, Value
 from app.core.main.ObjectsStorage import remove_object, reload_object, objects
@@ -51,7 +51,7 @@ def routeObject(request):
         db.session.commit()
         remove_object(name)
         return redirect("Objects")
-
+    saved = False
     properties = []
     methods = []
     classes = Class.query.order_by(Class.name).all()
@@ -79,6 +79,10 @@ def routeObject(request):
                 property['changed'] = value.changed if value.changed else ''
                 if value.linked:
                     property['linked'] = value.linked.split(",")
+            job_name = item.name + "\_" + property['name'] + "\_%"
+            jobs = getJobs(job_name)
+            if jobs:
+                property['jobs'] = jobs
         class_methods = []
         class_methods = getMethodsParents(item.class_id,class_methods)
         object_methods = Method.query.filter(Method.object_id == item.id).order_by(Method.name).all()
@@ -97,10 +101,10 @@ def routeObject(request):
         for method in methods:
             if method['class_id']:
                 method["class_name"] = dict_classes[method["class_id"]]
-            job_name = item.name + "_" + method['name'] + "_periodic"
-            job = getJob(job_name)
-            if job:
-                method['crontab'] = job['crontab']
+            job_name = item.name + "\_" + method['name'] + "\_%"
+            jobs = getJobs(job_name)
+            if jobs:
+                method['jobs'] = jobs
             if method['name'] in om.methods and not method['redefined']:
                 mm = om.methods[method['name']]
                 method['source'] = mm.source if mm.source else ''
@@ -140,20 +144,30 @@ def routeObject(request):
             remove_object(old_name)
         reload_object(item.id)
 
-        return redirect("Objects")  # Перенаправляем на другую страницу после успешного редактирования
+        saved = True
+
+        #return redirect("Objects")  # Перенаправляем на другую страницу после успешного редактирования
     class_owner = None
     if class_id:
         class_owner = Class.get_by_id(class_id)
     obj = None
+    schedules = []
+    template = ''
     if id:
         obj = objects[item.name]
+        schedules = getJobs(item.name + "\_%")
+        template = obj.render()
+
     content = {
         'id': id,
         'form':form,
         'class': class_owner,
         'properties': properties,
         'methods': methods,
+        'schedules': schedules,
+        'template': template,
         'tab': tab,
-        'obj': obj
+        'obj': obj,
+        'saved': saved,
     }
     return render_template('object.html', **content)

@@ -11,6 +11,9 @@
 <div>
 <a href="?view=class" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>Add class</a>
 <a href="?view=object" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>Add object</a>
+<button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+  Settings
+</button>
 </div>
 <a href="#" class="btn btn-outline-primary" role="button"  data-bs-toggle="modal" data-bs-target="#uploadModal"><i class="fas fa-file-import me-2"></i>Import from file</a>
 </div>
@@ -24,6 +27,31 @@
 {% include 'object_template.html' %}
 </ul>
 {% endfor %}
+ <!-- Модальное окно с настройками -->
+ <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <form  method="POST">
+          <div class="modal-header">
+              <h5 class="modal-title" id="exampleModalLabel">Settings</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+              <!-- Поля формы -->
+              {{ form.hidden_tag() }}
+              <div class="mb-3">
+                  {{ form.render.label(class="form-label") }}
+                  {{ form.render(class="form-check") }}
+              </div>
+           </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-primary">Submit</button>
+          </div>
+          </form>
+      </div>
+  </div>
+</div>
 
 <!-- Модальное окно -->
 <div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-labelledby="uploadModalLabel" aria-hidden="true">
