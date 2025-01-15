@@ -6,7 +6,7 @@ from sqlalchemy import delete
 from flask import redirect, render_template
 from app.database import db, row2dict
 from app.core.models.Clasess import Class, Object, Property, Value, Method
-from app.core.main.ObjectsStorage import reload_object,reload_objects_by_class
+from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import no_spaces_or_dots, no_reserved, getMethodsParents
 
 # Определение класса формы
@@ -55,10 +55,10 @@ def routeProperty(request):
 
         if object_id: 
             url = "?view=object&object=" + str(object_id) + "&tab=properties"
-            reload_object(object_id)
+            objects_storage.reload_object(object_id)
         else:
             url = "?view=class&class=" + str(class_id) + "&tab=properties"
-            reload_objects_by_class(class_id)
+            objects_storage.reload_objects_by_class(class_id)
         return redirect(url)
 
     if id:
@@ -129,10 +129,10 @@ def routeProperty(request):
 
         if object_id: 
             url = "?view=object&object=" + str(object_id) + "&tab=properties"
-            reload_object(object_id)
+            objects_storage.reload_object(object_id)
         else:
             url = "?view=class&class=" + str(class_id) + "&tab=properties"
-            reload_objects_by_class(class_id)
+            objects_storage.reload_objects_by_class(class_id)
 
         return redirect(url)  # Перенаправляем на другую страницу после успешного редактирования
     content = {

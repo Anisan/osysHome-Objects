@@ -7,7 +7,7 @@ from sqlalchemy import or_, delete
 from app.core.models.Clasess import Class, Property, Method, Object
 from app.database import db, row2dict
 from plugins.Objects.forms.utils import *
-from app.core.main.ObjectsStorage import remove_objects_by_class, reload_objects_by_class
+from app.core.main.ObjectsStorage import objects_storage
 
 # Определение класса формы
 class ClassForm(FlaskForm):
@@ -19,7 +19,7 @@ class ClassForm(FlaskForm):
     submit = SubmitField('Submit')
 
     def validate_name(self, name):
-        cls = Class.query.filter(Class.name==name.data).first()
+        cls = Class.query.filter(Class.name == name.data).first()
         if self.id is None:
             if cls is not None:
                 raise ValidationError('Class already taken. Please choose a different one.')
@@ -39,10 +39,10 @@ def routeClass(request):
         db.session.execute(sql)
         sql = delete(Method).where(Method.class_id == id)
         db.session.execute(sql)
-        sql = delete(Class).where(Class.id==id)
+        sql = delete(Class).where(Class.id == id)
         db.session.execute(sql)
         db.session.commit()
-        remove_objects_by_class(id)
+        objects_storage.remove_objects_by_class(id)
         return redirect("Objects")
     if id:
         item = Class.query.get_or_404(id)  # Получаем объект из базы данных или возвращаем 404, если не найден
@@ -101,18 +101,18 @@ def routeClass(request):
         # update object to storage
         if id:
             if old_name != item.name:
-                remove_objects_by_class(item.id)
-            reload_objects_by_class(item.id)
+                objects_storage.remove_objects_by_class(item.id)
+            objects_storage.reload_objects_by_class(item.id)
         return redirect("Objects")  # Перенаправляем на другую страницу после успешного редактирования
     content = {
-            'id': id,
-            'form':form,
-            'properties':properties,
-            'parent_properties':parent_properties,
-            'methods': methods,
-            'parent_methods': parent_methods,
-            'objects': objects,
-            'tab': tab,
-        }
+        'id': id,
+        'form':form,
+        'properties':properties,
+        'parent_properties':parent_properties,
+        'methods': methods,
+        'parent_methods': parent_methods,
+        'objects': objects,
+        'tab': tab,
+    }
     return render_template('class.html', **content)
 

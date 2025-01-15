@@ -9,7 +9,7 @@ from app.database import db, row2dict
 from app.core.lib.common import getJob, getJobs
 from app.core.utils import CustomJSONEncoder
 from app.core.models.Clasess import Class, Object, Property, Method, Value
-from app.core.main.ObjectsStorage import remove_object, reload_object, objects
+from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents
 
 
@@ -49,7 +49,7 @@ def routeObject(request):
         sql = delete(Object).where(Object.id == id)
         db.session.execute(sql)
         db.session.commit()
-        remove_object(name)
+        objects_storage.remove_object(name)
         return redirect("Objects")
     saved = False
     properties = []
@@ -97,7 +97,7 @@ def routeObject(request):
             m = row2dict(c)
             m['redefined'] = False
             methods.append(m)
-        om = objects[item.name]
+        om = objects_storage.getObjectByName(item.name)
         for method in methods:
             if method['class_id']:
                 method["class_name"] = dict_classes[method["class_id"]]
@@ -141,8 +141,8 @@ def routeObject(request):
         db.session.commit()  # Сохраняем изменения в базе данных
         # update object to storage
         if old_name != item.name:
-            remove_object(old_name)
-        reload_object(item.id)
+            objects_storage.remove_object(old_name)
+        objects_storage.reload_object(item.id)
 
         saved = True
 
@@ -154,7 +154,7 @@ def routeObject(request):
     schedules = []
     template = ''
     if id:
-        obj = objects[item.name]
+        obj = objects_storage.getObjectByName(item.name)
         schedules = getJobs(item.name + "\_%")
         template = obj.render()
 

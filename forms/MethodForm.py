@@ -7,7 +7,7 @@ from sqlalchemy import delete
 from app.core.models.Clasess import Class, Object, Method
 from app.core.lib.common import getJob, addCronJob, clearScheduledJob
 from app.database import db
-from app.core.main.ObjectsStorage import reload_object,reload_objects_by_class
+from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import no_spaces_or_dots
 
 
@@ -61,10 +61,10 @@ def routeMethod(request):
 
         if object_id:
             url = "?view=object&object=" + str(object_id) + "&tab=methods"
-            reload_object(object_id)
+            objects_storage.reload_object(object_id)
         else:
             url = "?view=class&class=" + str(class_id) + "&tab=methods"
-            reload_objects_by_class(class_id)
+            objects_storage.reload_objects_by_class(class_id)
         return redirect(url)
 
     if id:
@@ -122,10 +122,10 @@ def routeMethod(request):
 
         if object_id:
             url = "?view=object&object=" + str(object_id) + "&tab=methods"
-            reload_object(object_id)
+            objects_storage.reload_object(object_id)
         else:
             url = "?view=class&class=" + str(class_id) + "&tab=methods"
-            reload_objects_by_class(class_id)
+            objects_storage.reload_objects_by_class(class_id)
 
         saved = True
 
