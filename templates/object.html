@@ -78,7 +78,6 @@
     <div class="tab-pane fade {% if tab == 'properties'%}show active{%endif%}" id="properties" role="tabpanel" aria-labelledby="properties-tab">
         <div class="table-responsive">
             <table class="table table-hover table-sm">
-                <thead>
                     <tr>
                         <th>#</th>
                         <th>Name</th>
@@ -91,13 +90,13 @@
                 <tbody>
                     {% for property in properties %}
                     <tr class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-bottom: 5px;">
-                        <th scope="row">{{ property.id }}</th>
-                        <td>
+                        <th scope="row" width="1%" nowrap>{{ property.id }}</th>
+                        <td width="10%" nowrap>
                             {% if property.class_id %}<b>{% endif %}
                                 {{ form.name.data }}.{{ property.name }}
                             {% if property.class_id %}</b>{% endif %}
                         </td>
-                        <td>
+                        <td width="10%" nowrap>
                             {%if property.description%}<p style="color: gray;margin: 0px;">{{property.description}}</p>{%endif%}
                             {%if property.linked%}
                             <p style="color: gray;margin: 0px;">
@@ -121,17 +120,20 @@
                                 {%endfor%}
                             {% endif%}
                         </td>
-                        <td>{{ property.type }}</td>
+                        <td width="1%" nowrap>{{ property.type }}</td>
                         <td>
-                            <span id="prop:{{form.name.data}}.{{property.name}}">{{ property.value }}</span>
-                            <a href="#" class="btn btn-link py-0 px-1" type="button" onclick="openModal('{{form.name.data}}.{{property.name}}')" title="Edit value"><i class="fas fa-edit mt-0"></i></a>
+                            <div class="input-group">
+                                <button class="btn btn-outline-secondary" type="button" onclick="openModal('{{form.name.data}}.{{property.name}}')"><i class="fas fa-edit mt-0"></i></button>
+                                <textarea class="form-control" id="prop:{{form.name.data}}.{{property.name}}" rows="1" readonly>{{ property.value }}</textarea>
+                            </div>
+                            {%if property.changed%}
                             <p style="color: gray;margin: 0px;">
                                 <span class="badge bg-secondary" id="prop_changed:{{form.name.data}}.{{property.name}}">{{property.changed}}</span>
                                 <span class="badge bg-success" id="prop_source:{{form.name.data}}.{{property.name}}">{{property.source}}</span>
                             </p>
-                            
+                            {%endif%}
                         </td>
-                        <td>
+                        <td width="1%" nowrap>
                             {% if not property.class_id %}
                                 <a href="?view=property&object={{id}}&property={{property.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="Edit"><i class="fas fa-pencil-alt"></i></a>
                                 <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>Add task</a>
@@ -340,18 +342,19 @@
 {%endif%}
 </div>
 <!-- Модальное окно нового значения-->
-<div class="modal fade" id="myModal">
-    <div class="modal-dialog  modal-dialog-centered">
+<div class="modal fade" id="myModal" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">
       
         <!-- Заголовок модального окна -->
         <div class="modal-header">
           <h4 class="modal-title">Enter new value</h4>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         
         <!-- Основное содержимое модального окна -->
         <div class="modal-body">
-          <input type="text" id="newValue" class="form-control" placeholder="Enter new value">
+          <textarea type="text" id="newValue" class="form-control" placeholder="Enter new value"></textarea>
         </div>
         
         <!-- Подвал модального окна с кнопками -->
