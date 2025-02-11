@@ -74,7 +74,7 @@ def routeObject(request):
             property['linked'] = []
             value = Value.query.filter(Value.object_id == id, Value.name == property['name']).one_or_none()
             if value:
-                property['value'] = value.value
+                property['value'] = str(value.value)
                 property['source'] = value.source if value.source else ''
                 property['changed'] = value.changed if value.changed else ''
                 if value.linked:

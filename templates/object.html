@@ -91,12 +91,12 @@
                     {% for property in properties %}
                     <tr class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-bottom: 5px;">
                         <th scope="row" width="1%" nowrap>{{ property.id }}</th>
-                        <td width="10%" nowrap>
+                        <td width="10%">
                             {% if property.class_id %}<b>{% endif %}
                                 {{ form.name.data }}.{{ property.name }}
                             {% if property.class_id %}</b>{% endif %}
                         </td>
-                        <td width="10%" nowrap>
+                        <td width="10%">
                             {%if property.description%}<p style="color: gray;margin: 0px;">{{property.description}}</p>{%endif%}
                             {%if property.linked%}
                             <p style="color: gray;margin: 0px;">
@@ -126,12 +126,10 @@
                                 <button class="btn btn-outline-secondary" type="button" onclick="openModal('{{form.name.data}}.{{property.name}}')"><i class="fas fa-edit mt-0"></i></button>
                                 <textarea class="form-control" id="prop:{{form.name.data}}.{{property.name}}" rows="1" readonly>{{ property.value }}</textarea>
                             </div>
-                            {%if property.changed%}
                             <p style="color: gray;margin: 0px;">
                                 <span class="badge bg-secondary" id="prop_changed:{{form.name.data}}.{{property.name}}">{{property.changed}}</span>
                                 <span class="badge bg-success" id="prop_source:{{form.name.data}}.{{property.name}}">{{property.source}}</span>
                             </p>
-                            {%endif%}
                         </td>
                         <td width="1%" nowrap>
                             {% if not property.class_id %}
