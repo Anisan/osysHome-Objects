@@ -90,7 +90,13 @@ class Objects(BasePlugin):
                 res.append({"url":f'Objects?view=method&class={method.class_id}&method={method.id}&op=edit', "title":f'{cls.name}.{method.name} ({method.description})', "tags":[{"name":"Method","color":"secondary"}]})    
             if method.object_id:
                 obj = Object.get_by_id(method.object_id)
-                res.append({"url":f'Objects?view=method&object={method.object_id}&method={method.id}&op=edit', "title":f'{obj.name}.{method.name} ({method.description})', "tags":[{"name":"Method","color":"primary"}]})    
+                res.append({"url":f'Objects?view=method&object={method.object_id}&method={method.id}&op=edit', "title":f'{obj.name}.{method.name} ({method.description})', "tags":[{"name":"Method","color":"primary"}]})  
+
+        values = Value.query.filter(Value.value.contains(query)).all()
+        for val in values:
+            obj = Object.get_by_id(val.object_id)
+            res.append({"url":f'Objects?view=object&object={val.object_id}&tab=properties', "title":f'{obj.name}.{val.name} = {val.value}', "tags":[{"name":"Value","color":"success"}]})    
+       
         return res
     
     def widget(self):
