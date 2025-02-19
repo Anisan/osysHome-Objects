@@ -121,7 +121,7 @@ class Objects(BasePlugin):
         
         objects = Object.query.filter(Object.class_id == cls["id"]).order_by(Object.name).all()
         objs_of_dicts = [
-            {'id': obj.id, 'name': obj.name, 'description': obj.description, 'template': getObject(obj.name).render() if self.config.get("render", None) else ''} 
+            {'id': obj.id, 'name': obj.name, 'description': obj.description, 'template': getObject(obj.name).render() if getObject(obj.name) and self.config.get("render", None) else ''} 
             for obj in objects
         ]
         cls["objects"] = objs_of_dicts
