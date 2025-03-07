@@ -4,7 +4,7 @@ from app.core.models.Clasess import Class,Property, Method
 from wtforms.validators import ValidationError
 
 def getPropertiesParents(id, properties):
-    query = Property.query.filter(Property.class_id == id, Property.object_id is None)
+    query = Property.query.filter(Property.class_id == id, Property.object_id.is_(None))
     if current_user.role != 'admin':
         query = query.filter(Property.name.notlike(r'\_%', escape='\\'))
     props = query.order_by(Property.name).all()
@@ -20,7 +20,7 @@ def getPropertiesParents(id, properties):
     return properties
 
 def getMethodsParents(id, methods):
-    query = Method.query.filter(Method.class_id == id, Method.object_id is None)
+    query = Method.query.filter(Method.class_id == id, Method.object_id.is_(None))
     if current_user.role != 'admin':
         query = query.filter(Method.name.notlike(r'\_%', escape='\\'))
     meth = query.order_by(Method.name).all()

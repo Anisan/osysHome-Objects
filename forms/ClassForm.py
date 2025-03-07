@@ -48,7 +48,7 @@ def routeClass(request):
         item = Class.query.get_or_404(id)  # Получаем объект из базы данных или возвращаем 404, если не найден
         form = ClassForm(obj=item)  # Передаем объект в форму для редактирования
         form.id = item.id
-        query = Property.query.filter(Property.class_id == item.id, Property.object_id is None)
+        query = Property.query.filter(Property.class_id == item.id, Property.object_id.is_(None))
         if current_user.role != 'admin':
             query = query.filter(Property.name.notlike(r'\_%', escape='\\'))
         properties = query.order_by(Property.name).all()
@@ -59,7 +59,7 @@ def routeClass(request):
             # исключить переопределенные
             parent_properties = [item for item in parent_props if item['name'] not in [subitem['name'] for subitem in properties]]
         dict_methods = {}
-        query = Method.query.filter(Method.class_id == item.id, Method.object_id is None)
+        query = Method.query.filter(Method.class_id == item.id, Method.object_id.is_(None))
         if current_user.role != 'admin':
             query = query.filter(Method.name.notlike(r'\_%', escape='\\'))
         methods = query.order_by(Method.name).all()
