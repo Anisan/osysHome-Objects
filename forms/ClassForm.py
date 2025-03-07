@@ -1,12 +1,12 @@
 from flask_wtf import FlaskForm
-from wtforms import IntegerField, StringField, SubmitField, SelectField, TextAreaField
+from flask_login import current_user
+from wtforms import StringField, SubmitField, SelectField, TextAreaField
 from wtforms.validators import DataRequired, Optional
-
 from flask import redirect, render_template
-from sqlalchemy import or_, delete
+from sqlalchemy import delete
 from app.core.models.Clasess import Class, Property, Method, Object
 from app.database import db, row2dict
-from plugins.Objects.forms.utils import *
+from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, no_spaces_or_dots, ValidationError
 from app.core.main.ObjectsStorage import objects_storage
 
 # Определение класса формы
@@ -33,8 +33,8 @@ def routeClass(request):
     tab = request.args.get('tab', '')
     op = request.args.get('op', '')
     if op == 'delete':
-        #todo remove objects
-        #todo remove classes
+        # todo remove objects
+        # todo remove classes
         sql = delete(Property).where(Property.class_id == id)
         db.session.execute(sql)
         sql = delete(Method).where(Method.class_id == id)
@@ -48,7 +48,10 @@ def routeClass(request):
         item = Class.query.get_or_404(id)  # Получаем объект из базы данных или возвращаем 404, если не найден
         form = ClassForm(obj=item)  # Передаем объект в форму для редактирования
         form.id = item.id
-        properties = Property.query.filter(Property.class_id == item.id, Property.object_id==None).order_by(Property.name).all()
+        query = Property.query.filter(Property.class_id == item.id, Property.object_id is None)
+        if current_user.role != 'admin':
+            query = query.filter(Property.name.notlike(r'\_%', escape='\\'))
+        properties = query.order_by(Property.name).all()
         properties = [row2dict(item) for item in properties] 
         parent_properties = []
         if item.parent_id:
@@ -56,9 +59,12 @@ def routeClass(request):
             # исключить переопределенные
             parent_properties = [item for item in parent_props if item['name'] not in [subitem['name'] for subitem in properties]]
         dict_methods = {}
-        methods = Method.query.filter(Method.class_id == item.id, Method.object_id==None).order_by(Method.name).all()
+        query = Method.query.filter(Method.class_id == item.id, Method.object_id is None)
+        if current_user.role != 'admin':
+            query = query.filter(Method.name.notlike(r'\_%', escape='\\'))
+        methods = query.order_by(Method.name).all()
         methods = [row2dict(item) for item in methods] 
-        for method in methods: 
+        for method in methods:
             dict_methods[method['id']] = method['name']
         parent_methods = []
         if item.parent_id:
@@ -73,7 +79,12 @@ def routeClass(request):
             if prop['method_id']:
                 if prop['method_id'] in dict_methods:
                     prop['method'] = dict_methods[prop['method_id']]
-        objects = Object.query.filter(Object.class_id == id).order_by(Object.name).all()
+
+        query = Object.query.filter(Object.class_id == id)
+        if current_user.role != 'admin':
+            query = query.filter(Object.name.notlike(r'\_%', escape='\\'))
+        objects = query.order_by(Object.name).all()
+
     else:
         form = ClassForm()
         properties = []
@@ -81,8 +92,14 @@ def routeClass(request):
         methods = []
         parent_methods = []
         objects = []
-    classes = Class.query.filter(Class.id != id).order_by(Class.name).all() # TODO exclude current class
-    form.parent_id.choices = [('','')] +  [(_class.id, _class.name) for _class in classes]
+    
+    query = Class.query.filter(Class.id != id)  # TODO exclude current class
+    if current_user.role != 'admin':
+        query = query.filter(Class.name.notlike(r'\_%', escape='\\'))
+    classes = query.order_by(Class.name).all()
+
+    # TODO exclude current class
+    form.parent_id.choices = [('','')] + [(_class.id, _class.name) for _class in classes]
     old_name = ""
     if id:
         old_name = item.name
@@ -94,7 +111,7 @@ def routeClass(request):
             new_item = Class(
                 name=form.name.data,
                 description=form.description.data,
-                parent_id = int(form.parent_id.data) if form.parent_id.data else None
+                parent_id=int(form.parent_id.data) if form.parent_id.data else None
             )
             db.session.add(new_item)
         db.session.commit()  # Сохраняем изменения в базе данных
@@ -115,4 +132,3 @@ def routeClass(request):
         'tab': tab,
     }
     return render_template('class.html', **content)
-

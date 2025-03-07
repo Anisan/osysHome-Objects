@@ -1,6 +1,7 @@
 import json
 from flask import redirect, render_template
 from flask_wtf import FlaskForm
+from flask_login import current_user
 from wtforms import StringField, SubmitField, SelectField, TextAreaField, ValidationError
 from wtforms.validators import DataRequired
 from sqlalchemy import delete
@@ -54,7 +55,11 @@ def routeObject(request):
     saved = False
     properties = []
     methods = []
-    classes = Class.query.order_by(Class.name).all()
+    query = Class.query
+    if current_user.role != 'admin':
+        query = query.filter(Class.name.notlike(r'\_%', escape='\\'))
+    classes = query.order_by(Class.name).all()
+
     dict_classes = {obj.id: obj.name for obj in classes}
     choices = [('','')] + [(_class.id, _class.name) for _class in classes]
     if id:
@@ -64,7 +69,10 @@ def routeObject(request):
         form.id = item.id
         parent_properties = []
         parent_properties = getPropertiesParents(item.class_id, parent_properties)
-        object_properties = Property.query.filter(Property.object_id == item.id).order_by(Property.name).all()
+        query = Property.query.filter(Property.object_id == item.id)
+        if current_user.role != 'admin':
+            query = query.filter(Property.name.notlike(r'\_%', escape='\\'))
+        object_properties = query.order_by(Property.name).all()
         # исключить переопределенные
         parent_properties = [item for item in parent_properties if item['name'] not in [subitem.name for subitem in object_properties]]
         properties += parent_properties
@@ -85,7 +93,10 @@ def routeObject(request):
                 property['jobs'] = jobs
         class_methods = []
         class_methods = getMethodsParents(item.class_id,class_methods)
-        object_methods = Method.query.filter(Method.object_id == item.id).order_by(Method.name).all()
+        query = Method.query.filter(Method.object_id == item.id)
+        if current_user.role != 'admin':
+            query = query.filter(Method.name.notlike(r'\_%', escape='\\'))
+        object_methods = query.order_by(Method.name).all()
         for cls in class_methods:
             cls['redefined'] = False
             for o in object_methods:
