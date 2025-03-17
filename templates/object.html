@@ -30,7 +30,7 @@
 </div>
 {% endif %}
 <!-- Подключение стилей Prism -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism.min.css">
+<link rel="stylesheet" href="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.css">
 <ul class="nav nav-tabs mb-3" id="configTabs" role="tablist">
     <li class="nav-item"><a class="nav-link tab-button{% if tab == ''%} active{%endif%}" href="#general" data-bs-toggle="tab" role="tab">General</a></li>
     <li class="nav-item">
@@ -419,6 +419,6 @@
     });
 </script>
 <!-- Подключение скриптов Prism -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
+<script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.js"></script>
+<script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism-python.min.js"></script>
 {% endblock %}
