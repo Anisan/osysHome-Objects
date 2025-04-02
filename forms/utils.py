@@ -71,13 +71,13 @@ def checkPermission(class_id: int = None, object_id: int = None, property_id: in
         permissions = __permissions["self"]
     if property_id:
         prop = Property.get_by_id(property_id)
-        if prop:
+        if prop and __permissions:
             if "properties" in __permissions:
                 if prop.name in __permissions["properties"]:
                     permissions = __permissions["properties"][prop.name]
     if method_id:
         method = Method.get_by_id(method_id)
-        if method:
+        if method and __permissions:
             if "methods" in __permissions:
                 if method.name in __permissions["properties"]:
                     permissions = __permissions["properties"][method.name]
