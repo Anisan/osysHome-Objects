@@ -44,14 +44,15 @@
     <li class="nav-item">
         <button class="nav-link tab-button{% if tab == 'methods'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#methods" data-bs-toggle="tab" role="tab">
             Methods <a href="?view=method&class={{id}}" class="btn btn-success btn-sm ms-2" title="Add method"><i class="fas fa-plus"></i></a>
-        </a>
+        </button>
     </li>
     <li class="nav-item">
         <button class="nav-link tab-button{% if tab == 'objects'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#objects" data-bs-toggle="tab" role="tab">
             Objects <a href="?view=object&class={{id}}" class="btn btn-success btn-sm ms-2" title="Add object"><i class="fas fa-plus"></i></a>
-        </a>
+        </button>
     </li>
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#template_tab" data-bs-toggle="tab" role="tab">Template</a></li>
+    <li class="nav-item"><a class="nav-link tab-button" href="?view=class&class={{id}}&tab=permissions">Permissions</a></li>
     <li class="nav-item flex-grow-1"> <!-- flex-grow-1 для заполнения промежутка -->
         <!-- Пустой элемент, чтобы создать промежуток -->
       </li>
@@ -188,40 +189,15 @@
         <a href="Objects" class="btn btn-secondary">Cancel</a>
     </div>
     <div class="tab-pane fade {% if tab == 'objects'%}show active{%endif%}" id="objects" role="tabpanel" aria-labelledby="objects-tab">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for obj in objects %}
-                    <tr>
-                        <th scope="row">{{ obj.id }}</th>
-                        <td>{{ obj.name }}</td>
-                        <td>{{ obj.description }}</td>
-                        <td>
-                            <div class="btn-group" role="group">
-                                <a type="button" class="btn btn-outline-primary btn-sm" href="?view=object&object={{obj.id}}" title="Edit"><i class="fas fa-pencil-alt"></i></a>
-                                <a type="button" class="btn btn-success btn-sm" href="?view=object&object={{obj.id}}&tab=properties" title="Properties"><i class="feather icon-list"></i></a>
-                                <a type="button" class="btn btn-warning btn-sm" href="?view=object&object={{obj.id}}&tab=methods" title="Methods"><i class="fas fa-cog"></i></a>
-                                <a type="button" class="btn btn-secondary btn-sm" href="?view=object&object={{obj.id}}&tab=structure" title="Structure"><i class="fa-solid fa-diagram-project"></i></a>
-                                <a type="button" class="btn btn-info btn-sm" href="?view=object&object={{obj.id}}&tab=schedule" title="Schedules"><i class="fa-solid fa-calendar-days"></i></a>
-                                <a type="button" class="btn btn-danger btn-sm"  href="?view=object&object={{obj.id}}&op=delete" title="Delete"
-                                    onClick="return confirm('Delete object {{obj.name}}?')" >
-                                    <i class="feather icon-trash"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        {%if objects %}
+        <ul class="list-group list-group-flush ps-2 mb-0 me-2">
+            {% for obj in objects %}
+                {% include 'object_template.html' %}
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="px-3 ml-2 mt-2">No objects</p>
+        {% endif %}
         <a href="Objects" class="btn btn-secondary">Cancel</a>
     </div>
     <div class="tab-pane fade {% if tab == 'template'%}show active{%endif%}" id="template_tab" role="tabpanel" aria-labelledby="template-tab">
@@ -242,4 +218,5 @@
         <a href="../api/export/class_all/{{id}}" class="btn btn-primary btn-sm" role="button">Export class and objects</a>
     </div>
 </div>
+
 {% endblock %}

@@ -35,7 +35,7 @@
     <li class="nav-item"><a class="nav-link tab-button{% if tab == ''%} active{%endif%}" href="#general" data-bs-toggle="tab" role="tab">General</a></li>
     <li class="nav-item">
         <button class="nav-link tab-button{% if tab == 'properties'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#properties" data-bs-toggle="tab" role="tab">
-            Properties <a href="?view=property&object={{id}}" class="btn btn-success btn-sm ms-2" title="App property"><i class="fas fa-plus"></i></a>
+            Properties <a href="?view=property&object={{id}}" class="btn btn-success btn-sm ms-2" title="Add property"><i class="fas fa-plus"></i></a>
         </button>
     </li>
     <li class="nav-item">
@@ -46,6 +46,7 @@
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#template_tab" data-bs-toggle="tab" role="tab">Template</a></li>
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'structure'%} active{%endif%}{% if not obj %} disabled{%endif%}" href="#object_tab" data-bs-toggle="tab" role="tab">Structure</a></li>
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'schedule'%} active{%endif%}{% if not obj %} disabled{%endif%}" href="#schedule_tab" data-bs-toggle="tab" role="tab">Schedules</a></li>
+    <li class="nav-item"><a class="nav-link tab-button" href="?view=object&object={{id}}&tab=permissions">Permissions</a></li>
     <li class="nav-item flex-grow-1"> <!-- flex-grow-1 для заполнения промежутка -->
         <!-- Пустой элемент, чтобы создать промежуток -->
       </li>

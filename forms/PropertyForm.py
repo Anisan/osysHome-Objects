@@ -1,13 +1,13 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, IntegerField
+from wtforms import StringField, SubmitField, SelectField, IntegerField, StringField
 from wtforms.validators import DataRequired, Optional, ValidationError
 
 from sqlalchemy import delete
-from flask import redirect, render_template
+from flask import redirect, render_template, abort
 from app.database import db, row2dict
 from app.core.models.Clasess import Class, Object, Property, Value, Method
 from app.core.main.ObjectsStorage import objects_storage
-from plugins.Objects.forms.utils import no_spaces_or_dots, no_reserved, getMethodsParents
+from plugins.Objects.forms.utils import no_spaces_or_dots, no_reserved, getMethodsParents, checkPermission
 
 # Определение класса формы
 class PropertyForm(FlaskForm):
@@ -35,6 +35,9 @@ def routeProperty(request):
     class_id = request.args.get('class', None)
     object_id = request.args.get('object', None)
     op = request.args.get('op', '')
+
+    if not checkPermission(class_id, object_id, None, id):
+        abort(403)  # Возвращаем ошибку "Forbidden" если доступ запрещен
 
     if op == 'delete':
         if object_id:
@@ -135,6 +138,7 @@ def routeProperty(request):
             objects_storage.reload_objects_by_class(class_id)
 
         return redirect(url)  # Перенаправляем на другую страницу после успешного редактирования
+
     content = {
         'id': id,
         'form':form,

@@ -1,4 +1,4 @@
-from flask import redirect, render_template
+from flask import redirect, render_template, abort
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, RadioField, BooleanField
 from wtforms.validators import DataRequired, ValidationError
@@ -8,7 +8,7 @@ from app.core.models.Clasess import Class, Object, Method
 from app.core.lib.common import getJob, addCronJob, clearScheduledJob
 from app.database import db
 from app.core.main.ObjectsStorage import objects_storage
-from plugins.Objects.forms.utils import no_spaces_or_dots
+from plugins.Objects.forms.utils import no_spaces_or_dots, checkPermission
 
 
 # Определение класса формы
@@ -46,6 +46,10 @@ def routeMethod(request):
     object_id = request.args.get('object', None)
     op = request.args.get('op', '')
     saved = False
+
+    if not checkPermission(class_id, object_id, id):
+        abort(403)  # Возвращаем ошибку "Forbidden" если доступ запрещен
+
 
     object_owner = None
     if object_id:

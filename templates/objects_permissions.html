@@ -1,0 +1,487 @@
+{% extends "admin.html" %}
+{% from "macros/code_editor.html" import render_editor %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="Objects">Objects</a></li>
+{%if tab %}
+<li class="breadcrumb-item"><a href="Objects?view={{type}}&{{type}}={{id}}">{{name}}</a></li>
+{%endif%}
+{% endblock %}
+
+{% block module_content %}
+{%if tab %}
+<ul class="nav nav-tabs mb-3" id="configTabs" role="tablist">
+    <li class="nav-item"><a class="nav-link tab-button" href="?view={{type}}&{{type}}={{id}}">General</a></li>
+    <li class="nav-item">
+        <button type="button" class="nav-link tab-button" onclick="window.location='?view={{type}}&{{type}}={{id}}&tab=properties'">
+            Properties <a href="?view=property&{{type}}={{id}}" class="btn btn-success btn-sm ms-2" title="Add property"><i class="fas fa-plus"></i></a>
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link tab-button" onclick="window.location='?view={{type}}&{{type}}={{id}}&tab=methods'">
+            Methods <a href="?view=method&{{type}}={{id}}" class="btn btn-success btn-sm ms-2" title="Add method"><i class="fas fa-plus"></i></a>
+        </button>
+    </li>
+    {% if type=='class'%}
+    <li class="nav-item">
+        <button class="nav-link tab-button" onclick="window.location='?view={{type}}&{{type}}={{id}}&tab=objects'">
+            Objects <a href="?view=object&class={{id}}" class="btn btn-success btn-sm ms-2" title="Add object"><i class="fas fa-plus"></i></a>
+        </button>
+    </li>
+    {%endif%}
+    <li class="nav-item"><a class="nav-link tab-button" href="?view={{type}}&{{type}}={{id}}&tab=template">Template</a></li>
+    {% if type!='class'%}
+    <li class="nav-item"><a class="nav-link tab-button" href="?view={{type}}&{{type}}={{id}}&tab=structure">Structure</a></li>
+    <li class="nav-item"><a class="nav-link tab-button" href="?view={{type}}&{{type}}={{id}}&tab=schedule">Schedules</a></li>
+    {%endif%}
+    <li class="nav-item"><a class="nav-link tab-button active" href="?view={{type}}&{{type}}={{id}}&tab=permissions">Permissions</a></li>
+</ul>
+{% endif %}
+<script src="{{ config.ASSETS_ROOT }}/plugins/vue/vue@2.js"></script>
+<script src="{{ config.ASSETS_ROOT }}/plugins/vue/axios.min.js"></script>
+<div id="permissions">
+    <div class="btn btn-primary me-2 text-nowrap" @click="fetchPermissions" title="Refresh">
+        <span class="fas fa-rotate me-2" :class="loading ? 'fa-spin':''"></span>
+        Refresh
+    </div>
+
+    <span v-if="saving">
+        <span class="fas fa-floppy-disk me-2 fa-spin"></span>
+        Saving ...
+    </span>
+    <span v-if="resultSave">
+        <span class="fas fa-floppy-disk me-2"></span>
+        Saved - [[resultSave]]
+    </span>
+
+    <div class="tab-content mt-2" id="myTabContent">
+        <div v-if="permissions" class="tab-pane fade show active">
+            <h5>Self</h5>
+            <div class="row">
+                <div v-if="permissions.self" class="row col-auto">
+                    <div v-for="name in types" class="col-auto card mx-1 p-1">
+                        <div v-if="name == 'get'" class="badge bg-success me-3" style="width:60px">GET</div>
+                        <div v-if="name == 'set'" class="badge bg-warning me-3" style="width:60px">SET</div>
+                        <div v-if="name == 'call'" class="badge bg-danger me-3" style="width:60px">CALL</div>
+                        <div v-if="name == 'edit'" class="badge bg-info me-3" style="width:60px">EDIT</div>
+                        <div v-if="permissions.self[name]">
+                            <div v-if="permissions.self[name].access_users">
+                                Access users:
+                                <span v-for="user in permissions['self'][name].access_users" class="badge bg-success">[[user]]</span>
+                            </div> 
+                            <div v-if="permissions['self'][name].denied_users">
+                                Denied users:
+                                <span v-for="user in permissions['self'][name].denied_users" class="badge bg-danger">[[user]]</span>
+                            </div> 
+                            <div v-if="permissions['self'][name].access_roles">
+                                Access roles:
+                                <template v-for="role in roles">
+                                    <span v-if="permissions['self'][name].access_roles.includes(role.name)" class="badge bg-success">[[role.title]]</span>
+                                </template>
+                            </div> 
+                            <div v-if="permissions['self'][name].denied_roles">
+                                Denied roles:
+                                <template v-for="role in roles">
+                                    <span v-if="permissions['self'][name].denied_roles.includes(role.name)" class="badge bg-danger">[[role.title]]</span>
+                                </template>
+                            </div> 
+                        </div>
+                        <span v-else class="badge bg-secondary mt-1">Not set</span>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('self','')" title="Edit">Edit</div>
+                </div>
+            </div>
+
+            <div v-if="nameObject != '*'" class="row">
+                <div class="col">
+                    <h5>Properties</h5>
+                    <table class="table table-hover table-striped">
+                        <thead>
+                            <th>Name</th>
+                            <th><div class="badge bg-success me-3" style="width:60px">GET</div></th>
+                            <th><div class="badge bg-warning me-3" style="width:60px">SET</div></th>
+                            <th><div class="badge bg-info me-3" style="width:60px">EDIT</div></th>
+                            <th></th>
+                        </thead>
+                        <tbody>
+
+                        <tr v-for="(value, nameProp) in properties">
+                            <td>[[nameProp]]</td>
+                            <td v-for="name in typesProperties">
+                                <div v-if="getProperties(nameProp) && getProperties(nameProp)[name]">
+                                            <div v-if="getProperties(nameProp)[name].access_users">
+                                                Access users:
+                                                <span v-for="user in getProperties(nameProp)[name].access_users" class="badge bg-success">[[user]]</span>
+                                            </div> 
+                                            <div v-if="getProperties(nameProp)[name].denied_users">
+                                                Denied users:
+                                                <span v-for="user in getProperties(nameProp)[name].denied_users" class="badge bg-danger">[[user]]</span>
+                                            </div> 
+                                            <div v-if="getProperties(nameProp)[name].access_roles">
+                                                Access roles:
+                                                <template v-for="role in roles">
+                                                    <span v-if="getProperties(nameProp)[name].access_roles.includes(role.name)" class="badge bg-success">[[role.title]]</span>
+                                                </template>
+                                            </div> 
+                                            <div v-if="getProperties(nameProp)[name].denied_roles">
+                                                Denied roles:
+                                                <template v-for="role in roles">
+                                                    <span v-if="getProperties(nameProp)[name].denied_roles.includes(role.name)" class="badge bg-danger">[[role.title]]</span>
+                                                </template>
+                                            </div> 
+                                </div>
+                                <span v-else class="badge bg-secondary mt-1">Not set</span>
+                            </td>
+                            <td>
+                                <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('properties',nameProp)" title="Edit">Edit</div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col">
+                    <h5>Methods</h5>
+                    <table class="table table-hover table-striped">
+                        <thead>
+                            <th>Name</th>
+                            <th><div class="badge bg-danger me-3" style="width:60px">CALL</div></th>
+                            <th><div class="badge bg-info me-3" style="width:60px">EDIT</div></th>
+                            <th></th>
+                        </thead>
+                        <tbody>
+
+                        <tr v-for="(value, nameProp) in methods">
+                            <td>[[nameProp]]</td>
+                            <td v-for="name in typesMethods">
+                                <div v-if="getMethods(nameProp) && getMethods(nameProp)[name]">
+                                            <div v-if="getMethods(nameProp)[name].access_users">
+                                                Access users:
+                                                <span v-for="user in getMethods(nameProp)[name].access_users" class="badge bg-success">[[user]]</span>
+                                            </div> 
+                                            <div v-if="getMethods(nameProp)[name].denied_users">
+                                                Denied users:
+                                                <span v-for="user in getMethods(nameProp)[name].denied_users" class="badge bg-danger">[[user]]</span>
+                                            </div> 
+                                            <div v-if="getMethods(nameProp)[name].access_roles">
+                                                Access roles:
+                                                <template v-for="role in roles">
+                                                    <span v-if="getMethods(nameProp)[name].access_roles.includes(role.name)" class="badge bg-success">[[role.title]]</span>
+                                                </template>
+                                            </div> 
+                                            <div v-if="getMethods(nameProp)[name].denied_roles">
+                                                Denied roles:
+                                                <template v-for="role in roles">
+                                                    <span v-if="getMethods(nameProp)[name].denied_roles.includes(role.name)" class="badge bg-danger">[[role.title]]</span>
+                                                </template>
+                                            </div> 
+                                </div>
+                                <span v-else class="badge bg-secondary mt-1">Not set</span>
+                            </td>
+                            <td>
+                                <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('methods',nameProp)" title="Edit">Edit</div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% if current_user.role in ["admin","root"] %}
+            <h5 class="mt-2">Raw permissions</h5>
+            [[permissions]]
+            {% endif %}
+        </div>
+    </div>
+    <div class="modal fade" id="permissionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Permissions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div v-if="edit_item" class="modal-body">
+                    <div v-for="(item, name) in edit_item" class="card my-1 px-2 py-1">
+                        <div>
+                            <div v-if="name == 'get'" class="badge bg-success me-3" style="width:60px">GET</div>
+                            <div v-if="name == 'set'" class="badge bg-warning me-3" style="width:60px">SET</div>
+                            <div v-if="name == 'call'" class="badge bg-danger me-3" style="width:60px">CALL</div>
+                            <div v-if="name == 'edit'" class="badge bg-info me-3" style="width:60px">EDIT</div>
+                        </div>
+                            <div>
+                                Access users:
+                                <span v-for="(user,key) in users" class="badge" :class="item.access_users.includes(user.name) ? 'bg-success text-light':'bg-light text-dark'" @click="switchElement(name,'access_users',user.name)">
+                                    <img :src="user.properties.image || '/Permissions/static/Permissions.png'" class="rounded-circle" style="width: 16px;" />
+                                    [[user.description || user.name]]
+                                </span>
+                            </div> 
+                            <div>
+                                Denied users:
+                                <span v-for="(user,key) in users" class="badge" :class="item.denied_users.includes(user.name) ? 'bg-danger text-light':'bg-light text-dark'" @click="switchElement(name,'denied_users',user.name)">
+                                    <img :src="user.properties.image || '/Permissions/static/Permissions.png'" class="rounded-circle" style="width: 16px;" />
+                                    [[user.description || user.name]]
+                                </span>
+                            </div> 
+                            <div>
+                                Access roles:
+                                <span v-for="role in roles" class="badge" :class="item.access_roles.includes(role.name) ? 'bg-success text-light':'bg-light text-dark'" @click="switchElement(name,'access_roles',role.name)">[[role.title]]</span>
+                            </div> 
+                            <div>
+                                Denied roles:
+                                <span v-for="role in roles" class="badge" :class="item.denied_roles.includes(role.name) ? 'bg-danger text-light':'bg-light text-dark'" @click="switchElement(name,'denied_roles',role.name)">[[role.title]]</span>
+                            </div> 
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" @click="applyPermission">Save</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+new Vue({
+      el: '#permissions',
+      delimiters: ['[[', ']]'], // Измененные разделители
+      data: {
+        nameObject: '{{name}}',
+        typePermissions: '{{type}}',
+        permissions: {},
+        properties:{},
+        methods:{},
+        users:[],
+        loading: false,
+        saving: false,
+        error: null,
+        resultSave: null,
+        edit_item:null,
+        edit_name:'',
+        roles:[
+            {'name':'*', 'title':"All"},
+            {'name':'guest', 'title':"Guest"},
+            {'name':'user', 'title':"User"},
+            {'name':'editor', 'title':"Editor"},
+            {'name':'admin', 'title':"Admin"},
+        ],
+        types: ['get', 'set', 'call', 'edit'],
+        typesProperties: ['get', 'set', 'edit'],
+        typesMethods: ['call', 'edit'],
+      },
+      async created() {
+        await this.fetchPermissions()
+      },
+      mounted() {
+
+      },
+      watch: {
+
+      },
+      computed: {
+
+      },
+      methods: {
+        async fetchPermissions() {
+          this.loading = true
+          axios.get(`/api/object/class/Users`)
+            .then(response => {
+                this.users = response.data.result
+            })
+          if (this.nameObject != "*")
+          {
+            const res = await axios.get("/api/"+this.typePermissions+"/"+this.nameObject)
+            console.log(res)
+            this.properties = res.data.result.properties
+            this.methods = res.data.result.methods
+          }
+          axios.get("/api/property/_permissions."+this.typePermissions+":"+this.nameObject)
+            .then(response => {
+                // Function to sort methods for each endpoint
+                function sortMethods(data) {
+                    const methodOrder = ['get', 'set', 'call', 'edit'] // Desired order of methods
+                    // Helper function to sort methods based on the defined order
+                    function sortEndpointMethods(methods) {
+                        return methods.sort((a, b) => {
+                        const indexA = methodOrder.indexOf(a.method.toLowerCase());
+                        const indexB = methodOrder.indexOf(b.method.toLowerCase());
+                        if (indexA === -1) return 1; // Move unknown methods to the end
+                        if (indexB === -1) return -1;
+                        return indexA - indexB;
+                        });
+                    }
+
+                    // Iterate through each service and its endpoints
+                    for (const [serviceName, serviceData] of Object.entries(data)) {
+                        if (serviceData.endpoints) {
+                        for (const endpoint of serviceData.endpoints) {
+                            if (endpoint.methods) {
+                            endpoint.methods = sortEndpointMethods(endpoint.methods);
+                            }
+                        }
+                        }
+                    }
+
+                    return data;
+                }
+
+                // Call the function and get the sorted data
+              this.permissions = response.data.result.value //sortMethods(response.data.result.value)
+              console.log(this.permissions)
+              this.loading = false
+            })
+            .catch(error => {
+              console.log(error)
+              this.error = error
+              this.loading = false
+            })
+            ;
+        },
+        editPermission(type, name){
+            var defPermissions = { 'access_users':[], 'denied_users':[], 'access_roles':[], 'denied_roles':[]}
+            this.edit_name=name
+            this.edit_type=type
+            var methodOrder = ['get', 'set', 'call', 'edit'] // Desired order of methods
+            var permission = this.permissions['self'] ?? null
+            if (type == "properties"){
+                methodOrder = ['get', 'set', 'edit'] // Desired order of methods
+                permission =  this.getProperties(name)
+            }
+            if (type == "methods"){
+                methodOrder = ['call', 'edit'] // Desired order of methods
+                permission = this.getMethods(name)
+            }
+
+            var def_item = {}
+            methodOrder.forEach(key => {
+                if (permission && permission[key])
+                    def_item[key] = {...defPermissions,...permission[key]}
+                else
+                    def_item[key] = {...defPermissions}
+                this.edit_item={...permission}
+            })
+            this.edit_item=JSON.parse(JSON.stringify(def_item))
+            console.log(this.edit_item)
+            $('#permissionModal').modal('show');
+        },
+        applyPermission(){
+            var data = this.removeEmptyValues(this.edit_item)
+            if (this.edit_type == "self"){
+                Vue.set(this.permissions,this.edit_type, data)
+                $('#permissionModal').modal('hide');
+                this.savePermissions()
+                return
+            }
+            if (!(this.edit_type in this.permissions))
+                Vue.set(this.permissions,this.edit_type, {})
+            Vue.set(this.permissions[this.edit_type],this.edit_name, data)
+            $('#permissionModal').modal('hide');
+            this.savePermissions()
+        },
+        toggleElement(array, element) {
+            const index = array.indexOf(element); // Находим индекс элемента
+
+            if (index === -1) {
+                // Если элемента нет, добавляем его
+                array.push(element);
+            } else {
+                // Если элемент есть, удаляем его
+                array.splice(index, 1);
+            }
+
+            return array;
+        },
+        switchElement(method,type,element){
+            if (element == "*"){
+                if (this.edit_item[method][type].indexOf("*") === -1)
+                    this.edit_item[method][type] = ['*']
+                else
+                    this.edit_item[method][type] = []
+            }
+            else{
+                const index = this.edit_item[method][type].indexOf("*");
+                if (index >= 0)
+                    this.edit_item[method][type].splice(index, 1);
+                this.edit_item[method][type] = [...this.toggleElement(this.edit_item[method][type], element)]
+            }
+        },
+        removeEmptyValues(obj) {
+            // Если входной объект не является объектом или массивом, возвращаем его как есть
+            if (typeof obj !== 'object' || obj === null) {
+                return obj;
+            }
+
+            // Если это массив, рекурсивно очищаем каждый элемент
+            if (Array.isArray(obj)) {
+                return obj
+                    .map(this.removeEmptyValues) // Рекурсивно очищаем каждый элемент
+                    .filter(item => !this.isEmpty(item)); // Удаляем пустые элементы
+            }
+
+            // Создаем новый объект для хранения очищенных данных
+            const cleanedObj = {};
+            for (const key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    const value = this.removeEmptyValues(obj[key]); // Рекурсивно очищаем значение
+                    if (!this.isEmpty(value)) {
+                        cleanedObj[key] = value; // Добавляем только непустые значения
+                    }
+                }
+            }
+
+            return cleanedObj;
+        },
+        // Вспомогательная функция для проверки, является ли значение "пустым"
+        isEmpty(value) {
+            return (
+                value === null ||
+                value === undefined ||
+                value === '' ||
+                (Array.isArray(value) && value.length === 0) ||
+                (typeof value === 'object' && Object.keys(value).length === 0)
+            );
+        },
+        savePermissions(){
+            this.saving = true
+            var data = this.permissions
+            console.log(this.permissions, data)
+            // save permissions
+            const payload ={
+                "data":data,
+                "source":"Objects"
+            }
+            axios.post("/api/property/_permissions."+this.typePermissions+":"+this.nameObject, payload)
+            .then(response => {
+                console.log(response.data)
+                this.resultSave = "Result: " + response.data.success
+                this.saving = false
+                this.fetchPermissions()
+                setTimeout(() => {
+                    this.resultSave = null; // Обнуляем значение
+                }, 5000);
+            })
+            .catch(error => {
+                this.resultSave = 'Error updating device: ' + error;
+                this.saving = false
+            });
+        },
+
+        getProperties(name){
+            if (this.permissions.properties){
+                if (name in this.permissions.properties)
+                    return this.permissions.properties[name]
+            }
+            return null
+        },
+        getMethods(name){
+            if (this.permissions.methods){
+                if (name in this.permissions.methods)
+                    return this.permissions.methods[name]
+            }
+            return null
+        },
+
+
+      }
+    });
+</script>
+{% endblock %}
+

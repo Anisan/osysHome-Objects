@@ -12,6 +12,9 @@
             <a type="button" class="btn btn-success btn-sm" href="?view=class&class={{class.id}}&tab=properties" title="Properties"><i class="feather icon-list"></i></a>
             <a type="button" class="btn btn-warning btn-sm" href="?view=class&class={{class.id}}&tab=methods" title="Methods"><i class="fas fa-cog"></i></a>
             <a type="button" class="btn btn-primary btn-sm" href="?view=class&class={{class.id}}&tab=objects" title="Objects"><i class="feather icon-grid"></i></a>
+            <a type="button" class="btn btn-secondary btn-sm" href="?view=class&class={{class.id}}&tab=template" title="Template"><i class="fa-solid fa-paintbrush"></i></a>
+            <a type="button" class="btn btn-warning btn-sm" href="?view=class&class={{class.id}}&tab=permissions" title="Permission"><i class="fa-solid fa-shield"></i></a>
+            
             {% if not class.objects and not class.children%}
             <a type="button" class="btn btn-danger btn-sm" href="?view=class&class={{class.id}}&op=delete" title="Delete"
             onClick="return confirm('Delete class {{class.name}}?')"><i class="feather icon-trash"></i></a>

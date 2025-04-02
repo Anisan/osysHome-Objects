@@ -14,43 +14,43 @@
 {% if form.errors %}
 <div class="alert alert-warning mt-3">
     <ul>
-    {% for field, errors in form.errors.items() %}
+        {% for field, errors in form.errors.items() %}
         {% for error in errors %}
-            <li>{{field}}: {{ error }}</li>
+        <li>{{field}}: {{ error }}</li>
         {% endfor %}
-    {% endfor %}
+        {% endfor %}
     </ul>
 </div>
 {% endif %}
 <form method="POST">
-  <!-- Поля формы -->
-  {{ form.hidden_tag() }}
-  <div class="mb-3">
-      {{ form.name.label(class="form-label") }}
-      {{ form.name(class="form-control") }}
-  </div>
-  <div class="mb-3">
-      {{ form.description.label(class="form-label") }}
-      {{ form.description(class="form-control") }}
-  </div>
-  <div class="mb-3">
-      {{ form.method_id.label(class="form-label") }}
-      {{ form.method_id(class="form-control") }}
-  </div>
-  <div class="mb-3">
-    {{ form.history.label(class="form-label") }}
-    {{ form.history(class="form-control") }}
-</div>
-<div class="mb-3">
-    {{ form.type.label(class="form-label") }}
-    {{ form.type(class="form-control") }}
-</div>
-<!-- Кнопка отправки формы -->
-  <button type="submit" class="btn btn-primary">Submit</button>
-  {% if object %}
-  <a href="?view=object&object={{object.id}}&tab=properties" class="btn btn-secondary">Cancel</a>
-  {% else %}
-  <a href="?view=class&class={{class.id}}&tab=properties" class="btn btn-secondary">Cancel</a>
-  {% endif %}
+    <!-- Поля формы -->
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        {{ form.name.label(class="form-label") }}
+        {{ form.name(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.description.label(class="form-label") }}
+        {{ form.description(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.method_id.label(class="form-label") }}
+        {{ form.method_id(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.history.label(class="form-label") }}
+        {{ form.history(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.type.label(class="form-label") }}
+        {{ form.type(class="form-control") }}
+    </div>
+    <!-- Кнопка отправки формы -->
+    <button type="submit" class="btn btn-primary">Submit</button>
+    {% if object %}
+    <a href="?view=object&object={{object.id}}&tab=properties" class="btn btn-secondary">Cancel</a>
+    {% else %}
+    <a href="?view=class&class={{class.id}}&tab=properties" class="btn btn-secondary">Cancel</a>
+    {% endif %}
 </form>
 {% endblock %}

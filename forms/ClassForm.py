@@ -2,12 +2,13 @@ from flask_wtf import FlaskForm
 from flask_login import current_user
 from wtforms import StringField, SubmitField, SelectField, TextAreaField
 from wtforms.validators import DataRequired, Optional
-from flask import redirect, render_template
+from flask import redirect, render_template, abort
 from sqlalchemy import delete
-from app.core.models.Clasess import Class, Property, Method, Object
+from app.core.models.Clasess import Class, Property, Method, Object, Value
 from app.database import db, row2dict
-from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, no_spaces_or_dots, ValidationError
+from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, no_spaces_or_dots, ValidationError, checkPermission
 from app.core.main.ObjectsStorage import objects_storage
+from app.core.lib.object import getObject
 
 # Определение класса формы
 class ClassForm(FlaskForm):
@@ -28,10 +29,25 @@ class ClassForm(FlaskForm):
                 raise ValidationError('Class already taken. Please choose a different one.')
 
 
-def routeClass(request):
+def routeClass(request, config):
     id = request.args.get('class', None)
     tab = request.args.get('tab', '')
     op = request.args.get('op', '')
+
+    if not checkPermission(id):
+        abort(403)  # Возвращаем ошибку "Forbidden" если доступ запрещен
+
+    if tab == 'permissions':
+        item = Class.query.get_or_404(id)
+        content = {
+            'id': id,
+            'type':'class',
+            'name': item.name,
+            'class_id': id,
+            'tab': tab,
+        }
+        return render_template('objects_permissions.html', **content)
+
     if op == 'delete':
         # todo remove objects
         # todo remove classes
@@ -49,10 +65,10 @@ def routeClass(request):
         form = ClassForm(obj=item)  # Передаем объект в форму для редактирования
         form.id = item.id
         query = Property.query.filter(Property.class_id == item.id, Property.object_id.is_(None))
-        if current_user.role != 'admin':
+        if current_user.role not in ['admin','root']:
             query = query.filter(Property.name.notlike(r'\_%', escape='\\'))
         properties = query.order_by(Property.name).all()
-        properties = [row2dict(item) for item in properties] 
+        properties = [row2dict(item) for item in properties]
         parent_properties = []
         if item.parent_id:
             parent_props = getPropertiesParents(item.parent_id, parent_properties)
@@ -60,7 +76,7 @@ def routeClass(request):
             parent_properties = [item for item in parent_props if item['name'] not in [subitem['name'] for subitem in properties]]
         dict_methods = {}
         query = Method.query.filter(Method.class_id == item.id, Method.object_id.is_(None))
-        if current_user.role != 'admin':
+        if current_user.role not in ['admin','root']:
             query = query.filter(Method.name.notlike(r'\_%', escape='\\'))
         methods = query.order_by(Method.name).all()
         methods = [row2dict(item) for item in methods] 
@@ -81,9 +97,13 @@ def routeClass(request):
                     prop['method'] = dict_methods[prop['method_id']]
 
         query = Object.query.filter(Object.class_id == id)
-        if current_user.role != 'admin':
+        if current_user.role not in ['admin','root']:
             query = query.filter(Object.name.notlike(r'\_%', escape='\\'))
         objects = query.order_by(Object.name).all()
+        objects = [
+            {'id': obj.id, 'name': obj.name, 'description': obj.description, 'template': getObject(obj.name).render() if getObject(obj.name) and config.get("render", None) else ''}
+            for obj in objects
+        ]
 
     else:
         form = ClassForm()
@@ -94,7 +114,7 @@ def routeClass(request):
         objects = []
     
     query = Class.query.filter(Class.id != id)  # TODO exclude current class
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin','root']:
         query = query.filter(Class.name.notlike(r'\_%', escape='\\'))
     classes = query.order_by(Class.name).all()
 

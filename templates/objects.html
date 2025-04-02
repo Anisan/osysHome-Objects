@@ -11,6 +11,7 @@
 <div>
 <a href="?view=class" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>Add class</a>
 <a href="?view=object" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>Add object</a>
+<a href="?view=permissions" class="btn btn-outline-warning" role="button"><i class="fas fa-shield me-2"></i>Permissions (global)</a>
 <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
   Settings
 </button>
@@ -40,8 +41,8 @@
               <!-- Поля формы -->
               {{ form.hidden_tag() }}
               <div class="mb-3">
-                  {{ form.render.label(class="form-label") }}
-                  {{ form.render(class="form-check") }}
+                {{ form.render(class="form-check-input") }}
+                {{ form.render.label(class="form-label") }}
               </div>
            </div>
           <div class="modal-footer">

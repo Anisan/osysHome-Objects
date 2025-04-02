@@ -1,5 +1,5 @@
 import json
-from flask import redirect, render_template
+from flask import redirect, render_template, abort
 from flask_wtf import FlaskForm
 from flask_login import current_user
 from wtforms import StringField, SubmitField, SelectField, TextAreaField, ValidationError
@@ -11,7 +11,7 @@ from app.core.lib.common import getJob, getJobs
 from app.core.utils import CustomJSONEncoder
 from app.core.models.Clasess import Class, Object, Property, Method, Value
 from app.core.main.ObjectsStorage import objects_storage
-from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents
+from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents, checkPermission
 
 
 # Определение класса формы
@@ -37,6 +37,21 @@ def routeObject(request):
     class_id = request.args.get('class', None)
     tab = request.args.get('tab', '')
     op = request.args.get('op', '')
+
+    if not checkPermission(None, id):
+        abort(403)  # Возвращаем ошибку "Forbidden" если доступ запрещен
+
+    if tab == 'permissions':
+        item = Object.query.get_or_404(id)
+        content = {
+            'id': id,
+            'type':'object',
+            'name': item.name,
+            'class_id': class_id,
+            'tab': tab,
+        }
+        return render_template('objects_permissions.html', **content)
+
     if op == 'delete':
         # TODO delete linked
         sql = delete(Value).where(Value.object_id == id)
@@ -56,7 +71,7 @@ def routeObject(request):
     properties = []
     methods = []
     query = Class.query
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin','root']:
         query = query.filter(Class.name.notlike(r'\_%', escape='\\'))
     classes = query.order_by(Class.name).all()
 
@@ -70,7 +85,7 @@ def routeObject(request):
         parent_properties = []
         parent_properties = getPropertiesParents(item.class_id, parent_properties)
         query = Property.query.filter(Property.object_id == item.id)
-        if current_user.role != 'admin':
+        if current_user.role not in ['admin','root']:
             query = query.filter(Property.name.notlike(r'\_%', escape='\\'))
         object_properties = query.order_by(Property.name).all()
         # исключить переопределенные
@@ -94,7 +109,7 @@ def routeObject(request):
         class_methods = []
         class_methods = getMethodsParents(item.class_id,class_methods)
         query = Method.query.filter(Method.object_id == item.id)
-        if current_user.role != 'admin':
+        if current_user.role not in ['admin','root']:
             query = query.filter(Method.name.notlike(r'\_%', escape='\\'))
         object_methods = query.order_by(Method.name).all()
         for cls in class_methods:

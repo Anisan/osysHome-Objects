@@ -29,7 +29,7 @@ class Objects(BasePlugin):
         view = args.get('view', '')
 
         if view == "class":
-            return routeClass(request)
+            return routeClass(request, self.config)
         elif view == "object":
             return routeObject(request)
         elif view == "property":
@@ -38,6 +38,14 @@ class Objects(BasePlugin):
             return routeMethod(request)
         elif view == "schedule":
             return routeSchedule(request)
+        elif view == "permissions":
+            content = {
+                'id': None,
+                'type':'object',
+                'name': "*",
+                'tab': None,
+            }
+            return render_template('objects_permissions.html', **content)
 
         settings = SettingsForm()
         if request.method == 'GET':
@@ -48,7 +56,7 @@ class Objects(BasePlugin):
                 self.saveConfig()
 
         query = Class.query.filter(Class.parent_id.is_(None))
-        if current_user.role != 'admin':
+        if current_user.role not in ['admin','root']:
             query = query.filter(Class.name.notlike(r'\_%', escape='\\'))
         classes = query.order_by(Class.name).all()
 
@@ -59,7 +67,7 @@ class Objects(BasePlugin):
         for cls in cls_of_dicts:
             self.getClassInfo(cls)
         query = Object.query.filter(Object.class_id.is_(None))
-        if current_user.role != 'admin':
+        if current_user.role not in ['admin','root']:
             query = query.filter(Object.name.notlike(r'\_%', escape='\\'))
         objects = query.order_by(Object.name).all()
         objs_of_dicts = [
@@ -118,7 +126,7 @@ class Objects(BasePlugin):
     def getClassInfo(self, cls):
 
         query = Class.query.filter(Class.parent_id == cls["id"])
-        if current_user.role != 'admin':
+        if current_user.role not in ['admin','root']:
             query = query.filter(Class.name.notlike(r'\_%', escape='\\'))
         childrens = query.order_by(Class.name).all()
 
@@ -131,7 +139,7 @@ class Objects(BasePlugin):
             self.getClassInfo(child)
 
         query = Object.query.filter(Object.class_id == cls["id"])
-        if current_user.role != 'admin':
+        if current_user.role not in ['admin','root']:
             query = query.filter(Object.name.notlike(r'\_%', escape='\\'))
         objects = query.order_by(Object.name).all()
 
