@@ -245,6 +245,7 @@ new Vue({
       delimiters: ['[[', ']]'], // Измененные разделители
       data: {
         nameObject: '{{name}}',
+        id:'{{id}}',
         typePermissions: '{{type}}',
         permissions: {},
         properties:{},
@@ -439,7 +440,7 @@ new Vue({
                 (typeof value === 'object' && Object.keys(value).length === 0)
             );
         },
-        savePermissions(){
+        async savePermissions(){
             this.saving = true
             var data = this.permissions
             console.log(this.permissions, data)
@@ -453,6 +454,7 @@ new Vue({
                 console.log(response.data)
                 this.resultSave = "Result: " + response.data.success
                 this.saving = false
+                axios.get("?view=reload&type="+this.typePermissions+"&id="+this.id)
                 this.fetchPermissions()
                 setTimeout(() => {
                     this.resultSave = null; // Обнуляем значение

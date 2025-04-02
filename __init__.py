@@ -46,6 +46,15 @@ class Objects(BasePlugin):
                 'tab': None,
             }
             return render_template('objects_permissions.html', **content)
+        elif view == "reload":
+            from app.core.main.ObjectsStorage import objects_storage
+            typeReload = args.get('type', None)
+            id = args.get('id', None)
+            if typeReload == "class" and id:
+                objects_storage.remove_objects_by_class(id)
+            if typeReload == "object" and id:
+                objects_storage.remove_object(id)
+            return "Ok"
 
         settings = SettingsForm()
         if request.method == 'GET':
