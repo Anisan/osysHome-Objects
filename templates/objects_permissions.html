@@ -66,11 +66,17 @@
                         <div v-if="permissions.self[name]">
                             <div v-if="permissions.self[name].access_users">
                                 Access users:
-                                <span v-for="user in permissions['self'][name].access_users" class="badge bg-success">[[user]]</span>
+                                <span v-for="user in permissions['self'][name].access_users" class="badge bg-success">
+                                    <img :src="getUserIcon(user)" class="rounded-circle" style="width: 16px;" />
+                                    [[getUserName(user)]]
+                                </span>
                             </div> 
                             <div v-if="permissions['self'][name].denied_users">
                                 Denied users:
-                                <span v-for="user in permissions['self'][name].denied_users" class="badge bg-danger">[[user]]</span>
+                                <span v-for="user in permissions['self'][name].denied_users" class="badge bg-danger">
+                                    <img :src="getUserIcon(user)" class="rounded-circle" style="width: 16px;" />
+                                    [[getUserName(user)]]
+                                </span>
                             </div> 
                             <div v-if="permissions['self'][name].access_roles">
                                 Access roles:
@@ -112,11 +118,17 @@
                                 <div v-if="getProperties(nameProp) && getProperties(nameProp)[name]">
                                             <div v-if="getProperties(nameProp)[name].access_users">
                                                 Access users:
-                                                <span v-for="user in getProperties(nameProp)[name].access_users" class="badge bg-success">[[user]]</span>
+                                                <span v-for="user in getProperties(nameProp)[name].access_users" class="badge bg-success">
+                                                    <img :src="getUserIcon(user)" class="rounded-circle" style="width: 16px;" />
+                                                    [[getUserName(user)]]
+                                                </span>
                                             </div> 
                                             <div v-if="getProperties(nameProp)[name].denied_users">
                                                 Denied users:
-                                                <span v-for="user in getProperties(nameProp)[name].denied_users" class="badge bg-danger">[[user]]</span>
+                                                <span v-for="user in getProperties(nameProp)[name].denied_users" class="badge bg-danger">
+                                                    <img :src="getUserIcon(user)" class="rounded-circle" style="width: 16px;" />
+                                                    [[getUserName(user)]]
+                                                </span>
                                             </div> 
                                             <div v-if="getProperties(nameProp)[name].access_roles">
                                                 Access roles:
@@ -157,11 +169,17 @@
                                 <div v-if="getMethods(nameProp) && getMethods(nameProp)[name]">
                                             <div v-if="getMethods(nameProp)[name].access_users">
                                                 Access users:
-                                                <span v-for="user in getMethods(nameProp)[name].access_users" class="badge bg-success">[[user]]</span>
+                                                <span v-for="user in getMethods(nameProp)[name].access_users" class="badge bg-success">
+                                                    <img :src="getUserIcon(user)" class="rounded-circle" style="width: 16px;" />
+                                                    [[getUserName(user)]]
+                                                </span>
                                             </div> 
                                             <div v-if="getMethods(nameProp)[name].denied_users">
                                                 Denied users:
-                                                <span v-for="user in getMethods(nameProp)[name].denied_users" class="badge bg-danger">[[user]]</span>
+                                                <span v-for="user in getMethods(nameProp)[name].denied_users" class="badge bg-danger">
+                                                    <img :src="getUserIcon(user)" class="rounded-circle" style="width: 16px;" />
+                                                    [[getUserName(user)]]
+                                                </span>
                                             </div> 
                                             <div v-if="getMethods(nameProp)[name].access_roles">
                                                 Access roles:
@@ -479,6 +497,19 @@ new Vue({
                     return this.permissions.methods[name]
             }
             return null
+        },
+
+        getUserName(user){
+            if (user == "*")
+                return "All users"
+            if (this.users[user] !== undefined)
+                return this.users[user].description || this.users[user].name
+            return user
+        },
+        getUserIcon(user){
+            if (this.users[user] !== undefined)
+                return this.users[user].properties.image || '/Permissions/static/Permissions.png'
+            return '/Permissions/static/Permissions.png'
         },
 
 

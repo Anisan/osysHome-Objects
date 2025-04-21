@@ -17,9 +17,11 @@ class Objects(BasePlugin):
     def __init__(self,app):
         super().__init__(app,__name__)
         self.title = "Objects Plugin"
-        self.version = 1
+        self.version = "1.0"
         self.description = """Objects editor"""
         self.actions = ["search", "widget"]
+        self.category = "System"
+        self.author = "Eraser"
 
     def initialization(self):
         pass

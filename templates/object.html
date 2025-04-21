@@ -1,4 +1,18 @@
 {% extends "admin.html" %}
+{% macro render_dict(data, indent=0) %}
+  {% for key, value in data.items() %}
+    {% if value is mapping %}
+      <div style="margin-left: {{ indent * 20 }}px;">
+        <strong>{{ key }}:</strong>
+        {{ render_dict(value, indent + 1) }}
+      </div>
+    {% else %}
+      <div style="margin-left: {{ indent * 20 }}px;">
+        <strong>{{ key }}:</strong> {{ value }}
+      </div>
+    {% endif %}
+  {% endfor %}
+{% endmacro %}
 {% from "macros/code_editor.html" import render_editor %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="Objects">Objects</a></li>
@@ -243,7 +257,7 @@
     <div class="tab-pane fade {% if tab == 'structure'%} show active{%endif%}" id="object_tab" role="tabpanel" aria-labelledby="object-tab">
         <h5><b>{{ obj.name }}</b>: {{ obj.description }}</h5>
             <ul>
-            <b>Properties</b>
+			<b>Properties</b>
             {% for key_prop, prop in obj.properties.items() %}
             <li>{{ prop.name }}: {{ prop.description }} = <span id="prop:{{obj.name}}.{{prop.name}}">{{prop.getValue()}}</span>
                 {%if prop.linked%}
@@ -283,7 +297,22 @@
                 </div>
                 {%endif%}
             </li>
-            {% endfor %}    
+            {% endfor %}
+            <hr>
+            <b>Parents</b>
+            <div>
+             {% for parent in obj.parents %}
+             <span class="badge bg-success">{{parent}}</span>
+             {%endfor%}
+            </div>
+            <b>Permissions</b>
+            <div class="ms-3">
+                {%if obj.__permissions%}
+                {{ render_dict(obj.__permissions) }}
+                {%else%}
+                None
+                {%endif%}
+            </div>
             </ul>
     </div>
     {%endif%}
