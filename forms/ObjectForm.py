@@ -1,4 +1,5 @@
 import json
+from dateutil import parser
 from flask import redirect, render_template, abort
 from flask_wtf import FlaskForm
 from flask_login import current_user
@@ -6,8 +7,8 @@ from wtforms import StringField, SubmitField, SelectField, TextAreaField, Valida
 from wtforms.validators import DataRequired
 from sqlalchemy import delete
 
-from app.database import db, row2dict
-from app.core.lib.common import getJob, getJobs
+from app.database import db, row2dict, convert_utc_to_local
+from app.core.lib.common import getJobs
 from app.core.utils import CustomJSONEncoder
 from app.core.models.Clasess import Class, Object, Property, Method, Value
 from app.core.main.ObjectsStorage import objects_storage
@@ -97,9 +98,13 @@ def routeObject(request):
             property['linked'] = []
             value = Value.query.filter(Value.object_id == id, Value.name == property['name']).one_or_none()
             if value:
-                property['value'] = str(value.value)
+                if property['type'] == 'datetime':
+                    dt = parser.parse(value)
+                    property['value'] = str(convert_utc_to_local(dt))
+                else:
+                    property['value'] = str(value.value)
                 property['source'] = value.source if value.source else ''
-                property['changed'] = value.changed if value.changed else ''
+                property['changed'] = convert_utc_to_local(value.changed) if value.changed else ''
                 if value.linked:
                     property['linked'] = value.linked.split(",")
             job_name = item.name + "\_" + property['name'] + "\_%"
@@ -134,7 +139,7 @@ def routeObject(request):
             if method['name'] in om.methods and not method['redefined']:
                 mm = om.methods[method['name']]
                 method['source'] = mm.source if mm.source else ''
-                method['executed'] = mm.executed if mm.executed else ''
+                method['executed'] = convert_utc_to_local(mm.executed) if mm.executed else ''
                 method['exec_params'] = json.dumps(mm.exec_params, cls=CustomJSONEncoder) if mm.exec_params else ''
                 method['exec_result'] = mm.exec_result if mm.exec_result else ''
 

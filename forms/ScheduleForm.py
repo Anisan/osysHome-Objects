@@ -1,13 +1,13 @@
 
-from app.database import db, row2dict
+from app.database import db, convert_utc_to_local, convert_local_to_utc
 from sqlalchemy import delete
 from flask import redirect, render_template
-from app.core.models.Clasess import Class, Object, Property, Value, Method
+from app.core.models.Clasess import Object, Property, Method
 from app.core.models.Tasks import Task
 from app.core.lib.common import getJob
 import datetime
 from app.core.lib.crontab import nextStartCronJob
-from flask_wtf import  FlaskForm
+from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, DateTimeLocalField
 from wtforms.validators import DataRequired, Optional
 
@@ -42,7 +42,7 @@ def routeSchedule(request):
             db.session.commit()
             url = f"?view=object&object={object_id}&tab={tab}"
             return redirect(url)
-        
+
     obj = Object.query.get(object_id)
     if property_id:
         tab = "properties"
@@ -58,19 +58,19 @@ def routeSchedule(request):
             task.name = form.name.data
             task.code = form.code.data
             task.crontab = form.crontab.data
-            task.runtime = form.runtime.data
+            task.runtime = convert_utc_to_local(form.runtime.data)
         else:
             task = Task(name=form.name.data, code=form.code.data, crontab=form.crontab.data)
             db.session.add(task)
-        
+
         if form.crontab.data == "":
             task.crontab = None
             if not form.runtime.data:
-                task.runtime = datetime.datetime.now()
-                task.expire = datetime.datetime.now() + datetime.timedelta(1800)
+                task.runtime = datetime.datetime.now(datetime.timezone.utc)
+                task.expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(1800)
             else:
-                task.runtime = form.runtime.data
-                task.expire = form.runtime.data + datetime.timedelta(1800)
+                task.runtime = convert_utc_to_local(form.runtime.data)
+                task.expire = convert_utc_to_local(form.runtime.data + datetime.timedelta(1800))
         else:
             dt = nextStartCronJob(task.crontab)
             task.runtime = dt
@@ -79,27 +79,27 @@ def routeSchedule(request):
         db.session.commit()
         url = f"?view=object&object={object_id}&tab={tab}"
         return redirect(url)
-    
+
     if schedule_id:
         task = Task.query.get(schedule_id)
         form.name.data = task.name
         form.code.data = task.code
         form.crontab.data = task.crontab
-        form.runtime.data = task.runtime
+        form.runtime.data = convert_utc_to_local(task.runtime)
     else:
         name = ''
         code = ''
         if property_id:
             prop = Property.query.get(property_id)
-            name = f'{obj.name}_{prop.name}_task' # todo get number
+            name = f'{obj.name}_{prop.name}_task'  # todo get number
             code = f'setProperty("{obj.name}.{prop.name}", [value] , source="Scheduler")'
         if method_id:
             method = Method.query.get(method_id)
-            name = f'{obj.name}_{method.name}_task' # todo get number
+            name = f'{obj.name}_{method.name}_task'  # todo get number
             code = f'callMethod("{obj.name}.{method.name}", source="Scheduler")'
 
         name = addPrefix(name,1)
-       
+
         form.name.data = name
         form.code.data = code
 
@@ -109,5 +109,5 @@ def routeSchedule(request):
         'object_name': obj.name,
         'tab': tab,
         'form':form,
-    } 
+    }
     return render_template('object_schedule.html', **content)
