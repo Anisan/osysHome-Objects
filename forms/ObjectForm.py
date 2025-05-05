@@ -98,15 +98,14 @@ def routeObject(request):
             property['linked'] = []
             value = Value.query.filter(Value.object_id == id, Value.name == property['name']).one_or_none()
             if value:
-                try:
-                    if property['type'] == 'datetime':
-                        dt = parser.parse(value)
+                if property['type'] == 'datetime':
+                    try:
+                        dt = parser.parse(value.value)
                         property['value'] = str(convert_utc_to_local(dt))
-                    else:
+                    except (ValueError, TypeError, AttributeError):
                         property['value'] = str(value.value)
-                except Exception as ex:
+                else:
                     property['value'] = str(value.value)
-
                 property['source'] = value.source if value.source else ''
                 property['changed'] = convert_utc_to_local(value.changed) if value.changed else ''
                 if value.linked:
