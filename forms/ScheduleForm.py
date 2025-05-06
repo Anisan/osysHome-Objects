@@ -1,11 +1,11 @@
 
-from app.database import db, convert_utc_to_local, convert_local_to_utc
+import datetime
+from app.database import db, convert_utc_to_local, get_now_to_utc, convert_local_to_utc
 from sqlalchemy import delete
 from flask import redirect, render_template
 from app.core.models.Clasess import Object, Property, Method
 from app.core.models.Tasks import Task
 from app.core.lib.common import getJob
-import datetime
 from app.core.lib.crontab import nextStartCronJob
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, DateTimeLocalField
@@ -66,15 +66,16 @@ def routeSchedule(request):
         if form.crontab.data == "":
             task.crontab = None
             if not form.runtime.data:
-                task.runtime = datetime.datetime.now(datetime.timezone.utc)
-                task.expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(1800)
+                task.runtime = get_now_to_utc()
+                task.expire = get_now_to_utc() + datetime.timedelta(1800)
             else:
                 task.runtime = convert_utc_to_local(form.runtime.data)
                 task.expire = convert_utc_to_local(form.runtime.data + datetime.timedelta(1800))
         else:
             dt = nextStartCronJob(task.crontab)
-            task.runtime = dt
-            task.expire = dt + datetime.timedelta(1800)
+            utc_dt = convert_local_to_utc(dt)
+            task.runtime = utc_dt
+            task.expire = utc_dt + datetime.timedelta(1800)
 
         db.session.commit()
         url = f"?view=object&object={object_id}&tab={tab}"
