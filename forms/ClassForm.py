@@ -6,7 +6,7 @@ from flask import redirect, render_template, abort
 from sqlalchemy import delete
 from app.core.models.Clasess import Class, Property, Method, Object, Value
 from app.database import db, row2dict
-from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, no_spaces_or_dots, ValidationError, checkPermission
+from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, getTemplatesParents, no_spaces_or_dots, ValidationError, checkPermission
 from app.core.main.ObjectsStorage import objects_storage
 from app.core.lib.object import getObject
 
@@ -141,6 +141,9 @@ def routeClass(request, config):
                 objects_storage.remove_objects_by_class(item.id)
             objects_storage.reload_objects_by_class(item.id)
         return redirect("Objects")  # Перенаправляем на другую страницу после успешного редактирования
+    templates = {}
+    if item.parent_id:
+        templates = getTemplatesParents(item.parent_id, templates)
     content = {
         'id': id,
         'form':form,
@@ -149,6 +152,7 @@ def routeClass(request, config):
         'methods': methods,
         'parent_methods': parent_methods,
         'objects': objects,
+        'templates': templates,
         'tab': tab,
     }
     return render_template('class.html', **content)

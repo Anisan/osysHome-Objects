@@ -45,6 +45,10 @@
 {% endif %}
 <!-- Подключение стилей Prism -->
 <link rel="stylesheet" href="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.css">
+<!-- Подключение скриптов Prism -->
+<script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.js"></script>
+<script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism-python.min.js"></script>
+
 <ul class="nav nav-tabs mb-3" id="configTabs" role="tablist">
     <li class="nav-item"><a class="nav-link tab-button{% if tab == ''%} active{%endif%}" href="#general" data-bs-toggle="tab" role="tab">General</a></li>
     <li class="nav-item">
@@ -251,6 +255,20 @@
             <!-- Кнопка отправки формы -->
             <button type="submit" class="btn btn-primary">Submit</button>
             <a href="Objects" class="btn btn-secondary">Cancel</a>
+            <hr>
+            <b>Templates (parent)</b>
+            <div class="ms-3">
+                {%if obj.templates%}
+                {% for key,template in obj.templates.items() %}
+                    {%if key !=obj.name%}
+                    <b>{{key}}</b>
+                    <pre><code class="language-html">{{template}}</code></pre>
+                    {%endif%}
+                {%endfor%}
+                {%else%}
+                None
+                {%endif%}
+            </div>
         </form>
     </div>
     {% if obj %}
@@ -259,33 +277,39 @@
             <ul>
 			<b>Properties</b>
             {% for key_prop, prop in obj.properties.items() %}
-            <li>{{ prop.name }}: {{ prop.description }} = <span id="prop:{{obj.name}}.{{prop.name}}">{{prop.getValue()}}</span>
+            <li>{{ prop.name }}: <small>{{ prop.description }}</small> = <span id="prop:{{obj.name}}.{{prop.name}}">{{prop.value}}</span>
                 {%if prop.linked%}
+                <span class="badge bg-success">
                     {% for link in prop.linked %}
-                        <span class="badge bg-success">{{link}}</span>
+                    <i class="fa-solid fa-link"></i>{{link}}
                     {% endfor %}
+                </span>
                 {%endif%}
                 {% if prop.history > 0 %}
                     <a href="HistoryView?name={{prop.name}}&object={{id}}" class="badge bg-warning text-dark">History: {{prop.history}} days</a>
                 {% endif %}
                 {% if prop.method %}
-                    <span class="badge bg-primary">{{prop.method}}</span>
+                    <span class="badge bg-primary">↳ {{prop.method}}</span>
                 {% endif %}
                 <span class="ms-1 badge bg-secondary" id="prop_changed:{{form.name.data}}.{{prop.name}}">{{prop.changed}}</span>
-                <span class="ms-1 badge bg-success" id="prop_source:{{form.name.data}}.{{prop.name}}">{{prop.source}}</span>
+                <span class="ms-0 badge bg-success" id="prop_source:{{form.name.data}}.{{prop.name}}">{{prop.source}}</span>
+                <small>(r/w: {{prop.count_read}}/{{prop.count_write}})</small>
             </li>
             {% endfor %}    
             </ul>
             <ul>
             <b>Methods</b>
             {% for key_meth, method in obj.methods.items() %}
-            <li>{{ method.name }}: {{ method.description }} <a href="#" onclick="callMethodWithResult('{{obj.name}}.{{method.name}}')">Run</a>
+            <li>{{ method.name }}: <small>{{ method.description }}</small> <a class="btn btn-sm btn-warning" href="#" onclick="callMethodWithResult('{{obj.name}}.{{method.name}}')"><i class="fa-solid fa-gears me-2"></i>Run</a>
                 {% if method.methods %}
-                <a class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#spoiler{{obj.name}}{{method.name}}" aria-expanded="true" aria-controls="spoiler{{obj.name}}{{method.name}}">
-                    Code
+                <a class="btn btn-sm bg-info" data-bs-toggle="collapse" data-bs-target="#spoiler{{obj.name}}{{method.name}}" aria-expanded="true" aria-controls="spoiler{{obj.name}}{{method.name}}">
+                    <i class="fa-solid fa-code me-2"></i>Code
                 </a>
-                <p style="color: gray;margin: 0px;">↳ Source: <span id="method_source:{{form.name.data}}.{{method.name}}">{{method.source}}</span></p>
-                <p style="color: gray;margin: 0px;">↳ Executed: <span id="method_executed:{{form.name.data}}.{{method.name}}">{{method.executed}}</span></p>
+                <p style="color: gray;margin: 0px;">
+                    ↳ Executed: <span class="ms-0 badge bg-secondary" id="method_executed:{{form.name.data}}.{{method.name}}">{{method.executed}}</span>
+                    <span class="ms-0 badge bg-success" id="method_source:{{form.name.data}}.{{method.name}}">{{method.source}}</span>
+                    <small> (ex: {{method.count_executed}})</small>
+                </p>
                 <p style="color: gray;margin: 0px;">↳ Params: <span id="method_exec_params:{{form.name.data}}.{{method.name}}">{{method.exec_params}}</span></p>
                 <p style="color: gray;margin: 0px;">↳ Result: <span id="method_exec_result:{{form.name.data}}.{{method.name}}">{{method.exec_result}}</span></p>
                 <div id="spoiler{{obj.name}}{{method.name}}" class="collapse hide ms-3" aria-labelledby="headingOne">
@@ -307,8 +331,8 @@
             </div>
             <b>Permissions</b>
             <div class="ms-3">
-                {%if obj.__permissions%}
-                {{ render_dict(obj.__permissions) }}
+                {%if obj.permissions%}
+                {{ render_dict(obj.permissions) }}
                 {%else%}
                 None
                 {%endif%}
@@ -448,7 +472,5 @@
         }, 5000);
     });
 </script>
-<!-- Подключение скриптов Prism -->
-<script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.js"></script>
-<script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism-python.min.js"></script>
+
 {% endblock %}

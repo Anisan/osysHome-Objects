@@ -35,6 +35,13 @@ def getMethodsParents(id, methods):
         return getMethodsParents(cls.parent_id, methods)
     return methods
 
+def getTemplatesParents(id, templates):
+    cls = Class.get_by_id(id)
+    templates[cls.name] = cls.template
+    if cls and cls.parent_id:
+        return getTemplatesParents(cls.parent_id, templates)
+    return templates
+
 def no_spaces_or_dots(form, field):
     if ' ' in field.data or '.' in field.data:
         raise ValidationError('Field must not contain spaces or dots')

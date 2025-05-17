@@ -31,6 +31,11 @@
       margin-right: auto;
     }
 </style>
+<!-- Подключение стилей Prism -->
+<link rel="stylesheet" href="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.css">
+<!-- Подключение скриптов Prism -->
+<script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.js"></script>
+<script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism-python.min.js"></script>
 
 <ul class="nav nav-tabs" id="configTabs" role="tablist">
     <li class="nav-item">
@@ -211,6 +216,20 @@
             <!-- Кнопка отправки формы -->
             <button type="submit" class="btn btn-primary">Submit</button>
             <a href="Objects" class="btn btn-secondary">Cancel</a>
+            <hr>
+            <b>Templates (parent)</b>
+            <div class="ms-3">
+                {%if templates%}
+                {% for key,template in templates.items() %}
+                    {%if key !=form.name.data%}
+                    <b>{{key}}</b>
+                    <pre><code class="language-html">{{template}}</code></pre>
+                    {%endif%}
+                {%endfor%}
+                {%else%}
+                None
+                {%endif%}
+            </div>
         </form>
     </div>
     <div class="tab-pane fade" id="tools" role="tabpanel" aria-labelledby="tools-tab">

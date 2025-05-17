@@ -201,7 +201,7 @@ def routeObject(request):
         'schedules': schedules,
         'template': template,
         'tab': tab,
-        'obj': obj,
+        'obj': obj.to_dict(),
         'saved': saved,
     }
     return render_template('object.html', **content)
