@@ -33,6 +33,7 @@ def routeClass(request, config):
     id = request.args.get('class', None)
     tab = request.args.get('tab', '')
     op = request.args.get('op', '')
+    item = None
 
     if not checkPermission(id):
         abort(403)  # Возвращаем ошибку "Forbidden" если доступ запрещен
@@ -142,7 +143,7 @@ def routeClass(request, config):
             objects_storage.reload_objects_by_class(item.id)
         return redirect("Objects")  # Перенаправляем на другую страницу после успешного редактирования
     templates = {}
-    if item.parent_id:
+    if item and item.parent_id:
         templates = getTemplatesParents(item.parent_id, templates)
     content = {
         'id': id,
