@@ -4,7 +4,7 @@
 {% block title %} Class {% endblock %} 
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Objects">Objects</a></li>
+<li class="breadcrumb-item"><a href="Objects">{{ _('Objects')}}</a></li>
 <li class="breadcrumb-item"><a href="Objects?view=class&class={{id}}">{{form.name.data}}</a></li>
 {% endblock %}
 
@@ -39,30 +39,30 @@
 
 <ul class="nav nav-tabs" id="configTabs" role="tablist">
     <li class="nav-item">
-        <a class="nav-link tab-button {% if tab == ''%}active{%endif%}" href="#general" data-bs-toggle="tab" role="tab">General</a>
+        <a class="nav-link tab-button {% if tab == ''%}active{%endif%}" href="#general" data-bs-toggle="tab" role="tab">{{ _('General')}}</a>
     </li>
     <li class="nav-item">
         <button class="nav-link tab-button{% if tab == 'properties'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#properties" data-bs-toggle="tab" role="tab">
-            Properties <a href="?view=property&class={{id}}" class="btn btn-success btn-sm ms-2" title="Add property"><i class="fas fa-plus"></i></a>
+            {{ _('Properties')}} <a href="?view=property&class={{id}}" class="btn btn-success btn-sm ms-2" title="{{ _('Add property')}}"><i class="fas fa-plus"></i></a>
         </button>
     </li>
     <li class="nav-item">
         <button class="nav-link tab-button{% if tab == 'methods'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#methods" data-bs-toggle="tab" role="tab">
-            Methods <a href="?view=method&class={{id}}" class="btn btn-success btn-sm ms-2" title="Add method"><i class="fas fa-plus"></i></a>
+            {{ _('Methods')}} <a href="?view=method&class={{id}}" class="btn btn-success btn-sm ms-2" title="{{ _('Add method')}}"><i class="fas fa-plus"></i></a>
         </button>
     </li>
     <li class="nav-item">
         <button class="nav-link tab-button{% if tab == 'objects'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#objects" data-bs-toggle="tab" role="tab">
-            Objects <a href="?view=object&class={{id}}" class="btn btn-success btn-sm ms-2" title="Add object"><i class="fas fa-plus"></i></a>
+            {{ _('Objects')}} <a href="?view=object&class={{id}}" class="btn btn-success btn-sm ms-2" title="{{ _('Add object')}}"><i class="fas fa-plus"></i></a>
         </button>
     </li>
-    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#template_tab" data-bs-toggle="tab" role="tab">Template</a></li>
-    <li class="nav-item"><a class="nav-link tab-button" href="?view=class&class={{id}}&tab=permissions">Permissions</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#template_tab" data-bs-toggle="tab" role="tab">{{ _('Template')}}</a></li>
+    <li class="nav-item"><a class="nav-link tab-button" href="?view=class&class={{id}}&tab=permissions">{{ _('Permissions')}}</a></li>
     <li class="nav-item flex-grow-1"> <!-- flex-grow-1 для заполнения промежутка -->
         <!-- Пустой элемент, чтобы создать промежуток -->
       </li>
     <li class="nav-item ml-auto"> <!-- Используем ml-auto для выравнивания последней вкладки справа -->
-        <a class="nav-link tab-button" data-bs-toggle="tab" href="#tools">Tools</a>
+        <a class="nav-link tab-button" data-bs-toggle="tab" href="#tools">{{ _('Tools')}}</a>
     </li>
 </ul>
 <div class="tab-content mt-3" id="myTabContent">
@@ -71,20 +71,20 @@
             <!-- Поля формы -->
             {{ form.hidden_tag() }}
             <div class="mb-3">
-                {{ form.name.label(class="form-label") }}
+                <label class="form-label">{{ _('Name') }}</label>
                 {{ form.name(class="form-control") }}
             </div>
             <div class="mb-3">
-                {{ form.description.label(class="form-label") }}
+                <label class="form-label">{{ _('Description') }}</label>
                 {{ form.description(class="form-control") }}
             </div>
             <div class="mb-3">
-                {{ form.parent_id.label(class="form-label") }}
+                <label class="form-label">{{ _('Parent') }}</label>
                 {{ form.parent_id(class="form-control") }}
             </div>
             <!-- Кнопка отправки формы -->
-            <button type="submit" class="btn btn-primary">Submit</button>
-            <a href="Objects" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
+            <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
         </form>
     </div>
     <div class="tab-pane fade {% if tab == 'properties'%}show active{%endif%}" id="properties" role="tabpanel" aria-labelledby="properties-tab">
@@ -93,10 +93,10 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>History</th>
-                        <th>Type</th>
+                        <th>{{ _('Name')}}</th>
+                        <th>{{ _('Description')}}</th>
+                        <th>{{ _('History')}}</th>
+                        <th>{{ _('Type')}}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -106,19 +106,19 @@
                         <th scope="row">{{ property.id }}</th>
                         <td>{{ property.name }}</td>
                         <td>{{ property.description }}
-                            {%if property.method%}<p style="color: gray;margin: 0px;">↳ <span class="badge bg-primary">Method: {{property.method}}</span></p>{%endif%}
+                            {%if property.method%}<p style="color: gray;margin: 0px;">↳ <span class="badge bg-primary">{{ _('Method')}}: {{property.method}}</span></p>{%endif%}
                         </td>
                         <td>{{ property.history }}</td>
                         <td>{{ property.type }}</td>
                         <td>
-                            <a href="?view=property&class={{id}}&property={{property.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="Edit"><i class="fas fa-pencil-alt"></i></a>
-                            <a href="?view=property&class={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
+                            <a href="?view=property&class={{id}}&property={{property.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="{{ _('Edit')}}"><i class="fas fa-pencil-alt"></i></a>
+                            <a href="?view=property&class={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                         </td>
                     </tr>
                     {% endfor %}
                     {% if parent_properties %}
                     <tr>
-                        <td colspan="5"><b>Parent properties</b></td>
+                        <td colspan="5"><b>{{ _('Parent properties')}}</b></td>
                     </tr>
                     {% endif %}
                     {% for property in parent_properties %}
@@ -126,12 +126,12 @@
                         <th scope="row">{{ property.id }}</th>
                         <td>{{property.class_name}} -> <b>{{ property.name }}</b></td>
                         <td>{{ property.description }}
-                            {%if property.method%}<p style="color: gray;margin: 0px;">↳ <span class="badge bg-primary">Method: {{property.method}}</span></p>{%endif%}
+                            {%if property.method%}<p style="color: gray;margin: 0px;">↳ <span class="badge bg-primary">{{ _('Method')}}: {{property.method}}</span></p>{%endif%}
                         </td>
                         <td>{{ property.history }}</td>
                         <td>{{ property.type }}</td>
                         <td>
-                            <a href="?view=property&class={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button">Redefine</a>
+                            <a href="?view=property&class={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button">{{ _('Redefine')}}</a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -139,7 +139,7 @@
                 </tbody>
             </table>
         </div>
-        <a href="Objects" class="btn btn-secondary">Cancel</a>
+        <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade {% if tab == 'methods'%}show active{%endif%}" id="methods" role="tabpanel" aria-labelledby="methods-tab">
         <div class="table-responsive">
@@ -147,8 +147,8 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Name</th>
-                        <th>Description</th>
+                        <th>{{ _('Name')}}</th>
+                        <th>{{ _('Description')}}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -159,14 +159,14 @@
                         <td>{{ method.name }}</td>
                         <td>{{ method.description }}</td>
                         <td>
-                            <a href="?view=method&class={{id}}&method={{method.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="Edit"><i class="fas fa-pencil-alt"></i></a>
-                            <a href="?view=method&class={{id}}&method={{method.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
+                            <a href="?view=method&class={{id}}&method={{method.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="{{ _('Edit')}}"><i class="fas fa-pencil-alt"></i></a>
+                            <a href="?view=method&class={{id}}&method={{method.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                         </td>
                     </tr>
                     {% endfor %}
                     {% if parent_methods %}
                     <tr>
-                        <td colspan="5"><b>Parent methods</b></td>
+                        <td colspan="5"><b>{{ _('Parent methods')}}</b></td>
                     </tr>
                     {% endif %}
                     {% for method in parent_methods %}
@@ -183,7 +183,7 @@
                             {% endfor %}
 
                             {% if not has_method %}
-                            <a href="?view=method&class={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button">Redefine</a>
+                            <a href="?view=method&class={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button">{{ _('Redefine')}}</a>
                             {% endif %}
                         </td>
                     </tr>
@@ -191,7 +191,7 @@
                 </tbody>
             </table>
         </div>
-        <a href="Objects" class="btn btn-secondary">Cancel</a>
+        <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade {% if tab == 'objects'%}show active{%endif%}" id="objects" role="tabpanel" aria-labelledby="objects-tab">
         {%if objects %}
@@ -201,23 +201,23 @@
             {% endfor %}
         </ul>
         {% else %}
-        <p class="px-3 ml-2 mt-2">No objects</p>
+        <p class="px-3 ml-2 mt-2">{{ _('No objects')}}</p>
         {% endif %}
-        <a href="Objects" class="btn btn-secondary">Cancel</a>
+        <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade {% if tab == 'template'%}show active{%endif%}" id="template_tab" role="tabpanel" aria-labelledby="template-tab">
         <form id="formTemplate" method="POST">
             <!-- Поля формы -->
             {{ form.hidden_tag() }}
             <div class="mb-3">
-                {{ form.template.label(class="form-label") }}
+                <label class="form-label">{{ _('Template') }}</label>
                 {{ render_editor(form.template, 'html')}}
             </div>
             <!-- Кнопка отправки формы -->
-            <button type="submit" class="btn btn-primary">Submit</button>
-            <a href="Objects" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
+            <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
             <hr>
-            <b>Templates (parent)</b>
+            <b>{{ _('Templates (parent)')}}</b>
             <div class="ms-3">
                 {%if templates%}
                 {% for key,template in templates.items() %}
@@ -233,8 +233,8 @@
         </form>
     </div>
     <div class="tab-pane fade" id="tools" role="tabpanel" aria-labelledby="tools-tab">
-        <a href="../api/export/class/{{id}}" class="btn btn-primary btn-sm" role="button">Export class</a>
-        <a href="../api/export/class_all/{{id}}" class="btn btn-primary btn-sm" role="button">Export class and objects</a>
+        <a href="../api/export/class/{{id}}" class="btn btn-primary btn-sm" role="button">{{ _('Export class')}}</a>
+        <a href="../api/export/class_all/{{id}}" class="btn btn-primary btn-sm" role="button">{{ _('Export class and objects')}}</a>
     </div>
 </div>
 

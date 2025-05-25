@@ -1,7 +1,7 @@
 {% extends "admin.html" %}
 {% from "macros/code_editor.html" import render_editor %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Objects">Objects</a></li>
+<li class="breadcrumb-item"><a href="Objects">{{ _('Objects')}}</a></li>
 {%if tab %}
 <li class="breadcrumb-item"><a href="Objects?view={{type}}&{{type}}={{id}}">{{name}}</a></li>
 {%endif%}
@@ -10,30 +10,30 @@
 {% block module_content %}
 {%if tab %}
 <ul class="nav nav-tabs mb-3" id="configTabs" role="tablist">
-    <li class="nav-item"><a class="nav-link tab-button" href="?view={{type}}&{{type}}={{id}}">General</a></li>
+    <li class="nav-item"><a class="nav-link tab-button" href="?view={{type}}&{{type}}={{id}}">{{ _('General')}}</a></li>
     <li class="nav-item">
         <button type="button" class="nav-link tab-button" onclick="window.location='?view={{type}}&{{type}}={{id}}&tab=properties'">
-            Properties <a href="?view=property&{{type}}={{id}}" class="btn btn-success btn-sm ms-2" title="Add property"><i class="fas fa-plus"></i></a>
+            {{ _('Properties')}} <a href="?view=property&{{type}}={{id}}" class="btn btn-success btn-sm ms-2" title="Add property"><i class="fas fa-plus"></i></a>
         </button>
     </li>
     <li class="nav-item">
         <button class="nav-link tab-button" onclick="window.location='?view={{type}}&{{type}}={{id}}&tab=methods'">
-            Methods <a href="?view=method&{{type}}={{id}}" class="btn btn-success btn-sm ms-2" title="Add method"><i class="fas fa-plus"></i></a>
+            {{ _('Methods')}} <a href="?view=method&{{type}}={{id}}" class="btn btn-success btn-sm ms-2" title="Add method"><i class="fas fa-plus"></i></a>
         </button>
     </li>
     {% if type=='class'%}
     <li class="nav-item">
         <button class="nav-link tab-button" onclick="window.location='?view={{type}}&{{type}}={{id}}&tab=objects'">
-            Objects <a href="?view=object&class={{id}}" class="btn btn-success btn-sm ms-2" title="Add object"><i class="fas fa-plus"></i></a>
+            {{ _('Objects')}} <a href="?view=object&class={{id}}" class="btn btn-success btn-sm ms-2" title="Add object"><i class="fas fa-plus"></i></a>
         </button>
     </li>
     {%endif%}
-    <li class="nav-item"><a class="nav-link tab-button" href="?view={{type}}&{{type}}={{id}}&tab=template">Template</a></li>
+    <li class="nav-item"><a class="nav-link tab-button" href="?view={{type}}&{{type}}={{id}}&tab=template">{{ _('Template')}}</a></li>
     {% if type!='class'%}
-    <li class="nav-item"><a class="nav-link tab-button" href="?view={{type}}&{{type}}={{id}}&tab=structure">Structure</a></li>
-    <li class="nav-item"><a class="nav-link tab-button" href="?view={{type}}&{{type}}={{id}}&tab=schedule">Schedules</a></li>
+    <li class="nav-item"><a class="nav-link tab-button" href="?view={{type}}&{{type}}={{id}}&tab=structure">{{ _('Structure')}}</a></li>
+    <li class="nav-item"><a class="nav-link tab-button" href="?view={{type}}&{{type}}={{id}}&tab=schedule">{{ _('Schedules')}}</a></li>
     {%endif%}
-    <li class="nav-item"><a class="nav-link tab-button active" href="?view={{type}}&{{type}}={{id}}&tab=permissions">Permissions</a></li>
+    <li class="nav-item"><a class="nav-link tab-button active" href="?view={{type}}&{{type}}={{id}}&tab=permissions">{{ _('Permissions')}}</a></li>
 </ul>
 {% endif %}
 <script src="{{ config.ASSETS_ROOT }}/plugins/vue/vue@2.js"></script>
@@ -41,21 +41,21 @@
 <div id="permissions">
     <div class="btn btn-primary me-2 text-nowrap" @click="fetchPermissions" title="Refresh">
         <span class="fas fa-rotate me-2" :class="loading ? 'fa-spin':''"></span>
-        Refresh
+        {{ _('Refresh')}}
     </div>
 
     <span v-if="saving">
         <span class="fas fa-floppy-disk me-2 fa-spin"></span>
-        Saving ...
+        {{ _('Saving ...')}}
     </span>
     <span v-if="resultSave">
         <span class="fas fa-floppy-disk me-2"></span>
-        Saved - [[resultSave]]
+        {{ _('Saved')}} - [[resultSave]]
     </span>
 
     <div class="tab-content mt-2" id="myTabContent">
         <div v-if="permissions" class="tab-pane fade show active">
-            <h5>Self</h5>
+            <h5>{{ _('Self')}}</h5>
             <div class="row">
                 <div v-if="permissions.self" class="row col-auto">
                     <div v-for="name in types" class="col-auto card mx-1 p-1">
@@ -65,37 +65,37 @@
                         <div v-if="name == 'edit'" class="badge bg-info me-3" style="width:60px">EDIT</div>
                         <div v-if="permissions.self[name]">
                             <div v-if="permissions.self[name].access_users">
-                                Access users:
+                                {{ _('Access users')}}:
                                 <span v-for="user in permissions['self'][name].access_users" class="badge bg-success">
                                     <img :src="getUserIcon(user)" class="rounded-circle" style="width: 16px;" />
                                     [[getUserName(user)]]
                                 </span>
                             </div> 
                             <div v-if="permissions['self'][name].denied_users">
-                                Denied users:
+                                {{ _('Denied users')}}:
                                 <span v-for="user in permissions['self'][name].denied_users" class="badge bg-danger">
                                     <img :src="getUserIcon(user)" class="rounded-circle" style="width: 16px;" />
                                     [[getUserName(user)]]
                                 </span>
                             </div> 
                             <div v-if="permissions['self'][name].access_roles">
-                                Access roles:
+                                {{ _('Access roles')}}:
                                 <template v-for="role in roles">
                                     <span v-if="permissions['self'][name].access_roles.includes(role.name)" class="badge bg-success">[[role.title]]</span>
                                 </template>
                             </div> 
                             <div v-if="permissions['self'][name].denied_roles">
-                                Denied roles:
+                                {{ _('Denied roles')}}:
                                 <template v-for="role in roles">
                                     <span v-if="permissions['self'][name].denied_roles.includes(role.name)" class="badge bg-danger">[[role.title]]</span>
                                 </template>
                             </div> 
                         </div>
-                        <span v-else class="badge bg-secondary mt-1">Not set</span>
+                        <span v-else class="badge bg-secondary mt-1">{{ _('Not set')}}</span>
                     </div>
                 </div>
                 <div class="col-auto">
-                    <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('self','')" title="Edit">Edit</div>
+                    <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('self','')">{{ _('Edit')}}</div>
                 </div>
             </div>
 
@@ -104,7 +104,7 @@
                     <h5>Properties</h5>
                     <table class="table table-hover table-striped">
                         <thead>
-                            <th>Name</th>
+                            <th>{{ _('Name')}}</th>
                             <th><div class="badge bg-success me-3" style="width:60px">GET</div></th>
                             <th><div class="badge bg-warning me-3" style="width:60px">SET</div></th>
                             <th><div class="badge bg-info me-3" style="width:60px">EDIT</div></th>
@@ -117,46 +117,46 @@
                             <td v-for="name in typesProperties">
                                 <div v-if="getProperties(nameProp) && getProperties(nameProp)[name]">
                                             <div v-if="getProperties(nameProp)[name].access_users">
-                                                Access users:
+                                                {{ _('Access users')}}:
                                                 <span v-for="user in getProperties(nameProp)[name].access_users" class="badge bg-success">
                                                     <img :src="getUserIcon(user)" class="rounded-circle" style="width: 16px;" />
                                                     [[getUserName(user)]]
                                                 </span>
                                             </div> 
                                             <div v-if="getProperties(nameProp)[name].denied_users">
-                                                Denied users:
+                                                {{ _('Denied users')}}:
                                                 <span v-for="user in getProperties(nameProp)[name].denied_users" class="badge bg-danger">
                                                     <img :src="getUserIcon(user)" class="rounded-circle" style="width: 16px;" />
                                                     [[getUserName(user)]]
                                                 </span>
                                             </div> 
                                             <div v-if="getProperties(nameProp)[name].access_roles">
-                                                Access roles:
+                                                {{ _('Access roles')}}:
                                                 <template v-for="role in roles">
                                                     <span v-if="getProperties(nameProp)[name].access_roles.includes(role.name)" class="badge bg-success">[[role.title]]</span>
                                                 </template>
                                             </div> 
                                             <div v-if="getProperties(nameProp)[name].denied_roles">
-                                                Denied roles:
+                                                {{ _('Denied roles')}}:
                                                 <template v-for="role in roles">
                                                     <span v-if="getProperties(nameProp)[name].denied_roles.includes(role.name)" class="badge bg-danger">[[role.title]]</span>
                                                 </template>
                                             </div> 
                                 </div>
-                                <span v-else class="badge bg-secondary mt-1">Not set</span>
+                                <span v-else class="badge bg-secondary mt-1">{{ _('Not set')}}</span>
                             </td>
                             <td>
-                                <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('properties',nameProp)" title="Edit">Edit</div>
+                                <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('properties',nameProp)">{{ _('Edit')}}</div>
                             </td>
                         </tr>
                         </tbody>
                     </table>
                 </div>
                 <div class="col">
-                    <h5>Methods</h5>
+                    <h5>{{ _('Methods')}}</h5>
                     <table class="table table-hover table-striped">
                         <thead>
-                            <th>Name</th>
+                            <th>{{ _('Name')}}</th>
                             <th><div class="badge bg-danger me-3" style="width:60px">CALL</div></th>
                             <th><div class="badge bg-info me-3" style="width:60px">EDIT</div></th>
                             <th></th>
@@ -168,36 +168,36 @@
                             <td v-for="name in typesMethods">
                                 <div v-if="getMethods(nameProp) && getMethods(nameProp)[name]">
                                             <div v-if="getMethods(nameProp)[name].access_users">
-                                                Access users:
+                                                {{ _('Access users')}}:
                                                 <span v-for="user in getMethods(nameProp)[name].access_users" class="badge bg-success">
                                                     <img :src="getUserIcon(user)" class="rounded-circle" style="width: 16px;" />
                                                     [[getUserName(user)]]
                                                 </span>
                                             </div> 
                                             <div v-if="getMethods(nameProp)[name].denied_users">
-                                                Denied users:
+                                                {{ _('Denied users')}}:
                                                 <span v-for="user in getMethods(nameProp)[name].denied_users" class="badge bg-danger">
                                                     <img :src="getUserIcon(user)" class="rounded-circle" style="width: 16px;" />
                                                     [[getUserName(user)]]
                                                 </span>
                                             </div> 
                                             <div v-if="getMethods(nameProp)[name].access_roles">
-                                                Access roles:
+                                                {{ _('Access roles')}}:
                                                 <template v-for="role in roles">
                                                     <span v-if="getMethods(nameProp)[name].access_roles.includes(role.name)" class="badge bg-success">[[role.title]]</span>
                                                 </template>
                                             </div> 
                                             <div v-if="getMethods(nameProp)[name].denied_roles">
-                                                Denied roles:
+                                                {{ _('Denied roles')}}:
                                                 <template v-for="role in roles">
                                                     <span v-if="getMethods(nameProp)[name].denied_roles.includes(role.name)" class="badge bg-danger">[[role.title]]</span>
                                                 </template>
                                             </div> 
                                 </div>
-                                <span v-else class="badge bg-secondary mt-1">Not set</span>
+                                <span v-else class="badge bg-secondary mt-1">{{ _('Not set')}}</span>
                             </td>
                             <td>
-                                <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('methods',nameProp)" title="Edit">Edit</div>
+                                <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('methods',nameProp)">{{ _('Edit')}}</div>
                             </td>
                         </tr>
                         </tbody>
@@ -205,7 +205,7 @@
                 </div>
             </div>
             {% if current_user.role in ["admin","root"] %}
-            <h5 class="mt-2">Raw permissions</h5>
+            <h5 class="mt-2">{{ _('Raw permissions')}}</h5>
             [[permissions]]
             {% endif %}
         </div>
@@ -214,7 +214,7 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Permissions</h5>
+                    <h5 class="modal-title" id="exampleModalLabel">{{ _('Permissions')}}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div v-if="edit_item" class="modal-body">
@@ -226,32 +226,32 @@
                             <div v-if="name == 'edit'" class="badge bg-info me-3" style="width:60px">EDIT</div>
                         </div>
                             <div>
-                                Access users:
-                                <span v-for="(user,key) in users" class="badge" :class="item.access_users.includes(user.name) ? 'bg-success text-light':'bg-light text-dark'" @click="switchElement(name,'access_users',user.name)">
+                                {{ _('Access users')}}:
+                                <span v-for="(user,key) in users" class="badge" :class="item.access_users.includes(user.name) ? 'bg-success text-light':'bg-secondary text-light'" @click="switchElement(name,'access_users',user.name)">
                                     <img :src="user.properties.image || '/Permissions/static/Permissions.png'" class="rounded-circle" style="width: 16px;" />
                                     [[user.description || user.name]]
                                 </span>
                             </div> 
                             <div>
-                                Denied users:
-                                <span v-for="(user,key) in users" class="badge" :class="item.denied_users.includes(user.name) ? 'bg-danger text-light':'bg-light text-dark'" @click="switchElement(name,'denied_users',user.name)">
+                                {{ _('Denied users')}}:
+                                <span v-for="(user,key) in users" class="badge" :class="item.denied_users.includes(user.name) ? 'bg-danger text-light':'bg-secondary text-light'" @click="switchElement(name,'denied_users',user.name)">
                                     <img :src="user.properties.image || '/Permissions/static/Permissions.png'" class="rounded-circle" style="width: 16px;" />
                                     [[user.description || user.name]]
                                 </span>
                             </div> 
                             <div>
-                                Access roles:
-                                <span v-for="role in roles" class="badge" :class="item.access_roles.includes(role.name) ? 'bg-success text-light':'bg-light text-dark'" @click="switchElement(name,'access_roles',role.name)">[[role.title]]</span>
+                                {{ _('Access roles')}}:
+                                <span v-for="role in roles" class="badge" :class="item.access_roles.includes(role.name) ? 'bg-success text-light':'bg-secondary text-light'" @click="switchElement(name,'access_roles',role.name)">[[role.title]]</span>
                             </div> 
                             <div>
-                                Denied roles:
-                                <span v-for="role in roles" class="badge" :class="item.denied_roles.includes(role.name) ? 'bg-danger text-light':'bg-light text-dark'" @click="switchElement(name,'denied_roles',role.name)">[[role.title]]</span>
+                                {{ _('Denied roles')}}:
+                                <span v-for="role in roles" class="badge" :class="item.denied_roles.includes(role.name) ? 'bg-danger text-light':'bg-secondary text-light'" @click="switchElement(name,'denied_roles',role.name)">[[role.title]]</span>
                             </div> 
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" @click="applyPermission">Save</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" @click="applyPermission">{{ _('Save')}}</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Close')}}</button>
                 </div>
             </div>
         </div>

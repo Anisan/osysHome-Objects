@@ -1,7 +1,7 @@
 {% extends "admin.html" %}
 {% from "macros/code_editor.html" import render_editor %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Objects">Objects</a></li>
+<li class="breadcrumb-item"><a href="Objects">{{ _('Objects')}}</a></li>
 <li class="breadcrumb-item"><a href="Objects?view=object&object={{object_id}}&tab={{tab}}">{{object_name}}</a></li>
 {% endblock %}
 {% block module %}
@@ -23,24 +23,24 @@
     {{ form.hidden_tag() }}
     <div class="mb-3">
         <div class="mb-3">
-            {{ form.name.label(class="form-label") }}
+            <label class="form-label">{{ _('Name') }}</label>
             {{ form.name(class="form-control") }}
         </div>
         <div>
-            {{ form.code.label(class="form-label") }}
+            <label class="form-label">{{ _('Code') }}</label>
             {{ render_editor(form.code, 'python')}}
         </div>
         <div class="mb-3">
-            {{ form.runtime.label(class="form-label") }}
+            <label class="form-label">{{ _('Runtime') }}</label>
             {{ form.runtime(class="form-control") }}
         </div>
         <div class="mb-3">
-            {{ form.crontab.label(class="form-label") }}
+            <label class="form-label">{{ _('Cron') }}</label>
             {{ form.crontab(class="form-control") }}
         </div>
     </div>
     <!-- Кнопка отправки формы -->
-    <button type="submit" class="btn btn-primary">Submit</button>
-    <a href="Objects?view=object&object={{object_id}}&tab={{tab}}" class="btn btn-secondary">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
+    <a href="Objects?view=object&object={{object_id}}&tab={{tab}}" class="btn btn-secondary">{{ _('Cancel')}}</a>
 </form>
 {% endblock %}

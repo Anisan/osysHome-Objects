@@ -1,22 +1,22 @@
 {% extends "admin.html" %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Objects">Objects</a></li>
+<li class="breadcrumb-item"><a href="Objects">{{ _('Objects')}}</a></li>
 {% endblock %}
 
-{% block title %} Objects {% endblock %} 
+{% block title %} {{ _('Objects')}} {% endblock %} 
 
 {% block module_content %}
 <div class="d-flex justify-content-between">
 <div>
-<a href="?view=class" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>Add class</a>
-<a href="?view=object" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>Add object</a>
-<a href="?view=permissions" class="btn btn-outline-warning" role="button"><i class="fas fa-shield me-2"></i>Permissions (global)</a>
+<a href="?view=class" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>{{ _('Add class')}}</a>
+<a href="?view=object" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>{{ _('Add object')}}</a>
+<a href="?view=permissions" class="btn btn-outline-warning" role="button"><i class="fas fa-shield me-2"></i>{{ _('Permissions (global)')}}</a>
 <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
-  Settings
+  {{ _('Settings')}}
 </button>
 </div>
-<a href="#" class="btn btn-outline-primary" role="button"  data-bs-toggle="modal" data-bs-target="#uploadModal"><i class="fas fa-file-import me-2"></i>Import from file</a>
+<a href="#" class="btn btn-outline-primary" role="button"  data-bs-toggle="modal" data-bs-target="#uploadModal"><i class="fas fa-file-import me-2"></i>{{ _('Import from file')}}</a>
 </div>
 <div class="accordion mt-2" id="accordionExample">
   {% for class in classes %}
@@ -34,7 +34,7 @@
       <div class="modal-content">
           <form  method="POST">
           <div class="modal-header">
-              <h5 class="modal-title" id="exampleModalLabel">Settings</h5>
+              <h5 class="modal-title" id="exampleModalLabel">{{ _('Settings')}}</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
@@ -42,12 +42,12 @@
               {{ form.hidden_tag() }}
               <div class="mb-3">
                 {{ form.render(class="form-check-input") }}
-                {{ form.render.label(class="form-label") }}
+                <label class="form-label">{{ _('View template in list objects') }}</label>
               </div>
            </div>
           <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-              <button type="submit" class="btn btn-primary">Submit</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Close')}}</button>
+              <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
           </div>
           </form>
       </div>
@@ -59,18 +59,18 @@
   <div class="modal-dialog" role="document">
       <div class="modal-content">
           <div class="modal-header">
-              <h5 class="modal-title" id="uploadModalLabel">Upload JSON File</h5>
+              <h5 class="modal-title" id="uploadModalLabel">{{ _('Upload JSON File')}}</h5>
           </div>
           <form id="uploadForm" enctype="multipart/form-data">
               <div class="modal-body">
                   <div class="form-group">
-                      <label for="file">Select JSON File:</label>
+                      <label for="file">{{ _('Select JSON File')}}:</label>
                       <input type="file" class="form-control-file" id="file" name="file" accept=".json">
                   </div>
               </div>
               <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                  <button type="button" class="btn btn-primary" onclick="uploadFile()">Upload</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Close')}}</button>
+                  <button type="button" class="btn btn-primary" onclick="uploadFile()">{{ _('Upload')}}</button>
               </div>
           </form>
       </div>

@@ -1,7 +1,7 @@
 {% extends "admin.html" %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Objects">Objects</a></li>
+<li class="breadcrumb-item"><a href="Objects">{{ _('Objects')}}</a></li>
 {% if class %}
 <li class="breadcrumb-item"><a href="Objects?view=class&class={{class.id}}&tab=properties">{{class.name}}</a></li>
 {%endif%}
@@ -26,31 +26,31 @@
     <!-- Поля формы -->
     {{ form.hidden_tag() }}
     <div class="mb-3">
-        {{ form.name.label(class="form-label") }}
+        <label class="form-label">{{ _('Name') }}</label>
         {{ form.name(class="form-control") }}
     </div>
     <div class="mb-3">
-        {{ form.description.label(class="form-label") }}
+        <label class="form-label">{{ _('Description') }}</label>
         {{ form.description(class="form-control") }}
     </div>
     <div class="mb-3">
-        {{ form.method_id.label(class="form-label") }}
+        <label class="form-label">{{ _('Method') }}</label>
         {{ form.method_id(class="form-control") }}
     </div>
     <div class="mb-3">
-        {{ form.history.label(class="form-label") }}
+        <label class="form-label">{{ _('History (days)') }}</label>
         {{ form.history(class="form-control") }}
     </div>
     <div class="mb-3">
-        {{ form.type.label(class="form-label") }}
+        <label class="form-label">{{ _('Type') }}</label>
         {{ form.type(class="form-control") }}
     </div>
     <!-- Кнопка отправки формы -->
-    <button type="submit" class="btn btn-primary">Submit</button>
+    <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
     {% if object %}
-    <a href="?view=object&object={{object.id}}&tab=properties" class="btn btn-secondary">Cancel</a>
+    <a href="?view=object&object={{object.id}}&tab=properties" class="btn btn-secondary">{{ _('Cancel')}}</a>
     {% else %}
-    <a href="?view=class&class={{class.id}}&tab=properties" class="btn btn-secondary">Cancel</a>
+    <a href="?view=class&class={{class.id}}&tab=properties" class="btn btn-secondary">{{ _('Cancel')}}</a>
     {% endif %}
 </form>
 {% endblock %}

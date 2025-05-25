@@ -15,7 +15,7 @@
 {% endmacro %}
 {% from "macros/code_editor.html" import render_editor %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Objects">Objects</a></li>
+<li class="breadcrumb-item"><a href="Objects">{{ _('Objects')}}</a></li>
 {% if class %}
 <li class="breadcrumb-item"><a href="Objects?view=class&class={{class.id}}&tab=objects">{{class.name}}</a></li>
 {%endif%}
@@ -40,7 +40,7 @@
 {% endif %}
 {% if saved %}
 <div class="alert alert-success mt-3">
-    Object saved successfully!
+    {{ _('Object saved successfully!')}}
 </div>
 {% endif %}
 <!-- Подключение стилей Prism -->
@@ -50,26 +50,26 @@
 <script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism-python.min.js"></script>
 
 <ul class="nav nav-tabs mb-3" id="configTabs" role="tablist">
-    <li class="nav-item"><a class="nav-link tab-button{% if tab == ''%} active{%endif%}" href="#general" data-bs-toggle="tab" role="tab">General</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == ''%} active{%endif%}" href="#general" data-bs-toggle="tab" role="tab">{{ _('General')}}</a></li>
     <li class="nav-item">
         <button class="nav-link tab-button{% if tab == 'properties'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#properties" data-bs-toggle="tab" role="tab">
-            Properties <a href="?view=property&object={{id}}" class="btn btn-success btn-sm ms-2" title="Add property"><i class="fas fa-plus"></i></a>
+            {{ _('Properties')}} <a href="?view=property&object={{id}}" class="btn btn-success btn-sm ms-2" title="{{ _('Add property')}}"><i class="fas fa-plus"></i></a>
         </button>
     </li>
     <li class="nav-item">
         <button class="nav-link tab-button{% if tab == 'methods'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#methods" data-bs-toggle="tab" role="tab">
-            Methods <a href="?view=method&object={{id}}" class="btn btn-success btn-sm ms-2" title="Add method"><i class="fas fa-plus"></i></a>
+            {{ _('Methods')}} <a href="?view=method&object={{id}}" class="btn btn-success btn-sm ms-2" title="{{ _('Add method')}}"><i class="fas fa-plus"></i></a>
         </a>
     </li>
-    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#template_tab" data-bs-toggle="tab" role="tab">Template</a></li>
-    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'structure'%} active{%endif%}{% if not obj %} disabled{%endif%}" href="#object_tab" data-bs-toggle="tab" role="tab">Structure</a></li>
-    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'schedule'%} active{%endif%}{% if not obj %} disabled{%endif%}" href="#schedule_tab" data-bs-toggle="tab" role="tab">Schedules</a></li>
-    <li class="nav-item"><a class="nav-link tab-button" href="?view=object&object={{id}}&tab=permissions">Permissions</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}{% if not id %} disabled{%endif%}" href="#template_tab" data-bs-toggle="tab" role="tab">{{ _('Template')}}</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'structure'%} active{%endif%}{% if not obj %} disabled{%endif%}" href="#object_tab" data-bs-toggle="tab" role="tab">{{ _('Structure')}}</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'schedule'%} active{%endif%}{% if not obj %} disabled{%endif%}" href="#schedule_tab" data-bs-toggle="tab" role="tab">{{ _('Schedules')}}</a></li>
+    <li class="nav-item"><a class="nav-link tab-button" href="?view=object&object={{id}}&tab=permissions">{{ _('Permissions')}}</a></li>
     <li class="nav-item flex-grow-1"> <!-- flex-grow-1 для заполнения промежутка -->
         <!-- Пустой элемент, чтобы создать промежуток -->
       </li>
     <li class="nav-item ml-auto"> <!-- Используем ml-auto для выравнивания последней вкладки справа -->
-        <a class="nav-link tab-button" data-bs-toggle="tab" href="#tools">Tools</a>
+        <a class="nav-link tab-button" data-bs-toggle="tab" href="#tools">{{ _('Tools')}}</a>
     </li>
 </ul>
 <div class="tab-content" id="myTabContent">
@@ -78,20 +78,20 @@
         <!-- Поля формы -->
         {{ form.hidden_tag() }}
         <div class="mb-3">
-            {{ form.name.label(class="form-label") }}
+            <label class="form-label">{{ _('Name') }}</label>
             {{ form.name(class="form-control") }}
         </div>
         <div class="mb-3">
-            {{ form.description.label(class="form-label") }}
+            <label class="form-label">{{ _('Description') }}</label>
             {{ form.description(class="form-control") }}
         </div>
         <div class="mb-3">
-            {{ form.class_id.label(class="form-label") }}
+            <label class="form-label">{{ _('Class') }}</label>
             {{ form.class_id(class="form-control") }}
         </div>
         <!-- Кнопка отправки формы -->
-        <button type="submit" class="btn btn-primary">Submit</button>
-        <a href="Objects" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
+        <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
         </form>
     </div>
     <div class="tab-pane fade {% if tab == 'properties'%}show active{%endif%}" id="properties" role="tabpanel" aria-labelledby="properties-tab">
@@ -99,10 +99,10 @@
             <table class="table table-hover table-sm">
                     <tr>
                         <th>#</th>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Type</th>
-                        <th>Value</th>
+                        <th>{{ _('Name')}}</th>
+                        <th>{{ _('Description')}}</th>
+                        <th>{{ _('Type')}}</th>
+                        <th>{{ _('Value')}}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -124,17 +124,17 @@
                                 {% endfor %}
                             </p>
                             {%endif%}
-                            {%if property.history%}<p style="color: gray;margin: 0px;">↳ <a href="HistoryView?name={{property.name}}&object={{id}}" class="badge bg-warning text-dark">History: {{property.history}} days</a></p>{%endif%}
-                            {%if property.method%}<p style="color: gray;margin: 0px;">↳ <span class="badge bg-primary">Method: {{property.method}}</span></p>{%endif%}
+                            {%if property.history%}<p style="color: gray;margin: 0px;">↳ <a href="HistoryView?name={{property.name}}&object={{id}}" class="badge bg-warning text-dark">{{ _('History')}}: {{property.history}} {{ _('days')}}</a></p>{%endif%}
+                            {%if property.method%}<p style="color: gray;margin: 0px;">↳ <span class="badge bg-primary">{{ _('Method')}}: {{property.method}}</span></p>{%endif%}
                             {% if property.jobs%}
                                 {%for job in property.jobs%}
                                 <p style="color: gray;margin: 0px;">
-                                    ↳ <span class="badge bg-warning text-dark">Runtime: {{job.runtime}} 
+                                    ↳ <span class="badge bg-warning text-dark">{{ _('Runtime')}}: {{job.runtime}} 
                                     {%if job.crontab%}
-                                        (Period: {{job.crontab}})
+                                        ({{ _('Period')}}: {{job.crontab}})
                                     {%endif%}
                                     </span>
-                                    <a href="?view=schedule&object={{id}}&tab=properties&schedule={{job.id}}&op=delete" onClick="return confirm('Delete task?')" class="btn btn-tertiary btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
+                                    <a href="?view=schedule&object={{id}}&tab=properties&schedule={{job.id}}&op=delete" onClick="return confirm('Delete task?')" class="btn btn-tertiary btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                                 </p>
                                 {%endfor%}
                             {% endif%}
@@ -152,12 +152,12 @@
                         </td>
                         <td width="1%" nowrap>
                             {% if not property.class_id %}
-                                <a href="?view=property&object={{id}}&property={{property.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="Edit"><i class="fas fa-pencil-alt"></i></a>
-                                <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>Add task</a>
-                                <a href="?view=property&object={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
+                                <a href="?view=property&object={{id}}&property={{property.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="{{ _('Edit')}}"><i class="fas fa-pencil-alt"></i></a>
+                                <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>{{ _('Add task')}}</a>
+                                <a href="?view=property&object={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                             {%else%}
-                                <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>Add task</a>
-                                <a href="?view=property&object={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button">Redefine</a>
+                                <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>{{ _('Add task')}}</a>
+                                <a href="?view=property&object={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button">{{ _('Redefine')}}</a>
                             {% endif %}
                         </td>
                     </tr>
@@ -165,7 +165,7 @@
                 </tbody>
             </table>
         </div>
-        <a href="Objects" class="btn btn-secondary">Cancel</a>
+        <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade {% if tab == 'methods'%}show active{%endif%}" id="methods" role="tabpanel" aria-labelledby="methods-tab">
         <div class="table-responsive">
@@ -173,9 +173,9 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Executed</th>
+                        <th>{{ _('Name')}}</th>
+                        <th>{{ _('Description')}}</th>
+                        <th>{{ _('Executed')}}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -193,12 +193,12 @@
                             {% if method.jobs%}
                                 {%for job in method.jobs%}
                                 <p style="color: gray;margin: 0px;">
-                                    ↳ <span class="badge bg-warning text-dark">Runtime: {{job.runtime}} 
+                                    ↳ <span class="badge bg-warning text-dark">{{ _('Runtime')}}: {{job.runtime}} 
                                     {%if job.crontab%}
-                                        (Period: {{job.crontab}})
+                                        ({{ _('Period')}}: {{job.crontab}})
                                     {%endif%}
                                     </span>
-                                    <a href="?view=schedule&object={{id}}&tab=methods&schedule={{job.id}}&op=delete" onClick="return confirm('Delete task?')" class="btn btn-tertiary btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
+                                    <a href="?view=schedule&object={{id}}&tab=methods&schedule={{job.id}}&op=delete" onClick="return confirm('Delete task?')" class="btn btn-tertiary btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                                 </p>
                                 {%endfor%}
                             {% endif%}
@@ -221,15 +221,15 @@
                         <td style="white-space: nowrap;">
                             {% if method.class_id %}
                                 {% if not method.redefined %}
-                                <a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button">Redefine</a>
+                                <a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button">{{ _('Redefine')}}</a>
                                 {%endif%}
                             {%else%}
-                                <a href="?view=method&object={{id}}&method={{method.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="Edit"><i class="fas fa-pencil-alt"></i></a>
-                                <a href="?view=method&object={{id}}&method={{method.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
+                                <a href="?view=method&object={{id}}&method={{method.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="{{ _('Edit')}}"><i class="fas fa-pencil-alt"></i></a>
+                                <a href="?view=method&object={{id}}&method={{method.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                             {% endif %}
                             {% if not method.redefined %}
-                                <a href="?view=schedule&object={{id}}&method={{method.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>Add task</a>
-                                <a href="#" class="btn btn-warning btn-sm" onClick="callMethodWithResult('{{form.name.data}}.{{method.name}}',)" role="button"><i class="fa-solid fa-gears me-2"></i>Run</a>
+                                <a href="?view=schedule&object={{id}}&method={{method.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>{{ _('Add task')}}</a>
+                                <a href="#" class="btn btn-warning btn-sm" onClick="callMethodWithResult('{{form.name.data}}.{{method.name}}',)" role="button"><i class="fa-solid fa-gears me-2"></i>{{ _('Run')}}</a>
                             {% endif %}
                         </td>
                     </tr>
@@ -238,25 +238,25 @@
             </table>
             <div id="resultCallMethod"></div>
         </div>
-        <a href="Objects" class="btn btn-secondary">Cancel</a>
+        <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade {% if tab == 'template'%}show active{%endif%}" id="template_tab" role="tabpanel" aria-labelledby="template-tab">
         <form id="formTemplate" method="POST">
             <!-- Поля формы -->
             {{ form.hidden_tag() }}
             <div class="mb-3" hidden>
-                {{ form.class_id.label(class="form-label") }}
+                <label class="form-label">{{ _('Class') }}</label>
                 {{ form.class_id(class="form-control") }}
             </div>
             <div class="mb-3">
-                {{ form.template.label(class="form-label") }}
+                <label class="form-label">{{ _('Template') }}</label>
                 {{ render_editor(form.template, 'html')}}
             </div>
             <!-- Кнопка отправки формы -->
-            <button type="submit" class="btn btn-primary">Submit</button>
-            <a href="Objects" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
+            <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
             <hr>
-            <b>Templates (parent)</b>
+            <b>{{ _('Templates (parent)')}}</b>
             <div class="ms-3">
                 {%if obj.templates%}
                 {% for key,template in obj.templates.items() %}
@@ -266,7 +266,7 @@
                     {%endif%}
                 {%endfor%}
                 {%else%}
-                None
+                {{ _('None')}}
                 {%endif%}
             </div>
         </form>
@@ -275,7 +275,7 @@
     <div class="tab-pane fade {% if tab == 'structure'%} show active{%endif%}" id="object_tab" role="tabpanel" aria-labelledby="object-tab">
         <h5><b>{{ obj.name }}</b>: {{ obj.description }}</h5>
             <ul>
-			<b>Properties</b>
+			<b>{{ _('Properties')}}</b>
             {% for key_prop, prop in obj.properties.items() %}
             <li>{{ prop.name }}: <small>{{ prop.description }}</small> = <span id="prop:{{obj.name}}.{{prop.name}}">{{prop.value}}</span>
                 {%if prop.linked%}
@@ -286,7 +286,7 @@
                 </span>
                 {%endif%}
                 {% if prop.history > 0 %}
-                    <a href="HistoryView?name={{prop.name}}&object={{id}}" class="badge bg-warning text-dark">History: {{prop.history}} days</a>
+                    <a href="HistoryView?name={{prop.name}}&object={{id}}" class="badge bg-warning text-dark">{{ _('History')}}: {{prop.history}} {{ _('days')}}</a>
                 {% endif %}
                 {% if prop.method %}
                     <span class="badge bg-primary">↳ {{prop.method}}</span>
@@ -298,15 +298,15 @@
             {% endfor %}    
             </ul>
             <ul>
-            <b>Methods</b>
+            <b>{{ _('Methods')}}</b>
             {% for key_meth, method in obj.methods.items() %}
-            <li>{{ method.name }}: <small>{{ method.description }}</small> <a class="btn btn-sm btn-warning" href="#" onclick="callMethodWithResult('{{obj.name}}.{{method.name}}')"><i class="fa-solid fa-gears me-2"></i>Run</a>
+            <li>{{ method.name }}: <small>{{ method.description }}</small> <a class="btn btn-sm btn-warning" href="#" onclick="callMethodWithResult('{{obj.name}}.{{method.name}}')"><i class="fa-solid fa-gears me-2"></i>{{ _('Run')}}</a>
                 {% if method.methods %}
                 <a class="btn btn-sm bg-info" data-bs-toggle="collapse" data-bs-target="#spoiler{{obj.name}}{{method.name}}" aria-expanded="true" aria-controls="spoiler{{obj.name}}{{method.name}}">
                     <i class="fa-solid fa-code me-2"></i>Code
                 </a>
                 <p style="color: gray;margin: 0px;">
-                    ↳ Executed: <span class="ms-0 badge bg-secondary" id="method_executed:{{form.name.data}}.{{method.name}}">{{method.executed}}</span>
+                    ↳ {{ _('Executed')}}: <span class="ms-0 badge bg-secondary" id="method_executed:{{form.name.data}}.{{method.name}}">{{method.executed}}</span>
                     <span class="ms-0 badge bg-success" id="method_source:{{form.name.data}}.{{method.name}}">{{method.source}}</span>
                     <small> (ex: {{method.count_executed}})</small>
                 </p>
@@ -323,18 +323,18 @@
             </li>
             {% endfor %}
             <hr>
-            <b>Parents</b>
+            <b>{{ _('Parents')}}</b>
             <div>
              {% for parent in obj.parents %}
              <span class="badge bg-success">{{parent}}</span>
              {%endfor%}
             </div>
-            <b>Permissions</b>
+            <b>{{ _('Permissions')}}</b>
             <div class="ms-3">
                 {%if obj.permissions%}
                 {{ render_dict(obj.permissions) }}
                 {%else%}
-                None
+                {{ _('None')}}
                 {%endif%}
             </div>
             </ul>
@@ -346,10 +346,10 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Name</th>
-                        <th>Code</th>
-                        <th>Date</th>
-                        <th>Cron</th>
+                        <th>{{ _('Name')}}</th>
+                        <th>{{ _('Code')}}</th>
+                        <th>{{ _('Date')}}</th>
+                        <th>{{ _('Cron')}}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -370,18 +370,18 @@
                             {{ schedule.crontab }}
                         </td>
                         <td>
-                            <a href="?view=schedule&object={{id}}&tab=schedule&schedule={{schedule.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="Edit"><i class="fas fa-pencil-alt"></i></a>
-                            <a href="?view=schedule&object={{id}}&tab=schedule&schedule={{schedule.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="Delete"><i class="fas fa-trash"></i></a>
+                            <a href="?view=schedule&object={{id}}&tab=schedule&schedule={{schedule.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="{{ _('Edit')}}"><i class="fas fa-pencil-alt"></i></a>
+                            <a href="?view=schedule&object={{id}}&tab=schedule&schedule={{schedule.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        <a href="Objects" class="btn btn-secondary">Cancel</a>
+        <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade" id="tools" role="tabpanel" aria-labelledby="tools-tab">
-        <a href="../api/export/object/{{id}}" class="btn btn-primary btn-sm" role="button">Export object</a>
+        <a href="../api/export/object/{{id}}" class="btn btn-primary btn-sm" role="button">{{ _('Export object')}}</a>
     </div>
 </div>
 </div>
@@ -400,19 +400,19 @@
       
         <!-- Заголовок модального окна -->
         <div class="modal-header">
-          <h4 class="modal-title">Enter new value</h4>
+          <h4 class="modal-title">{{ _('Enter new value')}}</h4>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         
         <!-- Основное содержимое модального окна -->
         <div class="modal-body">
-          <textarea type="text" id="newValue" class="form-control" placeholder="Enter new value"></textarea>
+          <textarea type="text" id="newValue" class="form-control" placeholder="{{ _('Enter new value')}}"></textarea>
         </div>
         
         <!-- Подвал модального окна с кнопками -->
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" id="saveButton">Save</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel')}}</button>
+          <button type="button" class="btn btn-primary" id="saveButton">{{ _('Save')}}</button>
         </div>
         
       </div>
@@ -425,19 +425,19 @@
       
         <!-- Заголовок модального окна -->
         <div class="modal-header">
-          <h4 class="modal-title">Enter crontab</h4>
+          <h4 class="modal-title">{{ _('Enter crontab')}}</h4>
         </div>
         
         <!-- Основное содержимое модального окна -->
         <div class="modal-body">
           <h6 id="methodValue">Enter crontab</h6>
-          <input type="text" id="cronValue" class="form-control" placeholder="Enter new value">
+          <input type="text" id="cronValue" class="form-control" placeholder="{{ _('Enter new value')}}">
         </div>
         
         <!-- Подвал модального окна с кнопками -->
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" id="saveCronButton">Save</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel')}}</button>
+          <button type="button" class="btn btn-primary" id="saveCronButton">{{ _('Save')}}</button>
         </div>
         
       </div>

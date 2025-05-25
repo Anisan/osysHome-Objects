@@ -2,7 +2,7 @@
 {% from "macros/code_editor.html" import render_editor %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Objects">Objects</a></li>
+<li class="breadcrumb-item"><a href="Objects">{{ _('Objects')}}</a></li>
 {% if class %}
 <li class="breadcrumb-item"><a href="Objects?view=class&class={{class.id}}&tab=methods">{{class.name}}</a></li>
 {%endif%}
@@ -26,7 +26,7 @@
 {% endif %}
 {% if saved %}
 <div class="alert alert-success mt-3">
-    Method saved successfully!
+    {{ _('Method saved successfully!')}}
 </div>
 {% endif %}
 <form id="form" method="POST">
@@ -34,19 +34,19 @@
   {{ form.hidden_tag() }}
   <input type="hidden" id="method" name="method" value="{{id}}">
   <div class="mb-3">
-      {{ form.name.label(class="form-label") }}
+      <label class="form-label">{{ _('Name') }}</label>
       {{ form.name(class="form-control") }}
   </div>
   <div class="mb-3">
-      {{ form.description.label(class="form-label") }}
+      <label class="form-label">{{ _('Description') }}</label>
       {{ form.description(class="form-control") }}
   </div>
   <div class="mb-3">
-    {{ form.code.label(class="form-label") }}
+    <label class="form-label">{{ _('Code') }}</label>
     {{ render_editor(form.code, 'python')}}
  </div>
  <div class="mb-3">
-    {{ form.call_parent.label(class="form-label me-2") }}
+    <label class="form-label">{{ _('Call parent') }}</label>
     {% for choice in form.call_parent %}
         <div class="form-check form-check-inline">
             {{ choice(class="form-check-input") }}
@@ -57,22 +57,22 @@
 {% if object %}
  <div class="row">
     <div class="col-auto mb-3">
-        {{ form.periodic.label(class="form-label me-2") }}
+        <label class="form-label">{{ _('Periodic') }}</label>
         {{ form.periodic(class="form-check-input", id="checkbox", onclick="toggleHiddenField()") }}
     </div>
     <diw class="col-auto mb-3 d-none" id="hidden_field_wrapper">
-        {{ form.crontab.label(class="form-label") }}
+        <label class="form-label">{{ _('Cron') }}</label>
         {{ form.crontab(class="form-control") }}
     </div>
 </div>
 {%endif%}
  <!-- Кнопка отправки формы -->
-  <button type="submit" class="btn btn-primary">Submit</button>
+  <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
   {% if object %}
-  <a href="?view=object&object={{object.id}}&tab=methods" class="btn btn-secondary">Cancel</a>
-  <a href="#" class="btn btn-success" onClick="callMethodWithResult('{{object.name}}.{{form.name.data}}')" role="button">Run</a>
+  <a href="?view=object&object={{object.id}}&tab=methods" class="btn btn-secondary">{{ _('Cancel')}}</a>
+  <a href="#" class="btn btn-success" onClick="callMethodWithResult('{{object.name}}.{{form.name.data}}')" role="button">{{ _('Run')}}</a>
   {% else %}
-  <a href="?view=class&class={{class.id}}&tab=methods" class="btn btn-secondary">Cancel</a>
+  <a href="?view=class&class={{class.id}}&tab=methods" class="btn btn-secondary">{{ _('Cancel')}}</a>
   {% endif %}
 </form>
 

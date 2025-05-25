@@ -4,19 +4,19 @@
         <i class="fas fa-folder h3 mt-2"></i>
         <div class="px-3">
             {{ class.name }}
-            <pre style="margin: 0px;color: #cacaca;">{%if class.description!=""%}{{class.description}}{%else%}Description is empty{%endif%}</pre>
+            <pre style="margin: 0px;color: #cacaca;">{%if class.description!=""%}{{class.description}}{%else%}{{ _('Description is empty')}}{%endif%}</pre>
         </div>
       </h5>
       <div class="btn-group" role="group">
-            <a type="button" class="btn btn-outline-primary btn-sm" href="?view=class&class={{class.id}}" title="Edit"><i class="fas fa-pencil-alt"></i></a>
-            <a type="button" class="btn btn-success btn-sm" href="?view=class&class={{class.id}}&tab=properties" title="Properties"><i class="feather icon-list"></i></a>
-            <a type="button" class="btn btn-warning btn-sm" href="?view=class&class={{class.id}}&tab=methods" title="Methods"><i class="fas fa-cog"></i></a>
-            <a type="button" class="btn btn-primary btn-sm" href="?view=class&class={{class.id}}&tab=objects" title="Objects"><i class="feather icon-grid"></i></a>
-            <a type="button" class="btn btn-secondary btn-sm" href="?view=class&class={{class.id}}&tab=template" title="Template"><i class="fa-solid fa-paintbrush"></i></a>
-            <a type="button" class="btn btn-warning btn-sm" href="?view=class&class={{class.id}}&tab=permissions" title="Permission"><i class="fa-solid fa-shield"></i></a>
+            <a type="button" class="btn btn-outline-primary btn-sm" href="?view=class&class={{class.id}}" title="{{ _('Edit')}}"><i class="fas fa-pencil-alt"></i></a>
+            <a type="button" class="btn btn-success btn-sm" href="?view=class&class={{class.id}}&tab=properties" title="{{ _('Properties')}}"><i class="feather icon-list"></i></a>
+            <a type="button" class="btn btn-warning btn-sm" href="?view=class&class={{class.id}}&tab=methods" title="{{ _('Methods')}}"><i class="fas fa-cog"></i></a>
+            <a type="button" class="btn btn-primary btn-sm" href="?view=class&class={{class.id}}&tab=objects" title="{{ _('Objects')}}"><i class="feather icon-grid"></i></a>
+            <a type="button" class="btn btn-secondary btn-sm" href="?view=class&class={{class.id}}&tab=template" title="{{ _('Template')}}"><i class="fa-solid fa-paintbrush"></i></a>
+            <a type="button" class="btn btn-warning btn-sm" href="?view=class&class={{class.id}}&tab=permissions" title="{{ _('Permission')}}"><i class="fa-solid fa-shield"></i></a>
             
             {% if not class.objects and not class.children%}
-            <a type="button" class="btn btn-danger btn-sm" href="?view=class&class={{class.id}}&op=delete" title="Delete"
+            <a type="button" class="btn btn-danger btn-sm" href="?view=class&class={{class.id}}&op=delete" title="{{ _('Delete')}}"
             onClick="return confirm('Delete class {{class.name}}?')"><i class="feather icon-trash"></i></a>
             {%endif%}
       </div>
@@ -33,7 +33,7 @@
                 {% endfor %}
             </ul>
             {% else %}
-            <p class="px-3 ml-2 mt-2">No objects of class "{{class.name}}({{class.description}})"</p>
+            <p class="px-3 ml-2 mt-2">{{ _('No objects of class')}} "{{class.name}}({{class.description}})"</p>
             {% endif %}
       </div>
     </div>
