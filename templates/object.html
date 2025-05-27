@@ -445,6 +445,10 @@
 </div>
 
 <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        socket.emit('subscribeActions', ['executedMethod']);
+    })
+
     var nameProperty = ""
     // Функция для открытия модального окна
     function openModal(name) {
@@ -471,6 +475,8 @@
             });
         }, 5000);
     });
+
+
 </script>
 
 {% endblock %}
