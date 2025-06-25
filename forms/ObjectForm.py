@@ -66,6 +66,7 @@ def routeObject(request):
         sql = delete(Object).where(Object.id == id)
         db.session.execute(sql)
         db.session.commit()
+        objects_storage.changeObject("delete",name, None, None, None)
         objects_storage.remove_object(name)
         return redirect("Objects")
     saved = False
@@ -175,6 +176,7 @@ def routeObject(request):
         db.session.commit()  # Сохраняем изменения в базе данных
         # update object to storage
         if old_name != item.name:
+            objects_storage.changeObject("rename", old_name, None, None, item.name)
             objects_storage.remove_object(old_name)
         objects_storage.reload_object(item.id)
 

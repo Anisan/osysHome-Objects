@@ -101,7 +101,10 @@ def routeMethod(request):
                 db.session.commit()
                 id = method.id
             else:
+                old_name = item.name
                 form.populate_obj(item)  # Обновляем значения объекта данными из формы
+                if object_owner and old_name != item.name:
+                    objects_storage.changeObject("rename", object_owner.name, None, old_name, item.name)
         else:
             item = Method(
                 name=form.name.data,

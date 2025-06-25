@@ -58,6 +58,8 @@ def routeProperty(request):
 
         if object_id: 
             url = "?view=object&object=" + str(object_id) + "&tab=properties"
+            obj = Object.query.filter(Object.id == object_id).one_or_none()
+            objects_storage.changeObject("delete", obj.name, name, None, None)
             objects_storage.reload_object(object_id)
         else:
             url = "?view=class&class=" + str(class_id) + "&tab=properties"
@@ -115,6 +117,8 @@ def routeProperty(request):
                     objs = db.session.query(Object).filter(Object.class_id == class_id).all()
                     for obj in objs:
                         db.session.query(Value).filter(Value.object_id == obj.id, Value.name == old_name).update({'name': item.name})
+                if object_owner and old_name != item.name:
+                    objects_storage.changeObject("rename", object_owner.name, old_name, None, item.name)
         else:
             new_item = Property(
                 name=form.name.data,
