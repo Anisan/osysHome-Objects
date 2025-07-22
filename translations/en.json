@@ -10,8 +10,6 @@
   "Class": "Class",
   "Count classes": "Count classes",
   "Count objects": "Count objects",
-  "Count values": "Count values",
-  "Date": "Date",
   "Denied roles": "Denied roles",
   "Denied users": "Denied users",
   "Description is empty": "Description is empty",
@@ -57,7 +55,6 @@
   "Templates (parent)": "Templates (parent)",
   "Tools": "Tools",
   "Upload JSON File": "Upload JSON File",
-  "Value": "Value",
   "View template in list objects": "View template in list objects",
   "days": "days"
 }

@@ -8,10 +8,8 @@
   "Add task": "Добавить задачу",
   "Call parent": "Вызов родителя",
   "Class": "Класс",
-  "Count classes": "Классов",
-  "Count objects": "Объектов",
-  "Count values": "Свойств",
-  "Date": "Дата",
+  "Count classes": "Кол-во классов",
+  "Count objects": "Кол-во объектов",
   "Denied roles": "Запрещенные роли",
   "Denied users": "Запрещенные пользователи",
   "Description is empty": "Описание отсутствует",
@@ -57,7 +55,6 @@
   "Templates (parent)": "Шаблоны (родитель)",
   "Tools": "Инструменты",
   "Upload JSON File": "Загрузить JSON файл",
-  "Value": "Значение",
   "View template in list objects": "Просмотр шаблона в списке объектов",
   "days": "дней"
 }
