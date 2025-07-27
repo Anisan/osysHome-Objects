@@ -146,6 +146,7 @@ def routeObject(request):
                 method['executed'] = convert_utc_to_local(mm.executed) if mm.executed else ''
                 method['exec_params'] = json.dumps(mm.exec_params, cls=CustomJSONEncoder) if mm.exec_params else ''
                 method['exec_result'] = mm.exec_result if mm.exec_result else ''
+                method['exec_time'] = mm.exec_time
 
         for property in properties:
             if property['method_id']:
