@@ -120,7 +120,7 @@
                             {%if property.linked%}
                             <p style="color: gray;margin: 0px;">
                                 ↳ {% for link in property.linked %}
-                                <span class="badge bg-success">{{link}}</span>
+                                <a class="badge bg-success" href="/admin/{{link}}">{{link}}</a>
                                 {% endfor %}
                             </p>
                             {%endif%}

@@ -8,7 +8,7 @@ from app.core.models.Clasess import Class, Object, Method
 from app.core.lib.common import getJob, addCronJob, clearScheduledJob
 from app.database import db
 from app.core.main.ObjectsStorage import objects_storage
-from plugins.Objects.forms.utils import no_spaces_or_dots, checkPermission
+from plugins.Objects.forms.utils import no_spaces_or_dots, checkPermission, getClassId, getObjectId
 
 
 # Определение класса формы
@@ -43,13 +43,14 @@ def routeMethod(request):
             else:
                 id = int(id)
     class_id = request.args.get('class', None)
+    class_id = getClassId(class_id)
     object_id = request.args.get('object', None)
+    object_id = getObjectId(object_id)
     op = request.args.get('op', '')
     saved = False
 
     if not checkPermission(class_id, object_id, id):
         abort(403)  # Возвращаем ошибку "Forbidden" если доступ запрещен
-
 
     object_owner = None
     if object_id:
@@ -83,7 +84,7 @@ def routeMethod(request):
     else:
         form = MethodForm()
         form.call_parent.data = '0'
-    
+
     form.class_id = class_id
     form.object_id = object_id
 

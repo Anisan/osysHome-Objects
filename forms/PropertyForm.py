@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, IntegerField, StringField
+from wtforms import StringField, SubmitField, SelectField, IntegerField
 from wtforms.validators import DataRequired, Optional, ValidationError
 
 from sqlalchemy import delete
@@ -7,7 +7,7 @@ from flask import redirect, render_template, abort
 from app.database import db, row2dict
 from app.core.models.Clasess import Class, Object, Property, Value, Method
 from app.core.main.ObjectsStorage import objects_storage
-from plugins.Objects.forms.utils import no_spaces_or_dots, no_reserved, getMethodsParents, checkPermission
+from plugins.Objects.forms.utils import no_spaces_or_dots, no_reserved, getMethodsParents, checkPermission, getObjectId, getClassId
 
 # Определение класса формы
 class PropertyForm(FlaskForm):
@@ -31,9 +31,11 @@ class PropertyForm(FlaskForm):
                 raise ValidationError('Name already registered. Please choose a different one.')
 
 def routeProperty(request):
-    id = request.args.get('property', None)
     class_id = request.args.get('class', None)
+    class_id = getClassId(class_id)
     object_id = request.args.get('object', None)
+    object_id = getObjectId(object_id)
+    id = request.args.get('property', None)
     op = request.args.get('op', '')
 
     if not checkPermission(class_id, object_id, None, id):
@@ -56,7 +58,7 @@ def routeProperty(request):
             db.session.execute(sql)
             db.session.commit()
 
-        if object_id: 
+        if object_id:
             url = "?view=object&object=" + str(object_id) + "&tab=properties"
             obj = Object.query.filter(Object.id == object_id).one_or_none()
             objects_storage.changeObject("delete", obj.name, name, None, None)
@@ -134,7 +136,7 @@ def routeProperty(request):
             db.session.add(new_item)
         db.session.commit()  # Сохраняем изменения в базе данных
 
-        if object_id: 
+        if object_id:
             url = "?view=object&object=" + str(object_id) + "&tab=properties"
             objects_storage.reload_object(object_id)
         else:
@@ -148,5 +150,5 @@ def routeProperty(request):
         'form':form,
         'class': class_owner,
         'object': object_owner,
-    } 
+    }
     return render_template('property.html', **content)

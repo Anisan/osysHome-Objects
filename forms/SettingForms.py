@@ -1,7 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, IntegerField, BooleanField
-from wtforms.validators import DataRequired, Optional
-from wtforms.widgets import PasswordInput
+from wtforms import SubmitField, BooleanField
+from wtforms.validators import Optional
 
 # Определение класса формы
 class SettingsForm(FlaskForm):

@@ -12,7 +12,7 @@ from app.core.lib.common import getJobs
 from app.core.utils import CustomJSONEncoder
 from app.core.models.Clasess import Class, Object, Property, Method, Value
 from app.core.main.ObjectsStorage import objects_storage
-from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents, checkPermission
+from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents, checkPermission, getClassId, getObjectId
 
 
 # Определение класса формы
@@ -35,7 +35,9 @@ class ObjectForm(FlaskForm):
 
 def routeObject(request):
     id = request.args.get('object', None)
+    id = getObjectId(id)
     class_id = request.args.get('class', None)
+    class_id = getClassId(class_id)
     tab = request.args.get('tab', '')
     op = request.args.get('op', '')
 
@@ -61,8 +63,8 @@ def routeObject(request):
         db.session.execute(sql)
         sql = delete(Method).where(Method.object_id == id)
         db.session.execute(sql)
-        obj = Object.get_by_id(id)
-        name = obj.name
+        cls = Object.get_by_id(id)
+        name = cls.name
         sql = delete(Object).where(Object.id == id)
         db.session.execute(sql)
         db.session.commit()
@@ -111,7 +113,7 @@ def routeObject(request):
                 property['changed'] = convert_utc_to_local(value.changed) if value.changed else ''
                 if value.linked:
                     property['linked'] = value.linked.split(",")
-            job_name = item.name + "\_" + property['name'] + "\_%"
+            job_name = item.name + "\_" + property['name'] + "\_%"   # noqa
             jobs = getJobs(job_name)
             if jobs:
                 property['jobs'] = jobs
@@ -136,7 +138,7 @@ def routeObject(request):
         for method in methods:
             if method['class_id']:
                 method["class_name"] = dict_classes[method["class_id"]]
-            job_name = item.name + "\_" + method['name'] + "\_%"
+            job_name = item.name + "\_" + method['name'] + "\_%" # noqa
             jobs = getJobs(job_name)
             if jobs:
                 method['jobs'] = jobs
@@ -183,17 +185,17 @@ def routeObject(request):
 
         saved = True
 
-        #return redirect("Objects")  # Перенаправляем на другую страницу после успешного редактирования
+        # return redirect("Objects")  # Перенаправляем на другую страницу после успешного редактирования
     class_owner = None
     if class_id:
         class_owner = Class.get_by_id(class_id)
-    obj = None
+    cls = None
     schedules = []
     template = ''
     if id:
-        obj = objects_storage.getObjectByName(item.name)
-        schedules = getJobs(item.name + "\_%")
-        template = obj.render()
+        cls = objects_storage.getObjectByName(item.name)
+        schedules = getJobs(item.name + "\_%")  # noqa
+        template = cls.render()
 
     content = {
         'id': id,
@@ -204,7 +206,7 @@ def routeObject(request):
         'schedules': schedules,
         'template': template,
         'tab': tab,
-        'obj': obj.to_dict() if obj else None,
+        'obj': cls.to_dict() if cls else None,
         'saved': saved,
     }
     return render_template('object.html', **content)

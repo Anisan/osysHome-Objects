@@ -3,7 +3,7 @@ from flask import render_template
 from flask_login import current_user
 from app.database import session_scope
 from app.core.main.BasePlugin import BasePlugin
-from app.core.models.Clasess import Class, Object, Property, Method, Object, Value
+from app.core.models.Clasess import Class, Object, Property, Method, Value
 from plugins.Objects.forms.ClassForm import routeClass
 from plugins.Objects.forms.ObjectForm import routeObject
 from plugins.Objects.forms.PropertyForm import routeProperty

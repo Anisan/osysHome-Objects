@@ -4,9 +4,9 @@ from wtforms import StringField, SubmitField, SelectField, TextAreaField
 from wtforms.validators import DataRequired, Optional
 from flask import redirect, render_template, abort
 from sqlalchemy import delete
-from app.core.models.Clasess import Class, Property, Method, Object, Value
+from app.core.models.Clasess import Class, Property, Method, Object
 from app.database import db, row2dict
-from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, getTemplatesParents, no_spaces_or_dots, ValidationError, checkPermission
+from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, getTemplatesParents, no_spaces_or_dots, ValidationError, checkPermission, getClassId
 from app.core.main.ObjectsStorage import objects_storage
 from app.core.lib.object import getObject
 
@@ -31,6 +31,7 @@ class ClassForm(FlaskForm):
 
 def routeClass(request, config):
     id = request.args.get('class', None)
+    id = getClassId(id)
     tab = request.args.get('tab', '')
     op = request.args.get('op', '')
     item = None
@@ -80,13 +81,13 @@ def routeClass(request, config):
         if current_user.role not in ['admin','root']:
             query = query.filter(Method.name.notlike(r'\_%', escape='\\'))
         methods = query.order_by(Method.name).all()
-        methods = [row2dict(item) for item in methods] 
+        methods = [row2dict(item) for item in methods]
         for method in methods:
             dict_methods[method['id']] = method['name']
         parent_methods = []
         if item.parent_id:
             parent_methods = getMethodsParents(item.parent_id, parent_methods)
-        for method in parent_methods: 
+        for method in parent_methods:
             dict_methods[method['id']] = method['name']
         for prop in properties:
             if prop['method_id']:
@@ -113,7 +114,7 @@ def routeClass(request, config):
         methods = []
         parent_methods = []
         objects = []
-    
+
     query = Class.query.filter(Class.id != id)  # TODO exclude current class
     if current_user.role not in ['admin','root']:
         query = query.filter(Class.name.notlike(r'\_%', escape='\\'))
