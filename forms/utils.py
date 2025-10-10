@@ -112,21 +112,21 @@ def checkPermission(class_id: int = None, object_id: int = None, property_id: in
 
     return False
 
-def getClassId(id_or_name) -> int:
+def getClassId(id_or_name) -> str:
     if isinstance(id_or_name, str):
         if id_or_name.isdigit():
-            return int(id_or_name)
+            return id_or_name
         cls = Class.query.where(Class.name == id_or_name).one_or_none()
         if cls:
-            return cls.id
+            return str(cls.id)
     return id_or_name
 
-def getObjectId(id_or_name) -> int:
+def getObjectId(id_or_name) -> str:
     if isinstance(id_or_name, str):
         if id_or_name.isdigit():
-            return int(id_or_name)
+            return id_or_name
         obj = Object.query.where(Object.name == id_or_name).one_or_none()
         if obj:
-            return obj.id
+            return str(obj.id)
     return id_or_name
 
