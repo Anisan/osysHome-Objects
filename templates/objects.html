@@ -16,7 +16,10 @@
   {{ _('Settings')}}
 </button>
 </div>
+<div>
+<a href="../api/export/all" class="btn btn-outline-primary" role="button" ><i class="fas fa-file-export me-2"></i>{{ _('Export all')}}</a>
 <a href="#" class="btn btn-outline-primary" role="button"  data-bs-toggle="modal" data-bs-target="#uploadModal"><i class="fas fa-file-import me-2"></i>{{ _('Import from file')}}</a>
+</div>
 </div>
 <div class="accordion mt-2" id="accordionExample">
   {% for class in classes %}
@@ -63,9 +66,27 @@
           </div>
           <form id="uploadForm" enctype="multipart/form-data">
               <div class="modal-body">
-                  <div class="form-group">
+                  <div class="form-group mb-2">
                       <label for="file">{{ _('Select JSON File')}}:</label>
                       <input type="file" class="form-control-file" id="file" name="file" accept=".json">
+                  </div>
+                  <div class="form-group mb-2">
+                      <label>
+                      <input type="checkbox" class="form-check-input" id="add_class">
+                      {{ _('Add classes')}}
+                      </label>
+                  </div>
+                  <div class="form-group mb-2">
+                      <label>
+                      <input type="checkbox" class="form-check-input" id="add_objects">
+                      {{ _('Add objects')}}
+                      </label>
+                  </div>
+                  <div class="form-group">
+                      <label>
+                      <input type="checkbox" class="form-check-input" id="rewrite">
+                      {{ _('Rewrite classes/objects')}}
+                      </label>
                   </div>
               </div>
               <div class="modal-footer">
@@ -119,15 +140,34 @@ function loadConfiguration() {
 function uploadFile() {
             var formData = new FormData($('#uploadForm')[0]);
             console.log(formData)
+            const baseUrl = '../api/import';
+            const params = [];
+
+            if (document.getElementById('add_class').checked) {
+              params.push('classes=1');
+            }
+            if (document.getElementById('add_objects').checked) {
+              params.push('objects=1');
+            }
+            if (document.getElementById('rewrite').checked) {
+              params.push('rewrite=1');
+            }
+
+            const fullUrl = params.length > 0
+              ? baseUrl + '?' + params.join('&')
+              : baseUrl;
             $.ajax({
-                url: '/api/import',
+                url: fullUrl,
                 type: 'POST',
                 data: formData,
                 contentType: false,
                 processData: false,
                 success: function(response){
+                    success = response.success
                     alert(response.message);
-                    window.location.href = 'Objects';
+                    if (success) {
+                      window.location.href = 'Objects';
+                    }
                 },
                 error: function(xhr, status, error) {
                   console.error(xhr.responseText);
