@@ -1,0 +1,86 @@
+<style>
+    /* Улучшение читаемости кода */
+    .code-block {
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        max-height: 600px;
+        overflow-y: auto;
+        margin: 0;
+    }
+    .code-block code {
+        display: block;
+        width: 100%;
+        background: transparent !important;
+        font-family: inherit;
+        font-size: inherit;
+        line-height: inherit;
+    }
+    
+    /* Светлая тема (по умолчанию) */
+    .code-block {
+        background-color: #f8f9fa !important;
+        border-color: #dee2e6 !important;
+        color: #212529 !important;
+    }
+    .code-block code {
+        color: #212529 !important;
+    }
+    /* Светлая тема - цвета синтаксиса */
+    .code-block code.token.keyword { color: #0066cc !important; }
+    .code-block code.token.string { color: #008000 !important; }
+    .code-block code.token.number { color: #098658 !important; }
+    .code-block code.token.comment { color: #6a737d !important; font-style: italic; }
+    .code-block code.token.function { color: #795e26 !important; }
+    .code-block code.token.operator { color: #212529 !important; background: none !important;}
+    .code-block code.token.punctuation { color: #212529 !important; }
+
+    code[class*="language-"] {
+        text-shadow: none !important;
+    }
+    /* Убираем background у токенов Prism */
+    .language-css .token.string,
+    .style .token.string,
+    .token.entity,
+    .token.operator,
+    .token.url {
+        background: none !important;
+    }
+    
+    /* Темная тема - переопределение для темной темы */
+    html[data-bs-theme="dark"] .code-block,
+    [data-bs-theme="dark"] .code-block,
+    body[data-bs-theme="dark"] .code-block {
+        background-color: #1e1e1e !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+        color: #d4d4d4 !important;
+    }
+    html[data-bs-theme="dark"] .code-block code,
+    [data-bs-theme="dark"] .code-block code,
+    body[data-bs-theme="dark"] .code-block code {
+        color: #d4d4d4 !important;
+    }
+    /* Темная тема - цвета синтаксиса */
+    html[data-bs-theme="dark"] .code-block code.token.keyword,
+    [data-bs-theme="dark"] .code-block code.token.keyword,
+    body[data-bs-theme="dark"] .code-block code.token.keyword { color: #569cd6 !important; }
+    html[data-bs-theme="dark"] .code-block code.token.string,
+    [data-bs-theme="dark"] .code-block code.token.string,
+    body[data-bs-theme="dark"] .code-block code.token.string { color: #ce9178 !important; }
+    html[data-bs-theme="dark"] .code-block code.token.number,
+    [data-bs-theme="dark"] .code-block code.token.number,
+    body[data-bs-theme="dark"] .code-block code.token.number { color: #b5cea8 !important; }
+    html[data-bs-theme="dark"] .code-block code.token.comment,
+    [data-bs-theme="dark"] .code-block code.token.comment,
+    body[data-bs-theme="dark"] .code-block code.token.comment { color: #6a9955 !important; font-style: italic; }
+    html[data-bs-theme="dark"] .code-block code.token.function,
+    [data-bs-theme="dark"] .code-block code.token.function,
+    body[data-bs-theme="dark"] .code-block code.token.function { color: #dcdcaa !important; }
+    html[data-bs-theme="dark"] .code-block code.token.operator,
+    [data-bs-theme="dark"] .code-block code.token.operator,
+    body[data-bs-theme="dark"] .code-block code.token.operator { color: #d4d4d4 !important; }
+    html[data-bs-theme="dark"] .code-block code.token.punctuation,
+    [data-bs-theme="dark"] .code-block code.token.punctuation,
+    body[data-bs-theme="dark"] .code-block code.token.punctuation { color: #d4d4d4 !important; }
+</style>
+

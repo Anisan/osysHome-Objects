@@ -263,7 +263,7 @@
                 {% for key,template in obj.templates.items() %}
                     {%if key !=obj.name%}
                     <b>{{key}}</b>
-                    <pre><code class="language-html">{{template}}</code></pre>
+                    <pre class="code-block border rounded p-3 mb-3" style="overflow-x: auto;"><code class="language-html">{{template}}</code></pre>
                     {%endif%}
                 {%endfor%}
                 {%else%}
@@ -317,7 +317,7 @@
                     {% for item in method.methods %}
                         {%if item.class_id %}<b>{{item.owner}}</b>->{{item.name}}{%endif%}
                         {%if item.object_id %}{{ item.owner }}->{{item.name}}{%endif%}
-                        <pre><code class="language-python">{{item.code}}</code></pre>
+                        <pre class="code-block border rounded p-3 mb-3" style="overflow-x: auto;"><code class="language-python">{{item.code}}</code></pre>
                     {% endfor %} 
                 </div>
                 {%endif%}
@@ -479,5 +479,6 @@
 
 
 </script>
+{% include 'includes/code_block_styles.html' %}
 
 {% endblock %}
