@@ -20,6 +20,9 @@
         
         <!-- Подвал модального окна с кнопками -->
         <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary me-auto" id="result_copy_button">
+            <i class="fa-regular fa-copy me-1"></i>{{ _('Copy')}}
+          </button>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Close')}}</button>
         </div>
         
@@ -29,16 +32,146 @@
 {% endblock %}
 {% block javascripts %}
 <script>
-socket.on('resultCallMethod', function(data) {
-    console.log("resultCallMethod", data)
-    var divName = document.querySelector('#result_name');
-    divName.innerHTML = 'Result call method "'+data.name+'"';
-    var divData = document.querySelector('#result_data');
-    divData.innerHTML = data.data ? data.data : 'Empty' ;
-    var myModal = new bootstrap.Modal(document.getElementById('resultModal'))
-    myModal.show()
-    
-});
+(function() {
+  var resultModalElement = document.getElementById('resultModal');
+  var resultModalInstance = null;
+  var originalCallMethodWithResult = window.callMethodWithResult;
+  var emptyMessage = '{{ _("Empty") }}';
+  var runTitleTemplate = '{{ _("Running method") }}';
+  var resultTitleTemplate = '{{ _("Result call method") }}';
+  var waitMessage = '{{ _("Please wait, execution in progress...") }}';
+  var copyButton = document.getElementById('result_copy_button');
+  var defaultCopyLabel = copyButton ? copyButton.innerHTML : '';
+  var copiedLabel = '<i class="fa-regular fa-circle-check me-1"></i>{{ _("Copied!") }}';
+  var copyPendingLabel = '<i class="fas fa-circle-notch fa-spin me-1"></i>{{ _("Copy") }}';
+
+  function getResultModalInstance() {
+    if (!resultModalElement || typeof bootstrap === 'undefined') {
+      return null;
+    }
+    if (!resultModalInstance) {
+      resultModalInstance = bootstrap.Modal.getOrCreateInstance(resultModalElement);
+    }
+    return resultModalInstance;
+  }
+
+  function updateResultModal(title, bodyHtml) {
+    var divName = document.getElementById('result_name');
+    if (divName) {
+      divName.innerHTML = title;
+    }
+    var divData = document.getElementById('result_data');
+    if (divData) {
+      divData.innerHTML = bodyHtml;
+    }
+    var modal = getResultModalInstance();
+    if (modal) {
+      modal.show();
+    }
+  }
+
+  function showMethodLoader(name) {
+    var loaderHtml = '<div class="text-center text-muted py-3">'
+      + '<i class="fas fa-circle-notch fa-spin fa-3x mb-3" aria-hidden="true"></i>'
+      + '<div style="font-size: 1.1rem;">' + waitMessage + '</div>'
+      + '</div>';
+    updateResultModal(runTitleTemplate + ' "' + name + '"', loaderHtml);
+    setCopyButtonPendingState();
+  }
+
+  socket.on('resultCallMethod', function(data) {
+    console.log("resultCallMethod", data);
+    var title = resultTitleTemplate + ' "' + data.name + '"';
+    var body = data.data ? data.data : emptyMessage;
+    updateResultModal(title, body);
+    restoreCopyButtonReadyState();
+  });
+
+  if (typeof originalCallMethodWithResult === 'function') {
+    window.callMethodWithResult = function(name) {
+      showMethodLoader(name);
+      originalCallMethodWithResult(name);
+    };
+  }
+
+  function restoreCopyButtonLabel(delay) {
+    if (!copyButton) {
+      return;
+    }
+    setTimeout(function() {
+      copyButton.disabled = false;
+      copyButton.innerHTML = defaultCopyLabel;
+    }, delay || 1500);
+  }
+
+  function notifyCopySuccess() {
+    if (!copyButton) {
+      return;
+    }
+    copyButton.disabled = true;
+    copyButton.innerHTML = copiedLabel;
+    restoreCopyButtonLabel();
+  }
+
+  function setCopyButtonPendingState() {
+    if (!copyButton) {
+      return;
+    }
+    copyButton.disabled = true;
+    copyButton.innerHTML = copyPendingLabel;
+  }
+
+  function restoreCopyButtonReadyState() {
+    if (!copyButton) {
+      return;
+    }
+    copyButton.disabled = false;
+    copyButton.innerHTML = defaultCopyLabel;
+  }
+
+  function fallbackCopy(text) {
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.top = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      notifyCopySuccess();
+    } catch (err) {
+      console.warn('Clipboard copy failed', err);
+    }
+    document.body.removeChild(textarea);
+  }
+
+  function copyResultToClipboard() {
+    var contentElement = document.getElementById('result_data');
+    if (!contentElement) {
+      return;
+    }
+    var text = contentElement.innerText || contentElement.textContent || '';
+    if (!text) {
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() {
+        notifyCopySuccess();
+      }).catch(function(err) {
+        console.warn('navigator.clipboard failed', err);
+        fallbackCopy(text);
+      });
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  if (copyButton) {
+    copyButton.addEventListener('click', copyResultToClipboard);
+    setCopyButtonPendingState();
+  }
+})();
 
       // Функция для обновления времени на всех компонентах
       function updateAllTimes() {
