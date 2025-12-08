@@ -251,7 +251,7 @@
             </div>
             <div class="mb-3">
                 <label class="form-label">{{ _('Template') }}</label>
-                {{ render_editor(form.template, 'html')}}
+                {{ render_editor(form.template, 'html', obj.name)}}
             </div>
             <!-- Кнопка отправки формы -->
             <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
@@ -262,7 +262,7 @@
                 {%if obj.templates%}
                 {% for key,template in obj.templates.items() %}
                     {%if key !=obj.name%}
-                    <b>{{key}}</b>
+                    <b>{{key}}</b><small class="ms-2 text-muted">{{ '{%' }} extends "{{key}}" {{ '%}' }}</small>
                     <pre class="code-block border rounded p-3 mb-3" style="overflow-x: auto;"><code class="language-html">{{template}}</code></pre>
                     {%endif%}
                 {%endfor%}

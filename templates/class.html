@@ -222,7 +222,7 @@
                 {%if templates%}
                 {% for key,template in templates.items() %}
                     {%if key !=form.name.data%}
-                    <b>{{key}}</b>
+                    <b>{{key}}</b><small class="ms-2 text-muted">{{ '{%' }} extends "{{key}}" {{ '%}' }}</small>
                     <pre class="code-block border rounded p-3 mb-3" style="overflow-x: auto;"><code class="language-html">{{template}}</code></pre>
                     {%endif%}
                 {%endfor%}
