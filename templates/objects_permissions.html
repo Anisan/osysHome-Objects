@@ -1,5 +1,4 @@
 {% extends "admin.html" %}
-{% from "macros/code_editor.html" import render_editor %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="Objects">{{ _('Objects')}}</a></li>
 {%if tab %}
@@ -95,7 +94,7 @@
                     </div>
                 </div>
                 <div class="col-auto">
-                    <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('self','')">{{ _('Edit')}}</div>
+                    <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('self','')"><i class="fas fa-edit me-2"></i>{{ _('Edit')}}</div>
                 </div>
             </div>
 
@@ -146,7 +145,7 @@
                                 <span v-else class="badge bg-secondary mt-1">{{ _('Not set')}}</span>
                             </td>
                             <td>
-                                <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('properties',nameProp)">{{ _('Edit')}}</div>
+                                <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('properties',nameProp)"><i class="fas fa-edit me-2"></i>{{ _('Edit')}}</div>
                             </td>
                         </tr>
                         </tbody>
@@ -197,7 +196,7 @@
                                 <span v-else class="badge bg-secondary mt-1">{{ _('Not set')}}</span>
                             </td>
                             <td>
-                                <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('methods',nameProp)">{{ _('Edit')}}</div>
+                                <div class="btn btn-secondary me-2 text-nowrap" @click="editPermission('methods',nameProp)"><i class="fas fa-edit me-2"></i>{{ _('Edit')}}</div>
                             </td>
                         </tr>
                         </tbody>
@@ -250,8 +249,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" @click="applyPermission">{{ _('Save')}}</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Close')}}</button>
+                    <button type="button" class="btn btn-primary" @click="applyPermission"><i class="fas fa-save me-2"></i>{{ _('Save')}}</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i>{{ _('Close')}}</button>
                 </div>
             </div>
         </div>

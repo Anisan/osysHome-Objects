@@ -13,7 +13,7 @@
 <a href="?view=object" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>{{ _('Add object')}}</a>
 <a href="?view=permissions" class="btn btn-outline-warning" role="button"><i class="fas fa-shield me-2"></i>{{ _('Permissions (global)')}}</a>
 <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
-  {{ _('Settings')}}
+  <i class="fas fa-cog me-2"></i>{{ _('Settings')}}
 </button>
 </div>
 <div>
@@ -49,8 +49,8 @@
               </div>
            </div>
           <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Close')}}</button>
-              <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i>{{ _('Close')}}</button>
+              <button type="submit" class="btn btn-primary"><i class="fas fa-check me-2"></i>{{ _('Submit')}}</button>
           </div>
           </form>
       </div>
@@ -90,8 +90,8 @@
                   </div>
               </div>
               <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Close')}}</button>
-                  <button type="button" class="btn btn-primary" onclick="uploadFile()">{{ _('Upload')}}</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i>{{ _('Close')}}</button>
+                  <button type="button" class="btn btn-primary" onclick="uploadFile()"><i class="fas fa-cloud-upload me-2"></i>{{ _('Upload')}}</button>
               </div>
           </form>
       </div>

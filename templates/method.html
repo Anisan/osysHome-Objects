@@ -29,7 +29,17 @@
     {{ _('Method saved successfully!')}}
 </div>
 {% endif %}
-<form id="form" method="POST">
+<div id="method-form">
+    <div id="saving-alert" class="alert alert-info mt-3" style="display: none;">
+        <i class="fas fa-spinner fa-spin me-2"></i>{{ _('Saving method...')}}
+    </div>
+    <div id="success-alert" class="alert alert-success mt-3" style="display: none;">
+        {{ _('Method saved successfully!')}}
+    </div>
+    <div id="error-alert" class="alert alert-danger mt-3" style="display: none;">
+        <strong>{{ _('Error saving method:')}}</strong> <span id="error-message"></span>
+    </div>
+    <form id="form" method="POST" onsubmit="submitForm(event)">
   <!-- Поля формы -->
   {{ form.hidden_tag() }}
   <input type="hidden" id="method" name="method" value="{{id}}">
@@ -67,12 +77,16 @@
 </div>
 {%endif%}
  <!-- Кнопка отправки формы -->
-  <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
+  <button type="submit" id="submit-btn" class="btn btn-primary">
+    <i id="submit-spinner" class="fas fa-spinner fa-spin me-2" style="display: none;"></i>
+    <i class="fas fa-check me-2"></i>
+    <span id="submit-text">{{ _('Submit')}}</span>
+  </button>
   {% if object %}
-  <a href="?view=object&object={{object.id}}&tab=methods" class="btn btn-secondary">{{ _('Cancel')}}</a>
-  <a href="#" class="btn btn-success" onClick="callMethodWithResult('{{object.name}}.{{form.name.data}}')" role="button">{{ _('Run')}}</a>
+  <a href="?view=object&object={{object.id}}&tab=methods" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
+  <a href="#" class="btn btn-success" onClick="callMethodWithResult('{{object.name}}.{{form.name.data}}')" role="button"><i class="fas fa-play me-2"></i>{{ _('Run')}}</a>
   {% else %}
-  <a href="?view=class&class={{class.id}}&tab=methods" class="btn btn-secondary">{{ _('Cancel')}}</a>
+  <a href="?view=class&class={{class.id}}&tab=methods" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
   {% endif %}
 </form>
 
@@ -81,9 +95,9 @@
     <i class="fas fa-exclamation-circle me-3"></i>callMethod('{{object.name}}.{{form.name.data}}');
 </div>
 {%endif%}
+</div>
 
 <script>
-
 function toggleHiddenField() {
     var checkbox = document.getElementById('checkbox');
     var hiddenField = document.getElementById('hidden_field_wrapper');
@@ -94,9 +108,132 @@ function toggleHiddenField() {
     }
 }
 
-        // Ensure the field visibility is correct on page load if the checkbox is checked
+async function submitForm(event) {
+    event.preventDefault();
+
+    // Get form elements
+    const form = event.target;
+    const submitBtn = document.getElementById('submit-btn');
+    const submitSpinner = document.getElementById('submit-spinner');
+    const submitText = document.getElementById('submit-text');
+    const savingAlert = document.getElementById('saving-alert');
+    const successAlert = document.getElementById('success-alert');
+    const errorAlert = document.getElementById('error-alert');
+    const errorMessage = document.getElementById('error-message');
+
+    // Show saving state
+    submitBtn.disabled = true;
+    submitSpinner.style.display = 'inline-block';
+    submitText.textContent = '{{ _("Saving...") }}';
+    savingAlert.style.display = 'block';
+    successAlert.style.display = 'none';
+    errorAlert.style.display = 'none';
+
+    // Get form data
+    const formData = new FormData(form);
+
+    // Handle code editor value - get value from Ace or Monaco editor
+    let codeValue = '';
+    try {
+        // Try Ace editor first
+        if (typeof window.ace !== 'undefined') {
+            const editorElements = document.querySelectorAll('.ace_editor');
+            if (editorElements.length > 0) {
+                const editor = window.ace.edit(editorElements[0]);
+                codeValue = editor.getValue();
+            }
+        }
+        // Try Monaco editor
+        else if (typeof window.monaco !== 'undefined') {
+            const editors = window.monaco.editor.getEditors();
+            if (editors.length > 0) {
+                codeValue = editors[0].getValue();
+            }
+        }
+    } catch (editorError) {
+        console.warn('Could not get code from editor:', editorError);
+    }
+
+    // Update form data with code value if we got it
+    if (codeValue) {
+        formData.set('code', codeValue);
+    }
+
+    try {
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const result = await response.json();
+
+                if (result && result.success !== false) {
+                    // Success with JSON response
+                    savingAlert.style.display = 'none';
+                    successAlert.style.display = 'block';
+
+                    // Hide success message after 5 seconds
+                    setTimeout(() => {
+                        successAlert.style.display = 'none';
+                    }, 5000);
+                } else {
+                    throw new Error(result?.error || 'Unknown error');
+                }
+            } else {
+                // Non-JSON response (likely HTML page) - consider it success
+                // This happens when form is saved and page is reloaded
+                savingAlert.style.display = 'none';
+                successAlert.style.display = 'block';
+
+                // Hide success message after 5 seconds
+                setTimeout(() => {
+                    successAlert.style.display = 'none';
+                }, 5000);
+            }
+        } else {
+            // Try to get error message from response
+            let errorText = `HTTP ${response.status}: ${response.statusText}`;
+            try {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = await response.json();
+                    errorText = errorData?.error || errorText;
+                } else {
+                    // Try to get text content for HTML error pages
+                    const errorHtml = await response.text();
+                    // Extract error message from HTML if possible
+                    const match = errorHtml.match(/<title>(.*?)<\/title>/i);
+                    if (match) {
+                        errorText = match[1];
+                    }
+                }
+            } catch (e) {
+                // Ignore parsing errors
+            }
+            throw new Error(errorText);
+        }
+    } catch (error) {
+        console.error('Save error:', error);
+
+        // Show error
+        savingAlert.style.display = 'none';
+        errorAlert.style.display = 'block';
+        errorMessage.textContent = error.message || '{{ _("An error occurred while saving") }}';
+    } finally {
+        // Reset button state
+        submitBtn.disabled = false;
+        submitSpinner.style.display = 'none';
+        submitText.textContent = '{{ _("Submit") }}';
+    }
+}
+
+// Ensure the field visibility is correct on page load if the checkbox is checked
 document.addEventListener('DOMContentLoaded', function() {
-  toggleHiddenField();
+    toggleHiddenField();
 });
 </script>
 

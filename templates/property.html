@@ -46,11 +46,11 @@
         {{ form.type(class="form-control") }}
     </div>
     <!-- Кнопка отправки формы -->
-    <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
+    <button type="submit" class="btn btn-primary"><i class="fas fa-check me-2"></i>{{ _('Submit')}}</button>
     {% if object %}
-    <a href="?view=object&object={{object.id}}&tab=properties" class="btn btn-secondary">{{ _('Cancel')}}</a>
+    <a href="?view=object&object={{object.id}}&tab=properties" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     {% else %}
-    <a href="?view=class&class={{class.id}}&tab=properties" class="btn btn-secondary">{{ _('Cancel')}}</a>
+    <a href="?view=class&class={{class.id}}&tab=properties" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     {% endif %}
 </form>
 {% endblock %}

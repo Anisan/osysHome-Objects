@@ -83,8 +83,8 @@
                 {{ form.parent_id(class="form-control") }}
             </div>
             <!-- Кнопка отправки формы -->
-            <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
-            <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-check me-2"></i>{{ _('Submit')}}</button>
+            <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
         </form>
     </div>
     <div class="tab-pane fade {% if tab == 'properties'%}show active{%endif%}" id="properties" role="tabpanel" aria-labelledby="properties-tab">
@@ -131,7 +131,7 @@
                         <td>{{ property.history }}</td>
                         <td>{{ property.type }}</td>
                         <td>
-                            <a href="?view=property&class={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button">{{ _('Redefine')}}</a>
+                            <a href="?view=property&class={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button"><i class="fas fa-redo me-2"></i>{{ _('Redefine')}}</a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -139,7 +139,7 @@
                 </tbody>
             </table>
         </div>
-        <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
+        <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade {% if tab == 'methods'%}show active{%endif%}" id="methods" role="tabpanel" aria-labelledby="methods-tab">
         <div class="table-responsive">
@@ -183,7 +183,7 @@
                             {% endfor %}
 
                             {% if not has_method %}
-                            <a href="?view=method&class={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button">{{ _('Redefine')}}</a>
+                            <a href="?view=method&class={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button"><i class="fas fa-redo me-2"></i>{{ _('Redefine')}}</a>
                             {% endif %}
                         </td>
                     </tr>
@@ -191,7 +191,7 @@
                 </tbody>
             </table>
         </div>
-        <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
+        <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade {% if tab == 'objects'%}show active{%endif%}" id="objects" role="tabpanel" aria-labelledby="objects-tab">
         {%if objects %}
@@ -203,7 +203,7 @@
         {% else %}
         <p class="px-3 ml-2 mt-2">{{ _('No objects')}}</p>
         {% endif %}
-        <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
+        <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade {% if tab == 'template'%}show active{%endif%}" id="template_tab" role="tabpanel" aria-labelledby="template-tab">
         <form id="formTemplate" method="POST">
@@ -214,8 +214,8 @@
                 {{ render_editor(form.template, 'html')}}
             </div>
             <!-- Кнопка отправки формы -->
-            <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
-            <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-check me-2"></i>{{ _('Submit')}}</button>
+            <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
             <hr>
             <b>{{ _('Templates (parent)')}}</b>
             <div class="ms-3">
@@ -247,7 +247,7 @@
             </label>
         </div>
 
-        <button class="btn btn-primary btn-sm" onclick="downloadFile()">{{ _('Export class')}}</button>
+        <button class="btn btn-primary btn-sm" onclick="downloadFile()"><i class="fas fa-file-export me-2"></i>{{ _('Export class')}}</button>
     </div>
 </div>
   <script>

@@ -90,8 +90,8 @@
             {{ form.class_id(class="form-control") }}
         </div>
         <!-- Кнопка отправки формы -->
-        <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
-        <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-check me-2"></i>{{ _('Submit')}}</button>
+        <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
         </form>
     </div>
     <div class="tab-pane fade {% if tab == 'properties'%}show active{%endif%}" id="properties" role="tabpanel" aria-labelledby="properties-tab">
@@ -157,7 +157,7 @@
                                 <a href="?view=property&object={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                             {%else%}
                                 <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>{{ _('Add task')}}</a>
-                                <a href="?view=property&object={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button">{{ _('Redefine')}}</a>
+                                <a href="?view=property&object={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button"><i class="fas fa-redo me-2"></i>{{ _('Redefine')}}</a>
                             {% endif %}
                         </td>
                     </tr>
@@ -165,7 +165,7 @@
                 </tbody>
             </table>
         </div>
-        <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
+        <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade {% if tab == 'methods'%}show active{%endif%}" id="methods" role="tabpanel" aria-labelledby="methods-tab">
         <div class="table-responsive">
@@ -222,7 +222,7 @@
                         <td style="white-space: nowrap;">
                             {% if method.class_id %}
                                 {% if not method.redefined %}
-                                <a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button">{{ _('Redefine')}}</a>
+                                <a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button"><i class="fas fa-redo me-2"></i>{{ _('Redefine')}}</a>
                                 {%endif%}
                             {%else%}
                                 <a href="?view=method&object={{id}}&method={{method.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="{{ _('Edit')}}"><i class="fas fa-pencil-alt"></i></a>
@@ -239,7 +239,7 @@
             </table>
             <div id="resultCallMethod"></div>
         </div>
-        <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
+        <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade {% if tab == 'template'%}show active{%endif%}" id="template_tab" role="tabpanel" aria-labelledby="template-tab">
         <form id="formTemplate" method="POST">
@@ -254,8 +254,8 @@
                 {{ render_editor(form.template, 'html', obj.name)}}
             </div>
             <!-- Кнопка отправки формы -->
-            <button type="submit" class="btn btn-primary">{{ _('Submit')}}</button>
-            <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-check me-2"></i>{{ _('Submit')}}</button>
+            <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
             <hr>
             <b>{{ _('Templates (parent)')}}</b>
             <div class="ms-3">
@@ -379,10 +379,10 @@
                 </tbody>
             </table>
         </div>
-        <a href="Objects" class="btn btn-secondary">{{ _('Cancel')}}</a>
+        <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade" id="tools" role="tabpanel" aria-labelledby="tools-tab">
-        <a href="../api/export/object/{{id}}" class="btn btn-primary btn-sm" role="button">{{ _('Export object')}}</a>
+        <a href="../api/export/object/{{id}}" class="btn btn-primary btn-sm" role="button"><i class="fas fa-file-export me-2"></i>{{ _('Export object')}}</a>
     </div>
 </div>
 </div>
@@ -412,8 +412,8 @@
         
         <!-- Подвал модального окна с кнопками -->
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel')}}</button>
-          <button type="button" class="btn btn-primary" id="saveButton">{{ _('Save')}}</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i>{{ _('Cancel')}}</button>
+          <button type="button" class="btn btn-primary" id="saveButton"><i class="fas fa-save me-2"></i>{{ _('Save')}}</button>
         </div>
         
       </div>
@@ -437,8 +437,8 @@
         
         <!-- Подвал модального окна с кнопками -->
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel')}}</button>
-          <button type="button" class="btn btn-primary" id="saveCronButton">{{ _('Save')}}</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i>{{ _('Cancel')}}</button>
+          <button type="button" class="btn btn-primary" id="saveCronButton"><i class="fas fa-save me-2"></i>{{ _('Save')}}</button>
         </div>
         
       </div>
