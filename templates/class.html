@@ -102,15 +102,32 @@
                 </thead>
                 <tbody>
                     {% for property in properties %}
+                    {# Полупрозрачный фон для строки, если задан color и он не чёрный #}
+                    {% set _color = property.color|lower if property.color else '' %}
+                    {% if _color in ['#000', '#000000', 'black'] %}
+                        {% set row_bg = '' %}
+                    {% else %}
+                        {% set row_bg = _color ~ '26' if _color else '' %}
+                    {% endif %}
                     <tr>
-                        <th scope="row">{{ property.id }}</th>
-                        <td>{{ property.name }}</td>
-                        <td>{{ property.description }}
+                        <th scope="row"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>{{ property.id }}</th>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            {% if property.icon %}
+                                {% if ':' in property.icon %}
+                                    <iconify-icon icon="{{ property.icon }}" title="{{ _('Property icon') }}"></iconify-icon>
+                                {% else %}
+                                    <i class="{{ property.icon }}" title="{{ _('Property icon') }}"></i>
+                                {% endif %}
+                            {% endif %}
+                            {{ property.name }}
+                        </td>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            {{ property.description }}
                             {%if property.method%}<p style="color: gray;margin: 0px;">↳ <span class="badge bg-primary">{{ _('Method')}}: {{property.method}}</span></p>{%endif%}
                         </td>
-                        <td>{{ property.history }}</td>
-                        <td>{{ property.type }}</td>
-                        <td>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>{{ property.history }}</td>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>{{ property.type }}</td>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             <a href="?view=property&class={{id}}&property={{property.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="{{ _('Edit')}}"><i class="fas fa-pencil-alt"></i></a>
                             <a href="?view=property&class={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                         </td>
@@ -122,15 +139,32 @@
                     </tr>
                     {% endif %}
                     {% for property in parent_properties %}
+                    {# Для родительских свойств используем те же icon/color, если заданы #}
+                    {% set _color = property.color|lower if property.color else '' %}
+                    {% if _color in ['#000', '#000000', 'black'] %}
+                        {% set row_bg = '' %}
+                    {% else %}
+                        {% set row_bg = _color ~ '26' if _color else '' %}
+                    {% endif %}
                     <tr>
-                        <th scope="row">{{ property.id }}</th>
-                        <td>{{property.class_name}} -> <b>{{ property.name }}</b></td>
-                        <td>{{ property.description }}
+                        <th scope="row"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>{{ property.id }}</th>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            {% if property.icon %}
+                                {% if ':' in property.icon %}
+                                    <iconify-icon icon="{{ property.icon }}" title="{{ _('Property icon') }}"></iconify-icon>
+                                {% else %}
+                                    <i class="{{ property.icon }}" title="{{ _('Property icon') }}"></i>
+                                {% endif %}
+                            {% endif %}
+                            {{property.class_name}} -> <b>{{ property.name }}</b>
+                        </td>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            {{ property.description }}
                             {%if property.method%}<p style="color: gray;margin: 0px;">↳ <span class="badge bg-primary">{{ _('Method')}}: {{property.method}}</span></p>{%endif%}
                         </td>
-                        <td>{{ property.history }}</td>
-                        <td>{{ property.type }}</td>
-                        <td>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>{{ property.history }}</td>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>{{ property.type }}</td>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             <a href="?view=property&class={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button"><i class="fas fa-redo me-2"></i>{{ _('Redefine')}}</a>
                         </td>
                     </tr>

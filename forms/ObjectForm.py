@@ -101,7 +101,11 @@ def routeObject(request):
             property['linked'] = []
             value = Value.query.filter(Value.object_id == id, Value.name == property['name']).one_or_none()
             if value:
-                if property['type'] == 'datetime':
+                # Если в БД явно лежит None, не превращаем его в строку "None",
+                # чтобы UI мог подставить default_value из params.
+                if value.value is None:
+                    property['value'] = None
+                elif property['type'] == 'datetime':
                     try:
                         dt = parser.parse(value.value)
                         property['value'] = str(convert_utc_to_local(dt))
@@ -109,6 +113,7 @@ def routeObject(request):
                         property['value'] = str(value.value)
                 else:
                     property['value'] = str(value.value)
+
                 property['source'] = value.source if value.source else ''
                 property['changed'] = convert_utc_to_local(value.changed) if value.changed else ''
                 if value.linked:
@@ -150,12 +155,48 @@ def routeObject(request):
                 method['exec_result'] = mm.exec_result if mm.exec_result else ''
                 method['exec_time'] = mm.exec_time
 
-        for property in properties:
-            if property['method_id']:
+        # Обогащаем свойства метаданными и считаем порядок сортировки
+        for idx, property in enumerate(properties):
+            property['_idx'] = idx  # исходный порядок
+            # Проставляем имя метода, если он есть
+            if property.get('method_id'):
                 for method in methods:
                     if method['id'] == property['method_id']:
                         property['method'] = method['name']
                         break
+
+            # Разбираем params (JSON) для доп. информации
+            params = {}
+            raw_params = property.get('params')
+            if raw_params:
+                try:
+                    params = json.loads(raw_params)
+                except Exception:
+                    params = {}
+
+            # read_only – используем в шаблоне, чтобы отключать редактирование
+            property['read_only'] = bool(params.get('read_only', False))
+
+            # icon и color – для визуального отображения в таблице
+            property['icon'] = params.get('icon', '')
+            property['color'] = params.get('color', '')
+
+            # sort_order – используем для сортировки свойств в списке (меньше = выше)
+            property['sort_order'] = params.get('sort_order')
+
+            # default_value – если значение отсутствует в БД или равно None,
+            # показываем значение по умолчанию вместо "None"
+            has_explicit_value = 'value' in property and property['value'] is not None
+            if not has_explicit_value and 'default_value' in params:
+                property['value'] = params['default_value']
+
+        # Сортируем свойства: сначала по sort_order (если задан), затем по исходному порядку
+        properties.sort(
+            key=lambda p: (
+                p['sort_order'] if p.get('sort_order') is not None else 10**9,
+                p.get('_idx', 0),
+            )
+        )
 
     else:
         form = ObjectForm()

@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, IntegerField
+from wtforms import StringField, SubmitField, SelectField, IntegerField, TextAreaField
 from wtforms.validators import DataRequired, Optional, ValidationError
 
 from sqlalchemy import delete
@@ -8,6 +8,8 @@ from app.database import db, row2dict
 from app.core.models.Clasess import Class, Object, Property, Value, Method
 from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import no_spaces_or_dots, no_reserved, getMethodsParents, checkPermission, getObjectId, getClassId
+import json
+import ast
 
 # Определение класса формы
 class PropertyForm(FlaskForm):
@@ -16,6 +18,7 @@ class PropertyForm(FlaskForm):
     method_id = SelectField("Method")
     history = IntegerField("History", validators=[Optional()])
     type = SelectField("Type")
+    params = TextAreaField("Parameters (JSON)")
     submit = SubmitField('Submit')
     id = None
     class_id = None
@@ -29,6 +32,35 @@ class PropertyForm(FlaskForm):
         if self.class_id:
             if Property.query.filter(Property.name == name.data, Property.class_id == self.class_id, Property.id != self.id).first():
                 raise ValidationError('Name already registered. Please choose a different one.')
+
+def normalize_params_json(params_str):
+    """
+    Normalize params string to valid JSON with string keys.
+    Supports both JSON format and Python dict format.
+    
+    Examples:
+        {0: "Value"} -> {"0": "Value"}
+        {"0": "Value"} -> {"0": "Value"}
+    """
+    if not params_str or not params_str.strip():
+        return None
+    
+    try:
+        # Try to parse as JSON first
+        params_dict = json.loads(params_str)
+    except json.JSONDecodeError:
+        try:
+            # If JSON parsing fails, try Python literal eval (supports {0: "value"} format)
+            params_dict = ast.literal_eval(params_str)
+        except (ValueError, SyntaxError):
+            return None
+    
+    # Convert all keys to strings
+    if isinstance(params_dict, dict):
+        normalized = {str(key): value for key, value in params_dict.items()}
+        return json.dumps(normalized)
+    
+    return None
 
 def routeProperty(request):
     class_id = request.args.get('class', None)
@@ -94,7 +126,7 @@ def routeProperty(request):
             methods.append(row2dict(method))
 
     form.method_id.choices = [('','')] + [(method['id'], method['name']) for method in methods]
-    form.type.choices = [('',''),('bool','Boolean'),('int','Integer'),('float','Float'),('str','String'),('datetime','Datetime'),('dict','Dictionary'),('list','List')]
+    form.type.choices = [('',''),('bool','Boolean'),('int','Integer'),('float','Float'),('str','String'),('datetime','Datetime'),('dict','Dictionary'),('list','List'),('enum','Enum')]
     if form.validate_on_submit():
         if id:
             if op == "redefine":
@@ -106,6 +138,8 @@ def routeProperty(request):
                 prop.method_id = int(form.method_id.data) if form.method_id.data else None
                 prop.history = form.history.data
                 prop.type = form.type.data
+                # Handle params for enum type
+                prop.params = normalize_params_json(form.params.data)
                 db.session.add(prop)
                 db.session.commit()
                 id = prop.id
@@ -113,6 +147,8 @@ def routeProperty(request):
                 old_name = item.name
                 form.populate_obj(item)  # Обновляем значения объекта данными из формы
                 item.method_id = int(form.method_id.data) if form.method_id.data else None
+                # Handle params for enum type
+                item.params = normalize_params_json(form.params.data)
                 if old_name != item.name and object_id:
                     db.session.query(Value).filter(Value.object_id == object_id, Value.name == old_name).update({'name': item.name})
                 if old_name != item.name and class_id:
@@ -122,12 +158,16 @@ def routeProperty(request):
                 if object_owner and old_name != item.name:
                     objects_storage.changeObject("rename", object_owner.name, old_name, None, item.name)
         else:
+            # Handle params for enum type
+            params_data = normalize_params_json(form.params.data)
+            
             new_item = Property(
                 name=form.name.data,
                 description=form.description.data,
                 method_id=int(form.method_id.data) if form.method_id.data else None,
                 history=form.history.data,
                 type=form.type.data,
+                params=params_data,
             )
             if class_id:
                 new_item.class_id = class_id

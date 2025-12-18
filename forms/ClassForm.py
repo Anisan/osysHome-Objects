@@ -1,3 +1,4 @@
+import json
 from flask_wtf import FlaskForm
 from flask_login import current_user
 from wtforms import StringField, SubmitField, SelectField, TextAreaField
@@ -89,14 +90,58 @@ def routeClass(request, config):
             parent_methods = getMethodsParents(item.parent_id, parent_methods)
         for method in parent_methods:
             dict_methods[method['id']] = method['name']
-        for prop in properties:
+        # Обогащаем свойства и родительские свойства метаданными (icon, color, sort_order)
+        for idx, prop in enumerate(properties):
+            prop['_idx'] = idx  # исходный порядок
             if prop['method_id']:
                 if prop['method_id'] in dict_methods:
                     prop['method'] = dict_methods[prop['method_id']]
-        for prop in parent_properties:
+
+            # Разбираем params (JSON) для доп. информации (icon, color)
+            params = {}
+            raw_params = prop.get('params')
+            if raw_params:
+                try:
+                    params = json.loads(raw_params)
+                except Exception:
+                    params = {}
+
+            prop['icon'] = params.get('icon', '')
+            prop['color'] = params.get('color', '')
+            prop['sort_order'] = params.get('sort_order')
+
+        for idx, prop in enumerate(parent_properties):
+            prop['_idx'] = idx  # исходный порядок внутри parent_properties
             if prop['method_id']:
                 if prop['method_id'] in dict_methods:
                     prop['method'] = dict_methods[prop['method_id']]
+
+            # Для родительских свойств тоже пробуем разобрать icon/color
+            params = {}
+            raw_params = prop.get('params')
+            if raw_params:
+                try:
+                    params = json.loads(raw_params)
+                except Exception:
+                    params = {}
+
+            prop['icon'] = params.get('icon', '')
+            prop['color'] = params.get('color', '')
+            prop['sort_order'] = params.get('sort_order')
+
+        # Сортируем: сначала по sort_order (если задан), затем по исходному порядку
+        properties.sort(
+            key=lambda p: (
+                p['sort_order'] if p.get('sort_order') is not None else 10**9,
+                p.get('_idx', 0),
+            )
+        )
+        parent_properties.sort(
+            key=lambda p: (
+                p['sort_order'] if p.get('sort_order') is not None else 10**9,
+                p.get('_idx', 0),
+            )
+        )
 
         query = Object.query.filter(Object.class_id == id)
         if current_user.role not in ['admin','root']:

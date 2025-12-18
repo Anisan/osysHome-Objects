@@ -108,14 +108,28 @@
                 </thead>
                 <tbody>
                     {% for property in properties %}
+                    {# Полупрозрачный фон для всей строки, если задан color и он не чёрный #}
+                    {% set _color = property.color|lower if property.color else '' %}
+                    {% if _color in ['#000', '#000000', 'black'] %}
+                        {% set row_bg = '' %}
+                    {% else %}
+                        {% set row_bg = _color ~ '26' if _color else '' %}
+                    {% endif %}
                     <tr class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-bottom: 5px;">
-                        <th scope="row" width="1%" nowrap>{{ property.id }}</th>
-                        <td width="10%">
+                        <th scope="row" width="1%" nowrap{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>{{ property.id }}</th>
+                        <td width="10%"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            {% if property.icon %}
+                                {% if ':' in property.icon %}
+                                    <iconify-icon icon="{{ property.icon }}" title="{{ _('Property icon') }}"></iconify-icon>
+                                {% else %}
+                                    <i class="{{ property.icon }}" title="{{ _('Property icon') }}"></i>
+                                {% endif %}
+                            {% endif %}
                             {% if property.class_id %}<b>{% endif %}
                                 {{ form.name.data }}.{{ property.name }}
                             {% if property.class_id %}</b>{% endif %}
                         </td>
-                        <td width="10%">
+                        <td width="10%"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             {%if property.description%}<p style="color: gray;margin: 0px;">{{property.description}}</p>{%endif%}
                             {%if property.linked%}
                             <p style="color: gray;margin: 0px;">
@@ -139,10 +153,26 @@
                                 {%endfor%}
                             {% endif%}
                         </td>
-                        <td width="1%" nowrap>{{ property.type }}</td>
-                        <td>
+                        <td width="1%" nowrap{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            {{ property.type }}
+                            {% if property.read_only %}
+                                <span class="badge bg-secondary ms-1">{{ _('Read Only') }}</span>
+                            {% endif %}
+                        </td>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             <div class="input-group">
-                                <button class="btn btn-outline-secondary" type="button" onclick="openModal('{{form.name.data}}.{{property.name}}')"><i class="fas fa-edit mt-0"></i></button>
+                                <button
+                                    class="btn btn-outline-secondary"
+                                    type="button"
+                                    {% if property.read_only %}
+                                        disabled
+                                        title="{{ _('Read only property') }}"
+                                    {% else %}
+                                        onclick="openModal('{{form.name.data}}.{{property.name}}')"
+                                    {% endif %}
+                                >
+                                    <i class="fas fa-edit mt-0"></i>
+                                </button>
                                 <textarea class="form-control" id="prop:{{form.name.data}}.{{property.name}}" rows="1" readonly>{{ property.value }}</textarea>
                             </div>
                             <p style="color: gray;margin: 0px;">
@@ -150,9 +180,14 @@
                                 <span class="badge bg-success" id="prop_source:{{form.name.data}}.{{property.name}}">{{property.source}}</span>
                             </p>
                         </td>
-                        <td width="1%" nowrap>
+                        <td width="1%" nowrap{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             {% if not property.class_id %}
-                                <a href="?view=property&object={{id}}&property={{property.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="{{ _('Edit')}}"><i class="fas fa-pencil-alt"></i></a>
+                                <a href="?view=property&object={{id}}&property={{property.id}}&op=edit"
+                                   class="btn btn-success btn-sm"
+                                   role="button"
+                                   title="{{ _('Edit')}}">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </a>
                                 <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>{{ _('Add task')}}</a>
                                 <a href="?view=property&object={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                             {%else%}
@@ -401,13 +436,72 @@
       
         <!-- Заголовок модального окна -->
         <div class="modal-header">
-          <h4 class="modal-title">{{ _('Enter new value')}}</h4>
+          <h4 class="modal-title" id="modalTitle">{{ _('Enter new value')}}</h4>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         
         <!-- Основное содержимое модального окна -->
         <div class="modal-body">
-          <textarea type="text" id="newValue" class="form-control" placeholder="{{ _('Enter new value')}}"></textarea>
+          <div id="propertyDescription" class="text-muted mb-2" style="display: none;"></div>
+          
+          <!-- Универсальный контейнер для редактора -->
+          <div id="editorContainer">
+            <!-- int editor -->
+            <div id="editor-int" class="property-editor" style="display: none;">
+              <input type="number" id="value-int" class="form-control" placeholder="{{ _('Enter integer value')}}">
+              <div class="form-text" id="hint-int"></div>
+            </div>
+            
+            <!-- float editor -->
+            <div id="editor-float" class="property-editor" style="display: none;">
+              <input type="number" id="value-float" class="form-control" step="any" placeholder="{{ _('Enter decimal value')}}">
+              <div class="form-text" id="hint-float"></div>
+            </div>
+            
+            <!-- string editor -->
+            <div id="editor-str" class="property-editor" style="display: none;">
+              <textarea type="text" id="newValue" class="form-control" placeholder="{{ _('Enter new value')}}"></textarea>
+              <div class="form-text" id="hint-str"></div>
+            </div>
+            
+            <!-- bool editor -->
+            <div id="editor-bool" class="property-editor" style="display: none;">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="value-bool">
+                <label class="form-check-label" for="value-bool" id="label-bool">{{ _('Value')}}</label>
+              </div>
+            </div>
+
+            <!-- datetime editor -->
+            <div id="editor-datetime" class="property-editor" style="display: none;">
+              <input type="datetime-local" id="value-datetime" class="form-control" placeholder="{{ _('Select date and time')}}">
+              <div class="form-text" id="hint-datetime">
+                {{ _('Value will be parsed as local datetime and converted according to property rules.')}}
+              </div>
+            </div>
+            
+            <!-- enum editor -->
+            <div id="editor-enum" class="property-editor" style="display: none;">
+              <select id="value-enum" class="form-select">
+                <option value="">{{ _('Select value')}}...</option>
+              </select>
+              <div class="form-text" id="hint-enum"></div>
+            </div>
+            
+            <!-- json/dict/list editor -->
+            <div id="editor-json" class="property-editor" style="display: none;">
+              <textarea id="value-json" class="form-control font-monospace" rows="10" placeholder="{{ _('Enter JSON')}}"></textarea>
+              <div class="form-text" id="hint-json">{{ _('Enter valid JSON format')}}</div>
+            </div>
+            
+            <!-- default editor (fallback) -->
+            <div id="editor-default" class="property-editor" style="display: none;">
+              <textarea id="value-default" class="form-control" rows="3" placeholder="{{ _('Enter new value')}}"></textarea>
+            </div>
+          </div>
+          
+          <!-- Сообщение об ошибке -->
+          <div id="errorMessage" class="alert alert-danger mt-3" style="display: none;"></div>
         </div>
         
         <!-- Подвал модального окна с кнопками -->
@@ -451,34 +545,679 @@
     })
 
     var nameProperty = ""
+    var currentPropertyType = ""
+    var currentPropertyParams = {}
+    
+    // Скрыть все редакторы
+    function hideAllEditors() {
+        document.querySelectorAll('.property-editor').forEach(function(editor) {
+            if (editor) {
+                editor.style.display = 'none';
+            }
+        });
+        var errorMessage = document.getElementById('errorMessage');
+        if (errorMessage) {
+            errorMessage.style.display = 'none';
+        }
+    }
+    
+    // Показать сообщение об ошибке ВНУТРИ модального окна
+    function showError(message) {
+        var errorDiv = document.getElementById('errorMessage');
+
+        // Если по какой-то причине блока нет в разметке — создаём его внутри модального окна.
+        if (!errorDiv) {
+            var modalBody = document.querySelector('#myModal .modal-body');
+            if (!modalBody) {
+                console.error('Modal body not found for error message:', message);
+                return;
+            }
+            errorDiv = document.createElement('div');
+            errorDiv.id = 'errorMessage';
+            errorDiv.className = 'alert alert-danger mt-3';
+            modalBody.appendChild(errorDiv);
+        }
+
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+    }
+    
+    // Получить значение из активного редактора
+    function getEditorValue() {
+        switch(currentPropertyType) {
+            case 'int':
+                return document.getElementById('value-int').value;
+            case 'float':
+                return document.getElementById('value-float').value;
+            case 'str':
+                var strSelect = document.getElementById('value-str-select');
+                if (strSelect && strSelect.style.display !== 'none') {
+                    return strSelect.value;
+                }
+                return document.getElementById('value-str').value;
+            case 'bool':
+                // Отправляем логическое значение, Socket.IO сериализует его как JSON boolean
+                return document.getElementById('value-bool').checked;
+            case 'datetime':
+                // Берём значение из input type="datetime-local" (формат YYYY-MM-DDTHH:MM)
+                // Отправляем строку как есть — на бэке dateutil.parser её корректно разберёт.
+                return document.getElementById('value-datetime').value;
+            case 'enum':
+                return document.getElementById('value-enum').value;
+            case 'json':
+            case 'dict':
+            case 'list':
+                return document.getElementById('value-json').value;
+            default:
+                return document.getElementById('value-default').value;
+        }
+    }
+    
+    // Установить значение в активный редактор
+    function setEditorValue(value) {
+        switch(currentPropertyType) {
+            case 'int':
+                document.getElementById('value-int').value = value || '';
+                break;
+            case 'float':
+                document.getElementById('value-float').value = value || '';
+                break;
+            case 'str':
+                var strSelect = document.getElementById('value-str-select');
+                if (strSelect && strSelect.style.display !== 'none') {
+                    strSelect.value = value || '';
+                } else {
+                    document.getElementById('value-str').value = value || '';
+                }
+                break;
+            case 'bool':
+                var boolValue = (value === 'True' || value === 'true' || value === '1' || value === 1 || value === true);
+                document.getElementById('value-bool').checked = boolValue;
+                document.getElementById('label-bool').textContent = boolValue ? '{{ _('True')}}' : '{{ _('False')}}';
+                break;
+            case 'datetime':
+                // value может быть уже строкой без "T" (например "2025-12-18 10:30:00")
+                // Преобразуем к формату datetime-local: YYYY-MM-DDTHH:MM
+                var input = document.getElementById('value-datetime');
+                if (value) {
+                    try {
+                        var v = String(value).trim();
+                        // Заменим пробел на 'T', обрежем секунды, если есть
+                        v = v.replace(' ', 'T');
+                        // Если есть секунды, уберём их
+                        if (v.length > 16 && v.indexOf('T') === 10) {
+                            v = v.slice(0, 16);
+                        }
+                        input.value = v;
+                    } catch(e) {
+                        input.value = '';
+                    }
+                } else {
+                    input.value = '';
+                }
+                break;
+            case 'enum':
+                document.getElementById('value-enum').value = value || '';
+                break;
+            case 'json':
+            case 'dict':
+            case 'list':
+                try {
+                    if (value && typeof value === 'string') {
+                        var parsed = JSON.parse(value);
+                        document.getElementById('value-json').value = JSON.stringify(parsed, null, 2);
+                    } else if (value && typeof value === 'object') {
+                        document.getElementById('value-json').value = JSON.stringify(value, null, 2);
+                    } else {
+                        document.getElementById('value-json').value = value || '';
+                    }
+                } catch(e) {
+                    document.getElementById('value-json').value = value || '';
+                }
+                break;
+            default:
+                document.getElementById('value-default').value = value || '';
+        }
+    }
+    
+    // Валидация значения на клиенте
+    function validateValue(value) {
+        var params = currentPropertyParams;
+        
+        // Проверка min/max для числовых типов
+        if (currentPropertyType === 'int' || currentPropertyType === 'float') {
+            var numValue = parseFloat(value);
+            if (isNaN(numValue)) {
+                return '{{ _("Invalid number")}}';
+            }
+            if (params.min !== undefined && numValue < params.min) {
+                return '{{ _("Value must be greater than or equal to")}} ' + params.min;
+            }
+            if (params.max !== undefined && numValue > params.max) {
+                return '{{ _("Value must be less than or equal to")}} ' + params.max;
+            }
+            if (params.step !== undefined) {
+                var base = params.min !== undefined ? params.min : 0;
+                var remainder = Math.abs((numValue - base) % params.step);
+                if (remainder > 1e-9 && Math.abs(remainder - params.step) > 1e-9) {
+                    return '{{ _("Value must be aligned with step")}} ' + params.step;
+                }
+            }
+            if (currentPropertyType === 'float' && params.decimals !== undefined) {
+                var decimalPart = value.toString().split('.')[1];
+                if (decimalPart && decimalPart.length > params.decimals) {
+                    return '{{ _("Maximum")}} ' + params.decimals + ' {{ _("decimal places allowed")}}';
+                }
+            }
+            if (params.allowed_values && params.allowed_values.length > 0) {
+                if (!params.allowed_values.includes(numValue)) {
+                    return '{{ _("Value must be one of")}} ' + params.allowed_values.join(', ');
+                }
+            }
+        }
+        
+        // Проверка allowed_values и regexp для строк
+        if (currentPropertyType === 'str') {
+            if (params.allowed_values && params.allowed_values.length > 0) {
+                if (!params.allowed_values.includes(value)) {
+                    return '{{ _("Value must be one of")}} ' + params.allowed_values.join(', ');
+                }
+            }
+            if (params.regexp) {
+                try {
+                    var regex = new RegExp(params.regexp);
+                    if (!regex.test(value)) {
+                        return '{{ _("Value does not match required format")}}';
+                    }
+                } catch(e) {
+                    console.error('Invalid regexp:', e);
+                }
+            }
+        }
+
+        // Простая проверка для datetime (если поле не пустое)
+        if (currentPropertyType === 'datetime' && value) {
+            if (isNaN(Date.parse(value))) {
+                return '{{ _("Invalid date and time format")}}';
+            }
+        }
+        
+        // Проверка JSON
+        if (currentPropertyType === 'json' || currentPropertyType === 'dict' || currentPropertyType === 'list') {
+            try {
+                JSON.parse(value);
+            } catch(e) {
+                return '{{ _("Invalid JSON format")}}: ' + e.message;
+            }
+        }
+        
+        return null; // Нет ошибки
+    }
+    
+    // Настроить редактор для типа свойства
+    function setupEditor(type, params, value) {
+        hideAllEditors();
+        currentPropertyType = type;
+        currentPropertyParams = params || {};
+        
+        var editorId = 'editor-' + type;
+        var editor = document.getElementById(editorId);
+        
+        // Если редактор для типа не найден, используем default или json
+        if (!editor) {
+            if (type === 'dict' || type === 'list' || type === 'json') {
+                editorId = 'editor-json';
+            } else {
+                editorId = 'editor-default';
+            }
+            editor = document.getElementById(editorId);
+        }
+        
+        if (editor) {
+            editor.style.display = 'block';
+            
+            // Настройка подсказок и параметров в зависимости от типа
+            if (type === 'int' || type === 'float') {
+                var input = document.getElementById('value-' + type);
+                var hint = document.getElementById('hint-' + type);
+                var hintText = [];
+                
+                if (params.min !== undefined) {
+                    input.setAttribute('min', params.min);
+                    hintText.push('{{ _("Min")}}: ' + params.min);
+                }
+                if (params.max !== undefined) {
+                    input.setAttribute('max', params.max);
+                    hintText.push('{{ _("Max")}}: ' + params.max);
+                }
+                if (params.step !== undefined) {
+                    input.setAttribute('step', params.step);
+                    hintText.push('{{ _("Step")}}: ' + params.step);
+                }
+                if (params.allowed_values && params.allowed_values.length > 0) {
+                    hintText.push('{{ _("Allowed")}}: ' + params.allowed_values.join(', '));
+                }
+                
+                if (type === 'float' && params.decimals !== undefined) {
+                    hintText.push('{{ _("Decimals")}}: ' + params.decimals);
+                }
+                
+                hint.textContent = hintText.join(' | ');
+            }
+            
+            if (type === 'str') {
+                var hint = document.getElementById('hint-str');
+                var hintText = [];
+                
+                // Проверяем наличие allowed_values
+                if (params.allowed_values && params.allowed_values.length > 0) {
+                    // Показываем select вместо input
+                    document.getElementById('value-str').style.display = 'none';
+                    var strSelect = document.getElementById('value-str-select');
+                    strSelect.style.display = 'block';
+                    strSelect.innerHTML = '<option value="">{{ _("Select value")}}...</option>';
+                    
+                    params.allowed_values.forEach(function(val) {
+                        var option = document.createElement('option');
+                        option.value = val;
+                        option.textContent = val;
+                        strSelect.appendChild(option);
+                    });
+                    
+                    hintText.push('{{ _("Allowed values")}}: ' + params.allowed_values.length);
+                } else {
+                    // Показываем обычный input
+                    document.getElementById('value-str').style.display = 'block';
+                    document.getElementById('value-str-select').style.display = 'none';
+                }
+                
+                if (params.regexp) {
+                    hintText.push('{{ _("Pattern")}}: ' + params.regexp);
+                }
+                
+                hint.textContent = hintText.join(' | ');
+            }
+            
+            if (type === 'enum' && params.enum_values) {
+                var select = document.getElementById('value-enum');
+                select.innerHTML = '<option value="">{{ _("Select value")}}...</option>';
+                for (var key in params.enum_values) {
+                    if (params.enum_values.hasOwnProperty(key)) {
+                        var option = document.createElement('option');
+                        option.value = key;
+                        option.textContent = params.enum_values[key] + ' (' + key + ')';
+                        select.appendChild(option);
+                    }
+                }
+            }
+            
+            // Установить текущее значение
+            setEditorValue(value);
+        }
+    }
+    
     // Функция для открытия модального окна
     function openModal(name) {
-        nameProperty = name
-        var element = document.getElementById("prop:"+name);
-        if (element) {
-            document.getElementById("newValue").value = element.textContent;
+        nameProperty = name;
+        hideAllEditors();
+        
+        // Показать загрузку
+        var modalTitle = document.getElementById('modalTitle');
+        if (modalTitle) {
+            modalTitle.textContent = '{{ _("Loading")}}...';
         }
         $('#myModal').modal('show');
+        
+        // Получить текущее значение
+        var element = document.getElementById("prop:" + name);
+        var currentValue = element ? element.textContent : '';
+        
+        // Получить информацию о свойстве через API
+        fetch('/api/property/info/' + encodeURIComponent(name), {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                var propInfo = data.result;
+
+                // Обновить заголовок с иконкой и цветом
+                var modalTitle = document.getElementById('modalTitle');
+                if (modalTitle) {
+                    var iconHtml = '';
+                    var params = {};
+                    try {
+                        if (propInfo.params) {
+                            if (typeof propInfo.params === 'string' && propInfo.params.trim() !== '') {
+                                params = JSON.parse(propInfo.params);
+                            } else if (typeof propInfo.params === 'object' && propInfo.params !== null) {
+                                params = propInfo.params;
+                            }
+                        }
+                    } catch(e) {
+                        console.error('Error parsing params:', e);
+                        params = {};
+                    }
+
+                        if (params.icon) {
+                            // Если иконка в формате "set:name" (iconify), используем <iconify-icon>
+                            if (params.icon.indexOf(':') !== -1) {
+                                var colorAttr = params.color ? ' style="color: ' + params.color + '"' : '';
+                                iconHtml = '<iconify-icon icon="' + params.icon + '"' + colorAttr + '></iconify-icon> ';
+                            } else {
+                                // Иначе считаем, что это класс FontAwesome
+                                var colorStyle = params.color ? ' style="color: ' + params.color + '"' : '';
+                                iconHtml = '<i class="' + params.icon + '"' + colorStyle + '></i> ';
+                            }
+                        }
+
+                    modalTitle.innerHTML = iconHtml + '{{ _("Edit property")}}: ' + propInfo.name;
+                }
+                
+                // Показать описание если есть
+                var descDiv = document.getElementById('propertyDescription');
+                if (descDiv) {
+                    if (propInfo.description) {
+                        descDiv.textContent = propInfo.description;
+                        descDiv.style.display = 'block';
+                    } else {
+                        descDiv.style.display = 'none';
+                    }
+                }
+                
+                // Получить параметры из propInfo
+                var params = {};
+                try {
+                    if (propInfo.params) {
+                        if (typeof propInfo.params === 'string' && propInfo.params.trim() !== '') {
+                            params = JSON.parse(propInfo.params);
+                        } else if (typeof propInfo.params === 'object' && propInfo.params !== null) {
+                            params = propInfo.params;
+                        }
+                    }
+                } catch(e) {
+                    console.error('Error parsing params:', e);
+                    params = {};
+                }
+                
+                // Настроить редактор
+                setupEditor(propInfo.type, params, currentValue);
+                
+                // Установить фокус на активный редактор
+                setTimeout(function() {
+                    var activeInput = document.querySelector('.property-editor:not([style*="display: none"]) input, .property-editor:not([style*="display: none"]) select, .property-editor:not([style*="display: none"]) textarea');
+                    if (activeInput) {
+                        activeInput.focus();
+                        // Для текстовых полей выделить весь текст
+                        if (activeInput.tagName === 'INPUT' || activeInput.tagName === 'TEXTAREA') {
+                            activeInput.select();
+                        }
+                    }
+                }, 300);
+            } else {
+                showError('{{ _("Error loading property info")}}: ' + data.msg);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('{{ _("Error loading property info")}}: ' + error.message);
+            // Fallback: использовать текстовое поле
+            setupEditor('default', {}, currentValue);
+        });
     }
+    
+    // Обработка изменения bool чекбокса
+    var valueBool = document.getElementById('value-bool');
+    if (valueBool) {
+        valueBool.addEventListener('change', function() {
+            var labelBool = document.getElementById('label-bool');
+            if (labelBool) {
+                labelBool.textContent = this.checked ? '{{ _("True")}}' : '{{ _("False")}}';
+            }
+        });
+    }
+    
+    // Обработка нажатия Enter для сохранения (кроме textarea)
+    var editorContainer = document.getElementById('editorContainer');
+    if (editorContainer) {
+        editorContainer.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                var target = e.target;
+                // Для textarea разрешаем Enter (новая строка), кроме случая с Ctrl+Enter
+                if (target.tagName === 'TEXTAREA') {
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        var saveBtn = document.getElementById('saveButton');
+                        if (saveBtn) saveBtn.click();
+                    }
+                    return;
+                }
+                // Для всех остальных полей - сохранить по Enter
+                e.preventDefault();
+                var saveBtn = document.getElementById('saveButton');
+                if (saveBtn) saveBtn.click();
+            }
+        });
+    }
+    
     // JavaScript для обработки нажатия кнопки "Сохранить"
-    document.getElementById("saveButton").addEventListener("click", function() {
-        // Получаем значение из поля ввода
-        var newValue = document.getElementById("newValue").value;
-        // Выполняем функцию с новым значением
-        setProperty(nameProperty,newValue)
-        $('#myModal').modal('hide');
+    var saveButton = document.getElementById("saveButton");
+    if (saveButton) {
+        saveButton.addEventListener("click", function() {
+            // НЕ скрываем редакторы, только сбрасываем старое сообщение об ошибке
+            var errorMessage = document.getElementById('errorMessage');
+            if (errorMessage) {
+                errorMessage.style.display = 'none';
+                errorMessage.textContent = '';
+            }
+            
+            // Получаем значение из активного редактора
+            var newValue = getEditorValue();
+            
+            // Валидация на клиенте
+            var validationError = validateValue(newValue);
+            if (validationError) {
+                showError(validationError);
+                // Показать редактор (он и так виден, но на всякий случай)
+                var editorId = 'editor-' + (currentPropertyType === 'dict' || currentPropertyType === 'list' ? 'json' : currentPropertyType);
+                var editor = document.getElementById(editorId);
+                if (!editor) {
+                    editor = document.getElementById('editor-default');
+                }
+                if (editor) {
+                    editor.style.display = 'block';
+                }
+                return;
+            }
+            
+            // Отключить кнопку сохранения
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>{{ _("Saving")}}...';
+            
+            // Отправляем новое значение через WebSocket,
+            // ждём события propertyChanged, которое решит — закрывать окно или показать ошибку.
+            try {
+                setProperty(nameProperty, newValue);
+            } catch(error) {
+                showError('{{ _("Error saving value")}}: ' + error.message);
+                var saveBtn = document.getElementById("saveButton");
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>{{ _("Save")}}';
+                }
+            }
+        });
+    }
+    
+    // Прослушивание событий WebSocket для обновления значений
+    socket.on('propertyChanged', function(data) {
+        // Проверяем, относится ли событие к текущему редактируемому свойству
+        if (data.property === nameProperty && $('#myModal').is(':visible')) {
+            if (data.success === false && data.error) {
+                // Если есть ошибка, показать её в модальном окне
+                showError(data.error);
+                var saveBtn = document.getElementById("saveButton");
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>{{ _("Save")}}';
+                }
+                
+                // Показать редактор снова
+                var editorId = 'editor-' + (currentPropertyType === 'dict' || currentPropertyType === 'list' ? 'json' : currentPropertyType);
+                var editor = document.getElementById(editorId);
+                if (!editor) {
+                    editor = document.getElementById('editor-default');
+                }
+                if (editor) {
+                    editor.style.display = 'block';
+                }
+            } else if (data.success === true) {
+                // Успешное сохранение - закрыть модальное окно
+                $('#myModal').modal('hide');
+                var saveBtn = document.getElementById("saveButton");
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>{{ _("Save")}}';
+                }
+            }
+        }
+    });
+
+    // Сброс состояния при закрытии модального окна
+    $('#myModal').on('hidden.bs.modal', function () {
+        hideAllEditors();
+        
+        var errorMessage = document.getElementById('errorMessage');
+        if (errorMessage) errorMessage.style.display = 'none';
+        
+        var propertyDescription = document.getElementById('propertyDescription');
+        if (propertyDescription) propertyDescription.style.display = 'none';
+
+        var modalTitle = document.getElementById('modalTitle');
+        if (modalTitle) modalTitle.innerHTML = '{{ _("Enter new value")}}';
+
+        // Сбросить стили модального окна
+        var modalContent = document.querySelector('.modal-content');
+        if (modalContent) {
+            modalContent.style.borderLeft = '';
+        }
+        
+        var saveButton = document.getElementById("saveButton");
+        if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.innerHTML = '<i class="fas fa-save me-2"></i>{{ _("Save")}}';
+        }
+        
+        nameProperty = "";
+        currentPropertyType = "";
+        currentPropertyParams = {};
     });
 
     $(document).ready(function () {
         window.setTimeout(function() {
             $(".alert").fadeTo(1000, 0).slideUp(1000, function(){
-                $(this).remove(); 
+                $(this).remove();
             });
         }, 5000);
     });
 
-
 </script>
+
+<style>
+    .property-editor {
+        margin-bottom: 1rem;
+        transition: opacity 0.2s ease-in-out;
+    }
+    
+    .property-editor input,
+    .property-editor select,
+    .property-editor textarea {
+        font-size: 1rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    
+    .property-editor input:focus,
+    .property-editor select:focus,
+    .property-editor textarea:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .property-editor .form-text {
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    
+    .form-check-input {
+        width: 3rem;
+        height: 1.5rem;
+        cursor: pointer;
+        transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+    }
+    
+    .form-check-label {
+        cursor: pointer;
+        margin-left: 0.5rem;
+        font-size: 1.1rem;
+        font-weight: 500;
+        user-select: none;
+    }
+    
+    #errorMessage {
+        margin-bottom: 0;
+        word-wrap: break-word;
+        animation: shake 0.5s;
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+    
+    #propertyDescription {
+        font-style: italic;
+        padding: 0.75rem;
+        background-color: rgba(13, 110, 253, 0.1);
+        border-left: 3px solid #0d6efd;
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+    }
+    
+    .modal-body {
+        min-height: 150px;
+    }
+    
+    .spinner-border-sm {
+        width: 1rem;
+        height: 1rem;
+    }
+    
+    /* Стиль для JSON редактора */
+    #value-json {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+    
+    /* Плавные переходы для модального окна */
+    .modal.fade .modal-dialog {
+        transition: transform 0.3s ease-out;
+    }
+
+    /* Цветовая индикация для модального окна */
+    .modal-content {
+        transition: border-left-color 0.3s ease;
+    }
+
+    /* Цветовой фон для строк свойств */
+    /* Никаких спец-классов и переменных, используем только inline background-color на <tr> */
+</style>
 {% include 'includes/code_block_styles.html' %}
 
 {% endblock %}

@@ -43,8 +43,151 @@
     </div>
     <div class="mb-3">
         <label class="form-label">{{ _('Type') }}</label>
-        {{ form.type(class="form-control") }}
+        {{ form.type(class="form-control", id="property-type") }}
     </div>
+    
+    <!-- Common Parameters -->
+    <div class="card mb-3">
+        <div class="card-header">{{ _('Additional Parameters') }}</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="form-label">{{ _('Icon') }}</label>
+                    <input type="text" class="form-control" id="param-icon" placeholder="fas fa-icon">
+                    <small class="form-text text-muted">FontAwesome or Iconify icon class</small>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">{{ _('Color') }}</label>
+                    <input type="color" class="form-control" id="param-color" style="height: 37.78px;">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">{{ _('Sort Order') }}</label>
+                    <input type="number" class="form-control" id="param-sort-order" placeholder="0">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">{{ _('Default Value') }}</label>
+                    <input type="text" class="form-control" id="param-default-value">
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-12">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="param-read-only">
+                        <label class="form-check-label" for="param-read-only">
+                            {{ _('Read Only') }}
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Type-specific Parameters -->
+    <div class="card mb-3" id="validation-params" style="display: none;">
+        <div class="card-header">{{ _('Validation Parameters') }}</div>
+        <div class="card-body">
+            <!-- For int/float types -->
+            <div class="row" id="numeric-params" style="display: none;">
+                <div class="col-md-6">
+                    <label class="form-label">{{ _('Minimum Value') }}</label>
+                    <input type="number" class="form-control" id="param-min" step="any">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">{{ _('Maximum Value') }}</label>
+                    <input type="number" class="form-control" id="param-max" step="any">
+                </div>
+            </div>
+            <!-- For float type -->
+            <div class="row mt-2" id="float-params" style="display: none;">
+                <div class="col-md-6">
+                    <label class="form-label">{{ _('Decimals') }}</label>
+                    <input type="number" class="form-control" id="param-decimals" min="0" max="10" placeholder="2">
+                    <small class="form-text text-muted">{{ _('Number of decimal places') }}</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">{{ _('Step (Discreteness)') }}</label>
+                    <input type="number" class="form-control" id="param-step-float" step="any" placeholder="0.5">
+                    <small class="form-text text-muted">{{ _('Value step for discreteness') }}</small>
+                </div>
+            </div>
+            <!-- Step for int -->
+            <div class="row mt-2" id="int-step-params" style="display: none;">
+                <div class="col-md-6">
+                    <label class="form-label">{{ _('Step (Discreteness)') }}</label>
+                    <input type="number" class="form-control" id="param-step-int" min="1" placeholder="10">
+                    <small class="form-text text-muted">{{ _('Value step for discreteness') }}</small>
+                </div>
+            </div>
+            <!-- For string type -->
+            <div class="row" id="string-params" style="display: none;">
+                <div class="col-md-12">
+                    <label class="form-label">{{ _('RegExp Pattern') }}</label>
+                    <input type="text" class="form-control" id="param-regexp" placeholder="^[A-Za-z0-9]+$">
+                    <small class="form-text text-muted">{{ _('Regular expression for validation') }}</small>
+                </div>
+            </div>
+            <!-- For enum type -->
+            <div class="row" id="enum-params" style="display: none;">
+                <div class="col-md-12">
+                    <label class="form-label">{{ _('Enum Values (JSON)') }}</label>
+                    <textarea class="form-control" id="param-enum-values" rows="5" placeholder='{"0": "Value 1", "1": "Value 2"} or {0: "Value 1", 1: "Value 2"}'></textarea>
+                    <small class="form-text text-muted">
+                        {{ _('For enum type, provide JSON object with value-description pairs') }}<br>
+                        Examples: <code>{"0": "Off", "1": "On"}</code> or <code>{0: "Off", 1: "On"}</code>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Validation Parameters -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <i class="fas fa-shield-alt me-2"></i>{{ _('Advanced Validation') }}
+            <small class="text-muted ms-2">({{ _('Optional') }})</small>
+        </div>
+        <div class="card-body">
+            <!-- Allowed Values -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label class="form-label">{{ _('Allowed Values') }}</label>
+                    <textarea class="form-control" id="param-allowed-values" rows="2" placeholder='[1, 2, 3, 5, 10] or ["red", "green", "blue"]'></textarea>
+                    <small class="form-text text-muted">
+                        {{ _('Restrict property to specific values only. Format: JSON array') }}<br>
+                        Examples: <code>[1, 2, 3, 5]</code>, <code>["red", "green", "blue"]</code>, <code>[0.5, 1.0, 1.5, 2.0]</code>
+                    </small>
+                </div>
+            </div>
+
+            <!-- Rate Limit -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">{{ _('Rate Limit (seconds)') }}</label>
+                    <input type="number" class="form-control" id="param-rate-limit" min="0" step="0.1" placeholder="5.0">
+                    <small class="form-text text-muted">{{ _('Minimum time between changes (debounce)') }}</small>
+                </div>
+            </div>
+
+            <!-- Dependencies -->
+            <div class="row">
+                <div class="col-md-12">
+                    <label class="form-label">{{ _('Dependencies (depends_on)') }}</label>
+                    <textarea class="form-control" id="param-depends-on" rows="4" placeholder='{"property": "enabled", "value": true, "condition": "equals"}'></textarea>
+                    <small class="form-text text-muted">
+                        {{ _('Property dependencies. Format: JSON object or array of objects') }}<br>
+                        <strong>{{ _('Conditions') }}:</strong> equals, not_equals, greater_than, less_than, greater_or_equal, less_or_equal, in, not_in<br>
+                        <strong>{{ _('Examples') }}:</strong><br>
+                        {{ _('Single') }}: <code>{"property": "mode", "value": "manual", "condition": "equals"}</code><br>
+                        {{ _('Multiple') }}: <code>[{"property": "enabled", "value": true}, {"property": "mode", "value": "manual"}]</code><br>
+                        {{ _('With message') }}: <code>{"property": "temperature", "value": 25, "condition": "greater_than", "error_message": "Custom error"}</code>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden field for params -->
+    {{ form.params(style="display: none;", id="params-json") }}
     <!-- Кнопка отправки формы -->
     <button type="submit" class="btn btn-primary"><i class="fas fa-check me-2"></i>{{ _('Submit')}}</button>
     {% if object %}
@@ -53,4 +196,196 @@
     <a href="?view=class&class={{class.id}}&tab=properties" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     {% endif %}
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const typeSelect = document.getElementById('property-type');
+    const validationParams = document.getElementById('validation-params');
+    const numericParams = document.getElementById('numeric-params');
+    const floatParams = document.getElementById('float-params');
+    const intStepParams = document.getElementById('int-step-params');
+    const stringParams = document.getElementById('string-params');
+    const enumParams = document.getElementById('enum-params');
+    const paramsJsonField = document.getElementById('params-json');
+    
+    // Get individual parameter fields
+    const iconField = document.getElementById('param-icon');
+    const colorField = document.getElementById('param-color');
+    const sortOrderField = document.getElementById('param-sort-order');
+    const defaultValueField = document.getElementById('param-default-value');
+    const readOnlyField = document.getElementById('param-read-only');
+    const minField = document.getElementById('param-min');
+    const maxField = document.getElementById('param-max');
+    const decimalsField = document.getElementById('param-decimals');
+    const stepIntField = document.getElementById('param-step-int');
+    const stepFloatField = document.getElementById('param-step-float');
+    const regexpField = document.getElementById('param-regexp');
+    const enumValuesField = document.getElementById('param-enum-values');
+    const allowedValuesField = document.getElementById('param-allowed-values');
+    const rateLimitField = document.getElementById('param-rate-limit');
+    const dependsOnField = document.getElementById('param-depends-on');
+    
+    function toggleValidationParams() {
+        const type = typeSelect.value;
+        
+        // Hide all validation params first
+        numericParams.style.display = 'none';
+        floatParams.style.display = 'none';
+        intStepParams.style.display = 'none';
+        stringParams.style.display = 'none';
+        enumParams.style.display = 'none';
+        validationParams.style.display = 'none';
+        
+        // Show relevant params based on type
+        if (type === 'int' || type === 'float') {
+            validationParams.style.display = 'block';
+            numericParams.style.display = 'flex';
+            if (type === 'float') {
+                floatParams.style.display = 'flex';
+            } else if (type === 'int') {
+                intStepParams.style.display = 'flex';
+            }
+        } else if (type === 'str') {
+            validationParams.style.display = 'block';
+            stringParams.style.display = 'flex';
+        } else if (type === 'enum') {
+            validationParams.style.display = 'block';
+            enumParams.style.display = 'flex';
+        }
+    }
+    
+    function buildParamsJson() {
+        const params = {};
+        
+        // Add common parameters
+        if (iconField.value) params.icon = iconField.value;
+        if (colorField.value) params.color = colorField.value;
+        if (sortOrderField.value) params.sort_order = parseInt(sortOrderField.value);
+        if (defaultValueField.value) params.default_value = defaultValueField.value;
+        if (readOnlyField.checked) params.read_only = true;
+        
+        // Add type-specific parameters
+        const type = typeSelect.value;
+        if (type === 'int' || type === 'float') {
+            if (minField.value) params.min = parseFloat(minField.value);
+            if (maxField.value) params.max = parseFloat(maxField.value);
+            if (type === 'float') {
+                if (decimalsField.value) params.decimals = parseInt(decimalsField.value);
+                if (stepFloatField.value) params.step = parseFloat(stepFloatField.value);
+            } else if (type === 'int' && stepIntField.value) {
+                params.step = parseInt(stepIntField.value);
+            }
+        } else if (type === 'str' && regexpField.value) {
+            params.regexp = regexpField.value;
+        } else if (type === 'enum' && enumValuesField.value) {
+            try {
+                // Parse enum values as JSON or Python dict
+                let enumValues;
+                try {
+                    enumValues = JSON.parse(enumValuesField.value);
+                } catch (e) {
+                    // Try to convert Python dict format to JSON
+                    const normalized = enumValuesField.value.replace(/(\d+):/g, '"$1":');
+                    enumValues = JSON.parse(normalized);
+                }
+                // Store enum values in separate field
+                params.enum_values = enumValues;
+            } catch (e) {
+                console.error('Invalid enum values JSON:', e);
+            }
+        }
+        
+        // Add advanced validation parameters
+        if (allowedValuesField.value) {
+            try {
+                params.allowed_values = JSON.parse(allowedValuesField.value);
+            } catch (e) {
+                console.error('Invalid allowed_values JSON:', e);
+            }
+        }
+        
+        if (rateLimitField.value) {
+            params.rate_limit = parseFloat(rateLimitField.value);
+        }
+        
+        if (dependsOnField.value) {
+            try {
+                params.depends_on = JSON.parse(dependsOnField.value);
+            } catch (e) {
+                console.error('Invalid depends_on JSON:', e);
+            }
+        }
+        
+        // Update hidden field
+        paramsJsonField.value = Object.keys(params).length > 0 ? JSON.stringify(params) : '';
+    }
+    
+    function loadParamsFromJson() {
+        try {
+            if (paramsJsonField.value) {
+                const params = JSON.parse(paramsJsonField.value);
+                
+                // Load common parameters
+                if (params.icon) iconField.value = params.icon;
+                if (params.color) colorField.value = params.color;
+                if (params.sort_order !== undefined) sortOrderField.value = params.sort_order;
+                if (params.default_value !== undefined) defaultValueField.value = params.default_value;
+                if (params.read_only) readOnlyField.checked = true;
+                
+                // Load type-specific parameters
+                if (params.min !== undefined) minField.value = params.min;
+                if (params.max !== undefined) maxField.value = params.max;
+                if (params.decimals !== undefined) decimalsField.value = params.decimals;
+                if (params.step !== undefined) {
+                    const type = typeSelect.value;
+                    if (type === 'int' && stepIntField) stepIntField.value = params.step;
+                    if (type === 'float' && stepFloatField) stepFloatField.value = params.step;
+                }
+                if (params.regexp) regexpField.value = params.regexp;
+                
+                // Load enum values from enum_values field
+                if (params.enum_values) {
+                    enumValuesField.value = JSON.stringify(params.enum_values, null, 2);
+                }
+                
+                // Load advanced validation parameters
+                if (params.allowed_values) {
+                    allowedValuesField.value = JSON.stringify(params.allowed_values, null, 2);
+                }
+                if (params.rate_limit !== undefined) {
+                    rateLimitField.value = params.rate_limit;
+                }
+                if (params.depends_on) {
+                    dependsOnField.value = JSON.stringify(params.depends_on, null, 2);
+                }
+            }
+        } catch (e) {
+            console.error('Error loading params:', e);
+        }
+    }
+    
+    // Initial setup
+    toggleValidationParams();
+    loadParamsFromJson();
+    
+    // Listen for changes
+    typeSelect.addEventListener('change', toggleValidationParams);
+    
+    // Update JSON on any field change
+    const allFields = [iconField, colorField, sortOrderField, defaultValueField, readOnlyField, 
+                       minField, maxField, decimalsField, stepIntField, stepFloatField, regexpField, 
+                       enumValuesField, allowedValuesField, rateLimitField, dependsOnField];
+    allFields.forEach(field => {
+        if (field) {
+            field.addEventListener('change', buildParamsJson);
+            field.addEventListener('input', buildParamsJson);
+        }
+    });
+    
+    // Build JSON before form submit
+    document.querySelector('form').addEventListener('submit', function(e) {
+        buildParamsJson();
+    });
+});
+</script>
 {% endblock %}
