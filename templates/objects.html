@@ -43,9 +43,13 @@
           <div class="modal-body">
               <!-- Поля формы -->
               {{ form.hidden_tag() }}
-              <div class="mb-3">
-                {{ form.render(class="form-check-input") }}
-                <label class="form-label">{{ _('View template in list objects') }}</label>
+              <div class="form-check mb-2">
+                {{ form.show_id(class="form-check-input", id="show_id_in_lists") }}
+                <label class="form-check-label ms-2" for="show_id_in_lists">{{ _('Show ID in lists') }}</label>
+              </div>
+              <div class="form-check mb-1">
+                {{ form.render(class="form-check-input", id="render_in_list") }}
+                <label class="form-check-label ms-2" for="render_in_list">{{ _('View template in list objects') }}</label>
               </div>
            </div>
           <div class="modal-footer">

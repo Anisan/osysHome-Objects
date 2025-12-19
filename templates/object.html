@@ -98,7 +98,9 @@
         <div class="table-responsive">
             <table class="table table-hover table-sm">
                     <tr>
-                        <th>#</th>
+                        {% if show_id %}
+                        <th style="width:1%; white-space:nowrap;">ID</th>
+                        {% endif %}
                         <th>{{ _('Name')}}</th>
                         <th>{{ _('Description')}}</th>
                         <th>{{ _('Type')}}</th>
@@ -116,48 +118,115 @@
                         {% set row_bg = _color ~ '26' if _color else '' %}
                     {% endif %}
                     <tr class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-bottom: 5px;">
-                        <th scope="row" width="1%" nowrap{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>{{ property.id }}</th>
+                        {% if show_id %}
+                        <th scope="row" width="1%" nowrap{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ property.id }}</span>
+                        </th>
+                        {% endif %}
                         <td width="10%"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            {% if property.icon %}
-                                {% if ':' in property.icon %}
-                                    <iconify-icon icon="{{ property.icon }}" title="{{ _('Property icon') }}"></iconify-icon>
-                                {% else %}
-                                    <i class="{{ property.icon }}" title="{{ _('Property icon') }}"></i>
+                            <div class="d-flex align-items-start">
+                                {% if property.icon %}
+                                    {% if ':' in property.icon %}
+                                        <iconify-icon icon="{{ property.icon }}" title="{{ _('Property icon') }}" class="p-2 me-2" style="font-size:1.25rem;"></iconify-icon>
+                                    {% else %}
+                                        <i class="{{ property.icon }} p-2 me-2" title="{{ _('Property icon') }}" style="font-size:1.25rem;"></i>
+                                    {% endif %}
                                 {% endif %}
-                            {% endif %}
-                            {% if property.class_id %}<b>{% endif %}
-                                {{ form.name.data }}.{{ property.name }}
-                            {% if property.class_id %}</b>{% endif %}
+                                <div>
+                                    <div class="fw-semibold">
+                                        {% if property.class_id %}<b>{% endif %}
+                                            {{ form.name.data }}.{{ property.name }}
+                                        {% if property.class_id %}</b>{% endif %}
+                                    </div>
+                                    <div class="small text-muted">
+                                        {% if property.description %}
+                                            {{property.description}}
+                                        {% else %}
+                                            {{ _('Description is empty')}}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
                         </td>
                         <td width="10%"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            {%if property.description%}<p style="color: gray;margin: 0px;">{{property.description}}</p>{%endif%}
                             {%if property.linked%}
                             <p style="color: gray;margin: 0px;">
-                                ↳ {% for link in property.linked %}
+                                {% for link in property.linked %}
                                 <a class="badge bg-success" href="/admin/{{link}}">{{link}}</a>
                                 {% endfor %}
                             </p>
                             {%endif%}
-                            {%if property.history%}<p style="color: gray;margin: 0px;">↳ <a href="HistoryView?name={{property.name}}&object={{id}}" class="badge bg-warning text-dark">{{ _('History')}}: {{property.history}} {{ _('days')}}</a></p>{%endif%}
-                            {%if property.method%}<p style="color: gray;margin: 0px;">↳ <span class="badge bg-primary">{{ _('Method')}}: {{property.method}}</span></p>{%endif%}
+                            {%if property.history%}<p style="color: gray;margin: 0px;"><a href="HistoryView?name={{property.name}}&object={{id}}" class="badge bg-warning text-dark">{{ _('History')}}: {{property.history}} {{ _('days')}}</a></p>{%endif%}
+                            {%if property.method%}<p style="color: gray;margin: 0px;"><span class="badge bg-primary">{{ _('Method')}}: {{property.method}}</span></p>{%endif%}
                             {% if property.jobs%}
                                 {%for job in property.jobs%}
-                                <p style="color: gray;margin: 0px;">
-                                    ↳ <span class="badge bg-warning text-dark">{{ _('Runtime')}}: {{job.runtime}} 
+                                <div class="d-flex align-items-center flex-nowrap gap-1" style="color: gray; margin: 0;">
+                                    <span class="badge bg-warning text-dark">{{ _('Runtime')}}: {{job.runtime}} 
                                     {%if job.crontab%}
                                         ({{ _('Period')}}: {{job.crontab}})
                                     {%endif%}
                                     </span>
                                     <a href="?view=schedule&object={{id}}&tab=properties&schedule={{job.id}}&op=delete" onClick="return confirm('Delete task?')" class="btn btn-tertiary btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
-                                </p>
+                                </div>
                                 {%endfor%}
                             {% endif%}
+                            {# Краткое отображение параметров валидации #}
+                                <div class="small text-muted mt-1">
+                                    {% if property.params['min'] or property.params['max'] %}
+                                        <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
+                                            {% if property.params['min']!='' %}
+                                                {{ _('Minimum Value')}}: {{ property.params['min'] }}
+                                            {% endif %}
+                                            {% if property.params['max']!=''%}
+                                                {% if property.params['min'] %} / {% endif %}
+                                                {{ _('Maximum Value')}}: {{ property.params['max'] }}
+                                            {% endif %}
+                                        </span>
+                                    {% endif %}
+                                    {% if property.params['step'] %}
+                                        <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
+                                            {{ _('Step')}}: {{ property.params['step'] }}
+                                        </span>
+                                    {% endif %}
+                                    {% if property.params['decimals'] %}
+                                        <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
+                                            {{ _('Decimals')}}: {{ property.params['decimals'] }}
+                                        </span>
+                                    {% endif %}
+                                    {% if property.params['allowed_values'] %}
+                                        <span class="badge bg-info text-dark me-1" style="font-size:0.65rem;">
+                                            {{ _('Allowed values')}}: {{ property.params['allowed_values']|length }}
+                                        </span>
+                                    {% endif %}
+                                    {% if property.params['enum_values'] %}
+                                        <span class="badge bg-info text-dark me-1" style="font-size:0.65rem;">
+                                            {{ _('Enum Values (JSON)')}}: {{ property.params['enum_values']|length }}
+                                        </span>
+                                    {% endif %}
+                                    {% if property.params['default_value'] %}
+                                        <span class="badge bg-success text-light me-1" style="font-size:0.65rem;">
+                                            {{ _('Default Value')}}: {{ property.params['default_value'] }}
+                                        </span>
+                                    {% endif %}
+                                    {% if property.params['regexp'] %}
+                                        <span class="badge bg-dark text-light me-1" style="font-size:0.65rem;">
+                                            {{ _('RegExp Pattern')}}
+                                        </span>
+                                    {% endif %}
+                                    {% if property.params['rate_limit'] %}
+                                        <span class="badge bg-danger text-dark me-1" style="font-size:0.65rem;">
+                                            {{ _('Rate Limit (seconds)')}}: {{ property.params['rate_limit'] }}
+                                        </span>
+                                    {% endif %}
+                                    {% if property.params['read_only'] %}
+                                        <span class="badge bg-secondary text-light me-1" style="font-size:0.65rem;">
+                                            {{ _('Read Only')}}
+                                        </span>
+                                    {% endif %}
+                                </div>
                         </td>
                         <td width="1%" nowrap{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            {{ property.type }}
-                            {% if property.read_only %}
-                                <span class="badge bg-secondary ms-1">{{ _('Read Only') }}</span>
-                            {% endif %}
+                            <span class="badge bg-secondary">{{ property.type }}</span>
                         </td>
                         <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             <div class="input-group">
@@ -207,7 +276,9 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>#</th>
+                        {% if show_id %}
+                        <th style="width:1%; white-space:nowrap;">ID</th>
+                        {% endif %}
                         <th>{{ _('Name')}}</th>
                         <th>{{ _('Description')}}</th>
                         <th>{{ _('Executed')}}</th>
@@ -217,7 +288,11 @@
                 <tbody>
                     {% for method in methods %}
                     <tr>
-                        <th scope="row">{{ method.id }}</th>
+                        {% if show_id %}
+                        <th scope="row" style="width:1%; white-space:nowrap;">
+                            <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ method.id }}</span>
+                        </th>
+                        {% endif %}
                         <td style="white-space: nowrap;">
                             {% if method.class_id %}{{method.class_name}} -> <b>{% endif %}
                             {{ form.name.data }}.{{ method.name }}
@@ -381,7 +456,9 @@
             <table class="table table-hover table-sm">
                 <thead>
                     <tr>
-                        <th>#</th>
+                        {% if show_id %}
+                        <th style="width:1%; white-space:nowrap;">ID</th>
+                        {% endif %}
                         <th>{{ _('Name')}}</th>
                         <th>{{ _('Code')}}</th>
                         <th>{{ _('Date')}}</th>
@@ -392,7 +469,11 @@
                 <tbody>
                     {% for schedule in schedules %}
                     <tr class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-bottom: 5px;">
-                        <th scope="row">{{ schedule.id }}</th>
+                        {% if show_id %}
+                        <th scope="row" style="width:1%; white-space:nowrap;">
+                            <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ schedule.id }}</span>
+                        </th>
+                        {% endif %}
                         <td>
                             {{ schedule.name }}
                         </td>
@@ -461,6 +542,9 @@
             <!-- string editor -->
             <div id="editor-str" class="property-editor" style="display: none;">
               <textarea type="text" id="newValue" class="form-control" placeholder="{{ _('Enter new value')}}"></textarea>
+              <select id="value-str-select" class="form-select" style="display: none;">
+                <option value="">{{ _('Select value')}}...</option>
+              </select>
               <div class="form-text" id="hint-str"></div>
             </div>
             
@@ -506,6 +590,9 @@
         
         <!-- Подвал модального окна с кнопками -->
         <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary me-auto" id="copyValueButton">
+            <i class="fa-regular fa-copy me-1"></i>{{ _('Copy')}}
+          </button>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i>{{ _('Cancel')}}</button>
           <button type="button" class="btn btn-primary" id="saveButton"><i class="fas fa-save me-2"></i>{{ _('Save')}}</button>
         </div>
@@ -594,7 +681,7 @@
                 if (strSelect && strSelect.style.display !== 'none') {
                     return strSelect.value;
                 }
-                return document.getElementById('value-str').value;
+                return document.getElementById('newValue').value;
             case 'bool':
                 // Отправляем логическое значение, Socket.IO сериализует его как JSON boolean
                 return document.getElementById('value-bool').checked;
@@ -627,7 +714,7 @@
                 if (strSelect && strSelect.style.display !== 'none') {
                     strSelect.value = value || '';
                 } else {
-                    document.getElementById('value-str').value = value || '';
+                    document.getElementById('newValue').value = value || '';
                 }
                 break;
             case 'bool':
@@ -781,72 +868,81 @@
                 var input = document.getElementById('value-' + type);
                 var hint = document.getElementById('hint-' + type);
                 var hintText = [];
-                
-                if (params.min !== undefined) {
-                    input.setAttribute('min', params.min);
-                    hintText.push('{{ _("Min")}}: ' + params.min);
+
+                if (input) {
+                    if (params.min !== undefined) {
+                        input.setAttribute('min', params.min);
+                        hintText.push('{{ _("Min")}}: ' + params.min);
+                    }
+                    if (params.max !== undefined) {
+                        input.setAttribute('max', params.max);
+                        hintText.push('{{ _("Max")}}: ' + params.max);
+                    }
+                    if (params.step !== undefined) {
+                        input.setAttribute('step', params.step);
+                        hintText.push('{{ _("Step")}}: ' + params.step);
+                    }
+                    if (params.allowed_values && params.allowed_values.length > 0) {
+                        hintText.push('{{ _("Allowed")}}: ' + params.allowed_values.join(', '));
+                    }
+
+                    if (type === 'float' && params.decimals !== undefined) {
+                        hintText.push('{{ _("Decimals")}}: ' + params.decimals);
+                    }
                 }
-                if (params.max !== undefined) {
-                    input.setAttribute('max', params.max);
-                    hintText.push('{{ _("Max")}}: ' + params.max);
-                }
-                if (params.step !== undefined) {
-                    input.setAttribute('step', params.step);
-                    hintText.push('{{ _("Step")}}: ' + params.step);
-                }
-                if (params.allowed_values && params.allowed_values.length > 0) {
-                    hintText.push('{{ _("Allowed")}}: ' + params.allowed_values.join(', '));
-                }
-                
-                if (type === 'float' && params.decimals !== undefined) {
-                    hintText.push('{{ _("Decimals")}}: ' + params.decimals);
-                }
-                
-                hint.textContent = hintText.join(' | ');
+
+                if (hint) hint.textContent = hintText.join(' | ');
             }
             
             if (type === 'str') {
                 var hint = document.getElementById('hint-str');
                 var hintText = [];
-                
+                console.log(params)
                 // Проверяем наличие allowed_values
                 if (params.allowed_values && params.allowed_values.length > 0) {
                     // Показываем select вместо input
-                    document.getElementById('value-str').style.display = 'none';
+                    var textArea = document.getElementById('newValue');
+                    if (textArea) textArea.style.display = 'none';
                     var strSelect = document.getElementById('value-str-select');
-                    strSelect.style.display = 'block';
-                    strSelect.innerHTML = '<option value="">{{ _("Select value")}}...</option>';
-                    
-                    params.allowed_values.forEach(function(val) {
-                        var option = document.createElement('option');
-                        option.value = val;
-                        option.textContent = val;
-                        strSelect.appendChild(option);
-                    });
-                    
+                    if (strSelect) {
+                        strSelect.style.display = 'block';
+                        strSelect.innerHTML = '<option value="">{{ _("Select value")}}...</option>';
+
+                        params.allowed_values.forEach(function(val) {
+                            var option = document.createElement('option');
+                            option.value = val;
+                            option.textContent = val;
+                            strSelect.appendChild(option);
+                        });
+                    }
+
                     hintText.push('{{ _("Allowed values")}}: ' + params.allowed_values.length);
                 } else {
                     // Показываем обычный input
-                    document.getElementById('value-str').style.display = 'block';
-                    document.getElementById('value-str-select').style.display = 'none';
+                    var textArea = document.getElementById('newValue');
+                    if (textArea) textArea.style.display = 'block';
+                    var strSelect = document.getElementById('value-str-select');
+                    if (strSelect) strSelect.style.display = 'none';
                 }
-                
+
                 if (params.regexp) {
                     hintText.push('{{ _("Pattern")}}: ' + params.regexp);
                 }
-                
-                hint.textContent = hintText.join(' | ');
+
+                if (hint) hint.textContent = hintText.join(' | ');
             }
             
             if (type === 'enum' && params.enum_values) {
                 var select = document.getElementById('value-enum');
-                select.innerHTML = '<option value="">{{ _("Select value")}}...</option>';
-                for (var key in params.enum_values) {
-                    if (params.enum_values.hasOwnProperty(key)) {
-                        var option = document.createElement('option');
-                        option.value = key;
-                        option.textContent = params.enum_values[key] + ' (' + key + ')';
-                        select.appendChild(option);
+                if (select) {
+                    select.innerHTML = '<option value="">{{ _("Select value")}}...</option>';
+                    for (var key in params.enum_values) {
+                        if (params.enum_values.hasOwnProperty(key)) {
+                            var option = document.createElement('option');
+                            option.value = key;
+                            option.textContent = params.enum_values[key] + ' (' + key + ')';
+                            select.appendChild(option);
+                        }
                     }
                 }
             }
@@ -1123,6 +1219,86 @@
             });
         }, 5000);
     });
+
+    // Функции для копирования значения в буфер обмена
+    var copyValueButton = document.getElementById('copyValueButton');
+    var defaultCopyLabel = copyValueButton ? copyValueButton.innerHTML : '';
+    var copiedLabel = '<i class="fa-regular fa-circle-check me-1"></i>{{ _("Copied!") }}';
+    var copyPendingLabel = '<i class="fas fa-circle-notch fa-spin me-1"></i>{{ _("Copy") }}';
+
+    function restoreCopyButtonLabel(delay) {
+        if (!copyValueButton) {
+            return;
+        }
+        setTimeout(function() {
+            copyValueButton.disabled = false;
+            copyValueButton.innerHTML = defaultCopyLabel;
+        }, delay || 1500);
+    }
+
+    function notifyCopySuccess() {
+        if (!copyValueButton) {
+            return;
+        }
+        copyValueButton.disabled = true;
+        copyValueButton.innerHTML = copiedLabel;
+        restoreCopyButtonLabel();
+    }
+
+    function setCopyButtonPendingState() {
+        if (!copyValueButton) {
+            return;
+        }
+        copyValueButton.disabled = true;
+        copyValueButton.innerHTML = copyPendingLabel;
+    }
+
+    function restoreCopyButtonReadyState() {
+        if (!copyValueButton) {
+            return;
+        }
+        copyValueButton.disabled = false;
+        copyValueButton.innerHTML = defaultCopyLabel;
+    }
+
+    function fallbackCopy(text) {
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            notifyCopySuccess();
+        } catch (err) {
+            console.warn('Clipboard copy failed', err);
+        }
+        document.body.removeChild(textarea);
+    }
+
+    function copyValueToClipboard() {
+        // Получаем значение из активного редактора
+        var value = getEditorValue();
+        if (!value) {
+            return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(value).then(function() {
+                notifyCopySuccess();
+            }).catch(function(err) {
+                console.warn('navigator.clipboard failed', err);
+                fallbackCopy(value);
+            });
+        } else {
+            fallbackCopy(value);
+        }
+    }
+
+    if (copyValueButton) {
+        copyValueButton.addEventListener('click', copyValueToClipboard);
+    }
 
 </script>
 

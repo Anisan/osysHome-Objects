@@ -89,15 +89,16 @@
     </div>
     <div class="tab-pane fade {% if tab == 'properties'%}show active{%endif%}" id="properties" role="tabpanel" aria-labelledby="properties-tab">
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover align-middle">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>{{ _('Name')}}</th>
-                        <th>{{ _('Description')}}</th>
-                        <th>{{ _('History')}}</th>
-                        <th>{{ _('Type')}}</th>
-                        <th></th>
+                        {% if show_id %}
+                        <th style="width:1%; white-space:nowrap;">ID</th>
+                        {% endif %}
+                        <th style="width:25%;">{{ _('Name')}}</th>
+                        <th style="width:55%;">{{ _('Description')}}</th>
+                        <th style="width:10%; white-space:nowrap;">{{ _('Type')}}</th>
+                        <th style="width:9%;"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -110,32 +111,129 @@
                         {% set row_bg = _color ~ '26' if _color else '' %}
                     {% endif %}
                     <tr>
-                        <th scope="row"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>{{ property.id }}</th>
+                        {% if show_id %}
+                        <td style="width:1%; white-space:nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
+                            <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ property.id }}</span>
+                        </td>
+                        {% endif %}
                         <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            {% if property.icon %}
-                                {% if ':' in property.icon %}
-                                    <iconify-icon icon="{{ property.icon }}" title="{{ _('Property icon') }}"></iconify-icon>
-                                {% else %}
-                                    <i class="{{ property.icon }}" title="{{ _('Property icon') }}"></i>
+                            <div class="d-flex align-items-start">
+                                {% if property.icon %}
+                                    {% if ':' in property.icon %}
+                                        <iconify-icon icon="{{ property.icon }}" title="{{ _('Property icon') }}" class="p-2 me-2" style="font-size:1.25rem;"></iconify-icon>
+                                    {% else %}
+                                        <i class="{{ property.icon }} p-2 me-2" title="{{ _('Property icon') }}" style="font-size:1.25rem;"></i>
+                                    {% endif %}
                                 {% endif %}
+                                <div>
+                                    <div class="fw-semibold">{{ property.name }}</div>
+                                    <div class="small text-muted">
+                                        {% if property.description %}
+                                            {{ property.description }}
+                                        {% else %}
+                                            {{ _('Description is empty')}}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            {% if property.history %}
+                                <div class="small text-muted mb-1">
+                                    <span class="badge bg-warning text-dark" style="font-size:0.65rem;">
+                                        {{ _('History')}}: {{property.history}} {{ _('days')}}
+                                    </span>
+                                </div>
                             {% endif %}
-                            {{ property.name }}
+                            {% if property.method %}
+                                <div class="mt-1">
+                                    <span class="badge bg-primary text-light" style="font-size:0.7rem;">
+                                        {{ _('Method')}}: {{property.method}}
+                                    </span>
+                                </div>
+                            {% endif %}
+                            {# Краткое отображение параметров валидации #}
+                            <div class="small text-muted mt-1">
+                                {% if property.params['min'] or property.params['max'] %}
+                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
+                                        {% if property.params['min']!='' %}
+                                            {{ _('Minimum Value')}}: {{ property.params['min'] }}
+                                        {% endif %}
+                                        {% if property.params['max']!=''%}
+                                            {% if property.params['min'] %} / {% endif %}
+                                            {{ _('Maximum Value')}}: {{ property.params['max'] }}
+                                        {% endif %}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['step'] %}
+                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
+                                        {{ _('Step')}}: {{ property.params['step'] }}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['decimals'] %}
+                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
+                                        {{ _('Decimals')}}: {{ property.params['decimals'] }}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['allowed_values'] %}
+                                    <span class="badge bg-info text-dark me-1" style="font-size:0.65rem;">
+                                        {{ _('Allowed values')}}: {{ property.params['allowed_values']|length }}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['enum_values'] %}
+                                    <span class="badge bg-info text-dark me-1" style="font-size:0.65rem;">
+                                        {{ _('Enum Values (JSON)')}}: {{ property.params['enum_values']|length }}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['default_value'] %}
+                                    <span class="badge bg-success text-light me-1" style="font-size:0.65rem;">
+                                        {{ _('Default Value')}}: {{ property.params['default_value'] }}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['regexp'] %}
+                                    <span class="badge bg-dark text-light me-1" style="font-size:0.65rem;">
+                                        {{ _('RegExp Pattern')}}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['rate_limit'] %}
+                                    <span class="badge bg-danger text-dark me-1" style="font-size:0.65rem;">
+                                        {{ _('Rate Limit (seconds)')}}: {{ property.params['rate_limit'] }}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['read_only'] %}
+                                    <span class="badge bg-secondary text-light me-1" style="font-size:0.65rem;">
+                                        {{ _('Read Only')}}
+                                    </span>
+                                {% endif %}
+                            </div>
                         </td>
                         <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            {{ property.description }}
-                            {%if property.method%}<p style="color: gray;margin: 0px;">↳ <span class="badge bg-primary">{{ _('Method')}}: {{property.method}}</span></p>{%endif%}
+                            <span class="badge bg-secondary">{{ property.type }}</span>
                         </td>
-                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>{{ property.history }}</td>
-                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>{{ property.type }}</td>
-                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            <a href="?view=property&class={{id}}&property={{property.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="{{ _('Edit')}}"><i class="fas fa-pencil-alt"></i></a>
-                            <a href="?view=property&class={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
+                        <td class="text-end"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="?view=property&class={{id}}&property={{property.id}}&op=edit"
+                                   class="btn btn-outline-success"
+                                   title="{{ _('Edit')}}">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </a>
+                                <a href="?view=property&class={{id}}&property={{property.id}}&op=delete"
+                                   onClick="return confirm('Delete record?')"
+                                   class="btn btn-outline-danger"
+                                   title="{{ _('Delete')}}">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
                     {% if parent_properties %}
                     <tr>
-                        <td colspan="5"><b>{{ _('Parent properties')}}</b></td>
+                        <td colspan="{{ 4 + (1 if show_id else 0) }}" class="pt-3 pb-1">
+                            <span class="text-muted" style="font-size:0.8rem; border-top: 1px solid rgba(255,255,255,0.08); display:block; padding-top:0.35rem;">
+                                {{ _('Parent properties') }}
+                            </span>
+                        </td>
                     </tr>
                     {% endif %}
                     {% for property in parent_properties %}
@@ -147,25 +245,112 @@
                         {% set row_bg = _color ~ '26' if _color else '' %}
                     {% endif %}
                     <tr>
-                        <th scope="row"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>{{ property.id }}</th>
+                        {% if show_id %}
+                        <td style="width:1%; white-space:nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
+                            <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ property.id }}</span>
+                        </td>
+                        {% endif %}
                         <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            {% if property.icon %}
-                                {% if ':' in property.icon %}
-                                    <iconify-icon icon="{{ property.icon }}" title="{{ _('Property icon') }}"></iconify-icon>
-                                {% else %}
-                                    <i class="{{ property.icon }}" title="{{ _('Property icon') }}"></i>
+                            <div class="d-flex align-items-start">
+                                {% if property.icon %}
+                                    {% if ':' in property.icon %}
+                                        <iconify-icon icon="{{ property.icon }}" title="{{ _('Property icon') }}" class="p-2 me-2" style="font-size:1.25rem;"></iconify-icon>
+                                    {% else %}
+                                        <i class="{{ property.icon }} p-2 me-2" title="{{ _('Property icon') }}" style="font-size:1.25rem;"></i>
+                                    {% endif %}
                                 {% endif %}
+                                <div>
+                                    <div class="fw-semibold">
+                                        {{property.class_name}} → <b>{{ property.name }}</b>
+                                    </div>
+                                    <div class="small text-muted">
+                                        {% if property.description %}
+                                            {{ property.description }}
+                                        {% else %}
+                                            {{ _('Description is empty')}}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            {% if property.history %}
+                                <div class="small text-muted mb-1">
+                                    <span class="badge bg-warning text-dark" style="font-size:0.65rem;">
+                                        {{ _('History')}}: {{property.history}} {{ _('days')}}
+                                    </span>
+                                </div>
                             {% endif %}
-                            {{property.class_name}} -> <b>{{ property.name }}</b>
+                            {% if property.method %}
+                                <div class="mt-1">
+                                    <span class="badge bg-primary text-light" style="font-size:0.7rem;">
+                                        {{ _('Method')}}: {{property.method}}
+                                    </span>
+                                </div>
+                            {% endif %}
+                            <div class="small text-muted mt-1">
+                                {% if property.params['min'] or property.params['max'] %}
+                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
+                                        {% if property.params['min']!='' %}
+                                            {{ _('Minimum Value')}}: {{ property.params['min'] }}
+                                        {% endif %}
+                                        {% if property.params['max']!=''%}
+                                            {% if property.params['min'] %} / {% endif %}
+                                            {{ _('Maximum Value')}}: {{ property.params['max'] }}
+                                        {% endif %}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['step'] %}
+                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
+                                        {{ _('Step')}}: {{ property.params['step'] }}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['decimals'] %}
+                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
+                                        {{ _('Decimals')}}: {{ property.params['decimals'] }}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['allowed_values'] %}
+                                    <span class="badge bg-info text-dark me-1" style="font-size:0.65rem;">
+                                        {{ _('Allowed values')}}: {{ property.params['allowed_values']|length }}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['enum_values'] %}
+                                    <span class="badge bg-info text-dark me-1" style="font-size:0.65rem;">
+                                        {{ _('Enum Values (JSON)')}}: {{ property.params['enum_values']|length }}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['default_value'] %}
+                                    <span class="badge bg-success text-light me-1" style="font-size:0.65rem;">
+                                        {{ _('Default Value')}}: {{ property.params['default_value'] }}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['regexp'] %}
+                                    <span class="badge bg-dark text-light me-1" style="font-size:0.65rem;">
+                                        {{ _('RegExp Pattern')}}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['rate_limit'] %}
+                                    <span class="badge bg-danger text-dark me-1" style="font-size:0.65rem;">
+                                        {{ _('Rate Limit (seconds)')}}: {{ property.params['rate_limit'] }}
+                                    </span>
+                                {% endif %}
+                                {% if property.params['read_only'] %}
+                                    <span class="badge bg-secondary text-light me-1" style="font-size:0.65rem;">
+                                        {{ _('Read Only')}}
+                                    </span>
+                                {% endif %}
+                            </div>
                         </td>
                         <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            {{ property.description }}
-                            {%if property.method%}<p style="color: gray;margin: 0px;">↳ <span class="badge bg-primary">{{ _('Method')}}: {{property.method}}</span></p>{%endif%}
+                            <span class="badge bg-secondary">{{ property.type }}</span>
                         </td>
-                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>{{ property.history }}</td>
-                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>{{ property.type }}</td>
-                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            <a href="?view=property&class={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button"><i class="fas fa-redo me-2"></i>{{ _('Redefine')}}</a>
+                        <td class="text-end"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            <a href="?view=property&class={{id}}&property={{property.id}}&op=redefine"
+                               class="btn btn-outline-info btn-sm"
+                               role="button">
+                                <i class="fas fa-redo me-1"></i>{{ _('Redefine')}}
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -177,38 +362,85 @@
     </div>
     <div class="tab-pane fade {% if tab == 'methods'%}show active{%endif%}" id="methods" role="tabpanel" aria-labelledby="methods-tab">
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover align-middle">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>{{ _('Name')}}</th>
-                        <th>{{ _('Description')}}</th>
-                        <th></th>
+                        {% if show_id %}
+                        <th style="width:1%; white-space:nowrap;">ID</th>
+                        {% endif %}
+                        <th style="width:30%;">{{ _('Name')}}</th>
+                        <th style="width:60%;">{{ _('Description')}}</th>
+                        <th style="width:9%;"></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for method in methods %}
                     <tr>
-                        <th scope="row">{{ method.id }}</th>
-                        <td>{{ method.name }}</td>
-                        <td>{{ method.description }}</td>
+                        {% if show_id %}
+                        <td style="width:1%; white-space:nowrap;">
+                            <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ method.id }}</span>
+                        </td>
+                        {% endif %}
                         <td>
-                            <a href="?view=method&class={{id}}&method={{method.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="{{ _('Edit')}}"><i class="fas fa-pencil-alt"></i></a>
-                            <a href="?view=method&class={{id}}&method={{method.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
+                            <div class="fw-semibold">{{ method.name }}</div>
+                        </td>
+                        <td>
+                            <div class="small text-muted">
+                                {% if method.description %}
+                                    {{ method.description }}
+                                {% else %}
+                                    {{ _('Description is empty')}}
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="?view=method&class={{id}}&method={{method.id}}&op=edit"
+                                   class="btn btn-outline-success"
+                                   title="{{ _('Edit')}}">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </a>
+                                <a href="?view=method&class={{id}}&method={{method.id}}&op=delete"
+                                   onClick="return confirm('Delete record?')"
+                                   class="btn btn-outline-danger"
+                                   title="{{ _('Delete')}}">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
                     {% if parent_methods %}
                     <tr>
-                        <td colspan="5"><b>{{ _('Parent methods')}}</b></td>
+                        <td colspan="{{ 3 + (1 if show_id else 0) }}" class="pt-3 pb-1">
+                            <span class="text-muted" style="font-size:0.8rem; border-top: 1px solid rgba(255,255,255,0.08); display:block; padding-top:0.35rem;">
+                                {{ _('Parent methods') }}
+                            </span>
+                        </td>
                     </tr>
                     {% endif %}
                     {% for method in parent_methods %}
                     <tr>
-                        <th scope="row">{{ method.id }}</th>
-                        <td>{{method.class_name}} -> <b>{{ method.name }}</b></td>
-                        <td>{{ method.description }}</td>
+                        {% if show_id %}
+                        <td style="width:1%; white-space:nowrap;">
+                            <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ method.id }}</span>
+                        </td>
+                        {% endif %}
                         <td>
+                            <div class="fw-semibold">
+                                {{method.class_name}} → <b>{{ method.name }}</b>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="small text-muted">
+                                {% if method.description %}
+                                    {{ method.description }}
+                                {% else %}
+                                    {{ _('Description is empty')}}
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="text-end">
                             {% set has_method = False %}
                             {% for m in methods %}
                                 {% if m.name == method.name %}
@@ -217,7 +449,11 @@
                             {% endfor %}
 
                             {% if not has_method %}
-                            <a href="?view=method&class={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button"><i class="fas fa-redo me-2"></i>{{ _('Redefine')}}</a>
+                            <a href="?view=method&class={{id}}&method={{method.id}}&op=redefine"
+                               class="btn btn-outline-info btn-sm"
+                               role="button">
+                                <i class="fas fa-redo me-1"></i>{{ _('Redefine')}}
+                            </a>
                             {% endif %}
                         </td>
                     </tr>

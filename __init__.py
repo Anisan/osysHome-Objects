@@ -33,7 +33,7 @@ class Objects(BasePlugin):
         if view == "class":
             return routeClass(request, self.config)
         elif view == "object":
-            return routeObject(request)
+            return routeObject(request, self.config)
         elif view == "property":
             return routeProperty(request)
         elif view == "method":
@@ -60,10 +60,12 @@ class Objects(BasePlugin):
 
         settings = SettingsForm()
         if request.method == 'GET':
-            settings.render.data = self.config.get('render',False)
+            settings.render.data = self.config.get('render', False)
+            settings.show_id.data = self.config.get('show_id', False)
         else:
             if settings.validate_on_submit():
                 self.config["render"] = settings.render.data
+                self.config["show_id"] = settings.show_id.data
                 self.saveConfig()
 
         query = Class.query.filter(Class.parent_id.is_(None))
@@ -90,6 +92,7 @@ class Objects(BasePlugin):
             'classes': cls_of_dicts,
             'objects': objs_of_dicts,
             'form': settings,
+            'show_id': self.config.get('show_id', False),
         }
 
         return self.render('objects.html', content)

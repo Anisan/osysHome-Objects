@@ -90,14 +90,14 @@ def routeClass(request, config):
             parent_methods = getMethodsParents(item.parent_id, parent_methods)
         for method in parent_methods:
             dict_methods[method['id']] = method['name']
-        # Обогащаем свойства и родительские свойства метаданными (icon, color, sort_order)
+        # Обогащаем свойства и родительские свойства метаданными (icon, color, sort_order, validation params)
         for idx, prop in enumerate(properties):
             prop['_idx'] = idx  # исходный порядок
             if prop['method_id']:
                 if prop['method_id'] in dict_methods:
                     prop['method'] = dict_methods[prop['method_id']]
 
-            # Разбираем params (JSON) для доп. информации (icon, color)
+            # Разбираем params (JSON) для доп. информации (icon, color, validation params)
             params = {}
             raw_params = prop.get('params')
             if raw_params:
@@ -109,6 +109,7 @@ def routeClass(request, config):
             prop['icon'] = params.get('icon', '')
             prop['color'] = params.get('color', '')
             prop['sort_order'] = params.get('sort_order')
+            prop['params'] = params
 
         for idx, prop in enumerate(parent_properties):
             prop['_idx'] = idx  # исходный порядок внутри parent_properties
@@ -116,7 +117,7 @@ def routeClass(request, config):
                 if prop['method_id'] in dict_methods:
                     prop['method'] = dict_methods[prop['method_id']]
 
-            # Для родительских свойств тоже пробуем разобрать icon/color
+            # Для родительских свойств тоже пробуем разобрать icon/color/validation params
             params = {}
             raw_params = prop.get('params')
             if raw_params:
@@ -128,6 +129,7 @@ def routeClass(request, config):
             prop['icon'] = params.get('icon', '')
             prop['color'] = params.get('color', '')
             prop['sort_order'] = params.get('sort_order')
+            prop['params'] = params
 
         # Сортируем: сначала по sort_order (если задан), затем по исходному порядку
         properties.sort(
@@ -201,5 +203,6 @@ def routeClass(request, config):
         'objects': objects,
         'templates': templates,
         'tab': tab,
+        'show_id': config.get("show_id", False),
     }
     return render_template('class.html', **content)

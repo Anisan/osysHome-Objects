@@ -127,5 +127,6 @@
   "View template in list objects": "Просмотр шаблона в списке объектов",
   "With message": "С сообщением",
   "days": "дней",
-  "decimal places allowed": ""
+  "decimal places allowed": "",
+  "Show ID in lists": "Показывать ID в списках"
 }

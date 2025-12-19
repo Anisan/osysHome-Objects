@@ -33,7 +33,7 @@ class ObjectForm(FlaskForm):
             if obj is not None and obj.id != self.id:
                 raise ValidationError('Object already taken. Please choose a different one.')
 
-def routeObject(request):
+def routeObject(request, config):
     id = request.args.get('object', None)
     id = getObjectId(id)
     class_id = request.args.get('class', None)
@@ -174,6 +174,8 @@ def routeObject(request):
                 except Exception:
                     params = {}
 
+            property['params'] = params
+
             # read_only – используем в шаблоне, чтобы отключать редактирование
             property['read_only'] = bool(params.get('read_only', False))
 
@@ -249,5 +251,6 @@ def routeObject(request):
         'tab': tab,
         'obj': cls.to_dict() if cls else None,
         'saved': saved,
+        'show_id': config.get("show_id", False),
     }
     return render_template('object.html', **content)
