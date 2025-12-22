@@ -30,6 +30,113 @@ class ClassForm(FlaskForm):
                 raise ValidationError('Class already taken. Please choose a different one.')
 
 
+def _load_class_properties_methods_and_objects(item, class_id, config):
+    """
+    Загружает properties, methods, objects и templates для класса.
+    
+    Args:
+        item: Объект Class из БД
+        class_id: ID класса
+        config: Конфигурация приложения
+    
+    Returns:
+        tuple: (properties, parent_properties, methods, parent_methods, objects, templates)
+    """
+    query = Property.query.filter(Property.class_id == item.id, Property.object_id.is_(None))
+    if current_user.role not in ['admin','root']:
+        query = query.filter(Property.name.notlike(r'\_%', escape='\\'))
+    properties = query.order_by(Property.name).all()
+    properties = [row2dict(prop) for prop in properties]
+    parent_properties = []
+    if item.parent_id:
+        parent_props = getPropertiesParents(item.parent_id, parent_properties)
+        # исключить переопределенные
+        parent_properties = [prop for prop in parent_props if prop['name'] not in [subitem['name'] for subitem in properties]]
+    
+    dict_methods = {}
+    query = Method.query.filter(Method.class_id == item.id, Method.object_id.is_(None))
+    if current_user.role not in ['admin','root']:
+        query = query.filter(Method.name.notlike(r'\_%', escape='\\'))
+    methods = query.order_by(Method.name).all()
+    methods = [row2dict(meth) for meth in methods]
+    for method in methods:
+        dict_methods[method['id']] = method['name']
+    parent_methods = []
+    if item.parent_id:
+        parent_methods = getMethodsParents(item.parent_id, parent_methods)
+    for method in parent_methods:
+        dict_methods[method['id']] = method['name']
+    
+    # Обогащаем свойства и родительские свойства метаданными (icon, color, sort_order, validation params)
+    for idx, prop in enumerate(properties):
+        prop['_idx'] = idx  # исходный порядок
+        if prop['method_id']:
+            if prop['method_id'] in dict_methods:
+                prop['method'] = dict_methods[prop['method_id']]
+
+        # Разбираем params (JSON) для доп. информации (icon, color, validation params)
+        params = {}
+        raw_params = prop.get('params')
+        if raw_params:
+            try:
+                params = json.loads(raw_params)
+            except Exception:
+                params = {}
+
+        prop['icon'] = params.get('icon', '')
+        prop['color'] = params.get('color', '')
+        prop['sort_order'] = params.get('sort_order')
+        prop['params'] = params
+
+    for idx, prop in enumerate(parent_properties):
+        prop['_idx'] = idx  # исходный порядок внутри parent_properties
+        if prop['method_id']:
+            if prop['method_id'] in dict_methods:
+                prop['method'] = dict_methods[prop['method_id']]
+
+        # Для родительских свойств тоже пробуем разобрать icon/color/validation params
+        params = {}
+        raw_params = prop.get('params')
+        if raw_params:
+            try:
+                params = json.loads(raw_params)
+            except Exception:
+                params = {}
+
+        prop['icon'] = params.get('icon', '')
+        prop['color'] = params.get('color', '')
+        prop['sort_order'] = params.get('sort_order')
+        prop['params'] = params
+
+    # Сортируем: сначала по sort_order (если задан), затем по исходному порядку
+    properties.sort(
+        key=lambda p: (
+            p['sort_order'] if p.get('sort_order') is not None else 10**9,
+            p.get('_idx', 0),
+        )
+    )
+    parent_properties.sort(
+        key=lambda p: (
+            p['sort_order'] if p.get('sort_order') is not None else 10**9,
+            p.get('_idx', 0),
+        )
+    )
+
+    query = Object.query.filter(Object.class_id == class_id)
+    if current_user.role not in ['admin','root']:
+        query = query.filter(Object.name.notlike(r'\_%', escape='\\'))
+    objects = query.order_by(Object.name).all()
+    objects = [
+        {'id': obj.id, 'name': obj.name, 'description': obj.description, 'template': getObject(obj.name).render() if getObject(obj.name) and config.get("render", None) else ''}
+        for obj in objects
+    ]
+    
+    templates = {}
+    if item.parent_id:
+        templates = getTemplatesParents(item.parent_id, templates)
+    
+    return properties, parent_properties, methods, parent_methods, objects, templates
+
 def routeClass(request, config):
     id = request.args.get('class', None)
     id = getClassId(id)
@@ -67,92 +174,7 @@ def routeClass(request, config):
         item = Class.query.get_or_404(id)  # Получаем объект из базы данных или возвращаем 404, если не найден
         form = ClassForm(obj=item)  # Передаем объект в форму для редактирования
         form.id = item.id
-        query = Property.query.filter(Property.class_id == item.id, Property.object_id.is_(None))
-        if current_user.role not in ['admin','root']:
-            query = query.filter(Property.name.notlike(r'\_%', escape='\\'))
-        properties = query.order_by(Property.name).all()
-        properties = [row2dict(item) for item in properties]
-        parent_properties = []
-        if item.parent_id:
-            parent_props = getPropertiesParents(item.parent_id, parent_properties)
-            # исключить переопределенные
-            parent_properties = [item for item in parent_props if item['name'] not in [subitem['name'] for subitem in properties]]
-        dict_methods = {}
-        query = Method.query.filter(Method.class_id == item.id, Method.object_id.is_(None))
-        if current_user.role not in ['admin','root']:
-            query = query.filter(Method.name.notlike(r'\_%', escape='\\'))
-        methods = query.order_by(Method.name).all()
-        methods = [row2dict(item) for item in methods]
-        for method in methods:
-            dict_methods[method['id']] = method['name']
-        parent_methods = []
-        if item.parent_id:
-            parent_methods = getMethodsParents(item.parent_id, parent_methods)
-        for method in parent_methods:
-            dict_methods[method['id']] = method['name']
-        # Обогащаем свойства и родительские свойства метаданными (icon, color, sort_order, validation params)
-        for idx, prop in enumerate(properties):
-            prop['_idx'] = idx  # исходный порядок
-            if prop['method_id']:
-                if prop['method_id'] in dict_methods:
-                    prop['method'] = dict_methods[prop['method_id']]
-
-            # Разбираем params (JSON) для доп. информации (icon, color, validation params)
-            params = {}
-            raw_params = prop.get('params')
-            if raw_params:
-                try:
-                    params = json.loads(raw_params)
-                except Exception:
-                    params = {}
-
-            prop['icon'] = params.get('icon', '')
-            prop['color'] = params.get('color', '')
-            prop['sort_order'] = params.get('sort_order')
-            prop['params'] = params
-
-        for idx, prop in enumerate(parent_properties):
-            prop['_idx'] = idx  # исходный порядок внутри parent_properties
-            if prop['method_id']:
-                if prop['method_id'] in dict_methods:
-                    prop['method'] = dict_methods[prop['method_id']]
-
-            # Для родительских свойств тоже пробуем разобрать icon/color/validation params
-            params = {}
-            raw_params = prop.get('params')
-            if raw_params:
-                try:
-                    params = json.loads(raw_params)
-                except Exception:
-                    params = {}
-
-            prop['icon'] = params.get('icon', '')
-            prop['color'] = params.get('color', '')
-            prop['sort_order'] = params.get('sort_order')
-            prop['params'] = params
-
-        # Сортируем: сначала по sort_order (если задан), затем по исходному порядку
-        properties.sort(
-            key=lambda p: (
-                p['sort_order'] if p.get('sort_order') is not None else 10**9,
-                p.get('_idx', 0),
-            )
-        )
-        parent_properties.sort(
-            key=lambda p: (
-                p['sort_order'] if p.get('sort_order') is not None else 10**9,
-                p.get('_idx', 0),
-            )
-        )
-
-        query = Object.query.filter(Object.class_id == id)
-        if current_user.role not in ['admin','root']:
-            query = query.filter(Object.name.notlike(r'\_%', escape='\\'))
-        objects = query.order_by(Object.name).all()
-        objects = [
-            {'id': obj.id, 'name': obj.name, 'description': obj.description, 'template': getObject(obj.name).render() if getObject(obj.name) and config.get("render", None) else ''}
-            for obj in objects
-        ]
+        properties, parent_properties, methods, parent_methods, objects, templates = _load_class_properties_methods_and_objects(item, id, config)
 
     else:
         form = ClassForm()
@@ -161,6 +183,7 @@ def routeClass(request, config):
         methods = []
         parent_methods = []
         objects = []
+        templates = {}
 
     query = Class.query.filter(Class.id != id)  # TODO exclude current class
     if current_user.role not in ['admin','root']:
@@ -172,27 +195,43 @@ def routeClass(request, config):
     old_name = ""
     if id:
         old_name = item.name
+    saved = False
     if form.validate_on_submit():
         if id:
             form.populate_obj(item)  # Обновляем значения объекта данными из формы
             item.parent_id = int(form.parent_id.data) if form.parent_id.data else None
         else:
-            new_item = Class(
+            item = Class(
                 name=form.name.data,
                 description=form.description.data,
                 parent_id=int(form.parent_id.data) if form.parent_id.data else None
             )
-            db.session.add(new_item)
+            db.session.add(item)
         db.session.commit()  # Сохраняем изменения в базе данных
         # update object to storage
-        if id:
+        saved = True
+        # Обновляем id для нового класса, чтобы вкладки отображались
+        if not id:
+            id = item.id
+            # Перезагружаем item из БД после создания
+            item = Class.query.get_or_404(id)
+            # Перезагружаем properties, methods, objects и templates для нового класса
+            properties, parent_properties, methods, parent_methods, objects, templates = _load_class_properties_methods_and_objects(item, id, config)
+            # Обновляем форму с данными созданного класса
+            form = ClassForm(obj=item)
+            form.id = item.id
+            # Обновляем choices для parent_id
+            query = Class.query.filter(Class.id != id)
+            if current_user.role not in ['admin','root']:
+                query = query.filter(Class.name.notlike(r'\_%', escape='\\'))
+            classes = query.order_by(Class.name).all()
+            form.parent_id.choices = [('','')] + [(_class.id, _class.name) for _class in classes]
+        else:
             if old_name != item.name:
                 objects_storage.remove_objects_by_class(item.id)
             objects_storage.reload_objects_by_class(item.id)
-        return redirect("Objects")  # Перенаправляем на другую страницу после успешного редактирования
-    templates = {}
-    if item and item.parent_id:
-        templates = getTemplatesParents(item.parent_id, templates)
+            # Перезагружаем данные после редактирования существующего класса
+            properties, parent_properties, methods, parent_methods, objects, templates = _load_class_properties_methods_and_objects(item, id, config)
     content = {
         'id': id,
         'form':form,
