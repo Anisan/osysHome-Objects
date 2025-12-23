@@ -7,19 +7,26 @@
 {% block title %} {{ _('Objects')}} {% endblock %} 
 
 {% block module_content %}
-<div class="d-flex justify-content-between">
-<div>
-<a href="?view=class" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>{{ _('Add class')}}</a>
-<a href="?view=object" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>{{ _('Add object')}}</a>
-<a href="?view=permissions" class="btn btn-outline-warning" role="button"><i class="fas fa-shield me-2"></i>{{ _('Permissions (global)')}}</a>
-<button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
-  <i class="fas fa-cog me-2"></i>{{ _('Settings')}}
-</button>
-</div>
-<div>
-<a href="../api/export/all" class="btn btn-outline-primary" role="button" ><i class="fas fa-file-export me-2"></i>{{ _('Export all')}}</a>
-<a href="#" class="btn btn-outline-primary" role="button"  data-bs-toggle="modal" data-bs-target="#uploadModal"><i class="fas fa-file-import me-2"></i>{{ _('Import from file')}}</a>
-</div>
+<div class="d-flex align-items-start flex-wrap gap-2 w-100">
+  <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+    <a href="?view=class" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>{{ _('Add class')}}</a>
+    <a href="?view=object" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>{{ _('Add object')}}</a>
+    <a href="?view=permissions" class="btn btn-outline-warning" role="button"><i class="fas fa-shield me-2"></i>{{ _('Permissions (global)')}}</a>
+    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+      <i class="fas fa-cog me-2"></i>{{ _('Settings')}}
+    </button>
+  </div>
+  <div class="d-flex flex-grow-1" style="flex: 1 1 320px; min-width: 320px;">
+    <div class="input-group flex-grow-1">
+      <span class="input-group-text"><i class="fas fa-filter"></i></span>
+      <input type="text" id="objectFilter" class="form-control" placeholder="{{ _('Type to filter by name or description') }}">
+      <button class="btn btn-outline-secondary" type="button" id="clearFilter"><i class="fas fa-times me-1"></i></button>
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap flex-shrink-0">
+    <a href="../api/export/all" class="btn btn-outline-primary text-nowrap" role="button"><i class="fas fa-file-export me-2"></i>{{ _('Export all')}}</a>
+    <a href="#" class="btn btn-outline-primary text-nowrap" role="button"  data-bs-toggle="modal" data-bs-target="#uploadModal"><i class="fas fa-file-import me-2"></i>{{ _('Import from file')}}</a>
+  </div>
 </div>
 <div class="accordion mt-2" id="accordionExample">
   {% for class in classes %}
@@ -141,6 +148,56 @@ function loadConfiguration() {
   }
 }
 
+function filterObjects() {
+  var query = $('#objectFilter').val().toLowerCase().trim();
+  var hasQuery = query !== '';
+
+  $('.object-item').each(function() {
+    var text = ($(this).data('search') || '').toLowerCase();
+    var match = !hasQuery || text.indexOf(query) !== -1;
+    $(this).toggleClass('d-none', !match);
+  });
+
+  $($('.class-card').get().reverse()).each(function() {
+    var hasVisibleObjects = $(this).find('.object-item').not('.d-none').length > 0;
+    var hasVisibleClasses = $(this).find('.class-card').not('.d-none').length > 0;
+    var shouldShow = !hasQuery ? true : (hasVisibleObjects || hasVisibleClasses);
+    $(this).toggleClass('d-none', !shouldShow);
+  });
+
+  $('ul:has(.object-item)').each(function() {
+    var hasVisible = $(this).find('.object-item').not('.d-none').length > 0;
+    $(this).toggleClass('d-none', hasQuery && !hasVisible);
+  });
+
+  if (hasQuery) {
+    var openCollapse = function(collapseEl) {
+      if (!collapseEl.length) return;
+      if (!collapseEl.hasClass('show')) {
+        collapseEl.addClass('show').attr('data-filter-open', '1');
+        var header = collapseEl.prev('.card-header').find('[data-bs-target="#' + collapseEl.attr('id') + '"]');
+        header.attr('aria-expanded', 'true');
+      }
+      var parentCollapse = collapseEl.parents('.collapse').first();
+      if (parentCollapse.length) {
+        openCollapse(parentCollapse);
+      }
+    };
+
+    $('.object-item').not('.d-none').each(function() {
+      var collapse = $(this).closest('.collapse');
+      openCollapse(collapse);
+    });
+  } else {
+    $('[data-filter-open="1"]').each(function() {
+      var collapseEl = $(this);
+      collapseEl.removeClass('show').removeAttr('data-filter-open');
+      var header = collapseEl.prev('.card-header').find('[data-bs-target="#' + collapseEl.attr('id') + '"]');
+      header.attr('aria-expanded', 'false');
+    });
+  }
+}
+
 function uploadFile() {
             var formData = new FormData($('#uploadForm')[0]);
             console.log(formData)
@@ -182,6 +239,12 @@ function uploadFile() {
   // Call the function to load configuration after document is loaded
 $(document).ready(function() {
   loadConfiguration();
+  filterObjects();
+  $('#objectFilter').on('input', filterObjects);
+  $('#clearFilter').on('click', function() {
+    $('#objectFilter').val('');
+    filterObjects();
+  });
 });
 
 </script>
