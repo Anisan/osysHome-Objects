@@ -162,11 +162,28 @@
                             {% if property.jobs%}
                                 {%for job in property.jobs%}
                                 <div class="d-flex align-items-center flex-nowrap gap-1" style="color: gray; margin: 0;">
+                                    {% if job.active == False %}
+                                    <span class="badge bg-secondary text-decoration-line-through">{{ _('Runtime')}}: {{job.runtime}} 
+                                    {%if job.crontab%}
+                                        ({{ _('Period')}}: {{job.crontab}})
+                                    {%endif%}
+                                    </span>
+                                    {% else %}
                                     <span class="badge bg-warning text-dark">{{ _('Runtime')}}: {{job.runtime}} 
                                     {%if job.crontab%}
                                         ({{ _('Period')}}: {{job.crontab}})
                                     {%endif%}
                                     </span>
+                                    {% endif %}
+                                    {% if job.active != False %}
+                                    <button onclick="toggleScheduleActive({{ job.id }}, false, 'properties')" class="btn btn-tertiary btn-sm" title="{{ _('Disable')}}">
+                                        <i class="fas fa-pause"></i>
+                                    </button>
+                                    {% else %}
+                                    <button onclick="toggleScheduleActive({{ job.id }}, true, 'properties')" class="btn btn-tertiary btn-sm" title="{{ _('Enable')}}">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                    {% endif %}
                                     <a href="?view=schedule&object={{id}}&tab=properties&schedule={{job.id}}&op=delete" onClick="return confirm('Delete task?')" class="btn btn-tertiary btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                                 </div>
                                 {%endfor%}
@@ -310,11 +327,28 @@
                             {% if method.jobs%}
                                 {%for job in method.jobs%}
                                 <p style="color: gray;margin: 0px;">
-                                    ↳ <span class="badge bg-warning text-dark">{{ _('Runtime')}}: {{job.runtime}} 
+                                    ↳ {% if job.active == False %}
+                                    <span class="badge bg-secondary text-decoration-line-through">{{ _('Runtime')}}: {{job.runtime}} 
                                     {%if job.crontab%}
                                         ({{ _('Period')}}: {{job.crontab}})
                                     {%endif%}
                                     </span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">{{ _('Runtime')}}: {{job.runtime}} 
+                                    {%if job.crontab%}
+                                        ({{ _('Period')}}: {{job.crontab}})
+                                    {%endif%}
+                                    </span>
+                                    {% endif %}
+                                    {% if job.active != False %}
+                                    <button onclick="toggleScheduleActive({{ job.id }}, false, 'methods')" class="btn btn-tertiary btn-sm" title="{{ _('Disable')}}">
+                                        <i class="fas fa-pause"></i>
+                                    </button>
+                                    {% else %}
+                                    <button onclick="toggleScheduleActive({{ job.id }}, true, 'methods')" class="btn btn-tertiary btn-sm" title="{{ _('Enable')}}">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                    {% endif %}
                                     <a href="?view=schedule&object={{id}}&tab=methods&schedule={{job.id}}&op=delete" onClick="return confirm('Delete task?')" class="btn btn-tertiary btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                                 </p>
                                 {%endfor%}
@@ -470,12 +504,13 @@
                         <th>{{ _('Code')}}</th>
                         <th>{{ _('Date')}}</th>
                         <th>{{ _('Cron')}}</th>
+                        <th>{{ _('Active')}}</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for schedule in schedules %}
-                    <tr class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-bottom: 5px;">
+                    <tr class="col-lg-4 col-md-4 col-sm-12 col-xs-12 schedule-row{% if schedule.active == False %} task-inactive{% endif %}" style="margin-bottom: 5px;" data-schedule-id="{{ schedule.id }}">
                         {% if show_id %}
                         <th scope="row" style="width:1%; white-space:nowrap;">
                             <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ schedule.id }}</span>
@@ -494,7 +529,23 @@
                             {{ schedule.crontab }}
                         </td>
                         <td>
+                            {% if schedule.active != False %}
+                            <span class="badge bg-success">{{ _('Active')}}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ _('Inactive')}}</span>
+                            {% endif %}
+                        </td>
+                        <td>
                             <a href="?view=schedule&object={{id}}&tab=schedule&schedule={{schedule.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="{{ _('Edit')}}"><i class="fas fa-pencil-alt"></i></a>
+                            {% if schedule.active != False %}
+                            <button onclick="toggleScheduleActive({{ schedule.id }}, false, 'schedule')" class="btn btn-secondary btn-sm" title="{{ _('Disable')}}">
+                                <i class="fas fa-pause"></i>
+                            </button>
+                            {% else %}
+                            <button onclick="toggleScheduleActive({{ schedule.id }}, true, 'schedule')" class="btn btn-success btn-sm" title="{{ _('Enable')}}">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            {% endif %}
                             <a href="?view=schedule&object={{id}}&tab=schedule&schedule={{schedule.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                         </td>
                     </tr>
@@ -1469,7 +1520,93 @@
 
     /* Цветовой фон для строк свойств */
     /* Никаких спец-классов и переменных, используем только inline background-color на <tr> */
+    
+    /* Стили для неактивных задач */
+    .task-inactive > td,
+    .task-inactive > th {
+        text-decoration: line-through;
+        color: #6c757d;
+    }
+    .task-inactive p {
+        text-decoration: line-through;
+        color: #6c757d;
+    }
+    .task-inactive .badge {
+        text-decoration: none;
+    }
+    /* Кнопки управления не должны быть затронуты стилями неактивных задач - они остаются полностью видимыми */
+    .task-inactive .btn {
+        text-decoration: none !important;
+        opacity: 1 !important;
+        color: inherit !important;
+    }
+    /* Явно исключаем колонку с кнопками из стилей неактивных задач */
+    .task-inactive td:last-child,
+    .task-inactive th:last-child {
+        text-decoration: none !important;
+        opacity: 1 !important;
+        color: inherit !important;
+    }
 </style>
+<script>
+    function toggleScheduleActive(taskId, enable, tab) {
+        var endpoint = enable ? '/api/Scheduler/task/' + taskId + '/enable' : '/api/Scheduler/task/' + taskId + '/disable';
+        var method = 'POST';
+        
+        fetch(endpoint, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Получить текущий URL
+                var urlParams = new URLSearchParams(window.location.search);
+                var objectId = urlParams.get('object');
+                
+                // Использовать переданную вкладку или определить из URL
+                var currentTab = tab || urlParams.get('tab');
+                
+                // Если вкладка все еще не определена, попытаться определить по активной вкладке
+                if (!currentTab) {
+                    var activeTab = document.querySelector('.nav-link.tab-button.active');
+                    if (activeTab) {
+                        var tabHref = activeTab.getAttribute('href');
+                        if (tabHref) {
+                            if (tabHref === '#properties' || tabHref.includes('properties')) {
+                                currentTab = 'properties';
+                            } else if (tabHref === '#methods' || tabHref.includes('methods')) {
+                                currentTab = 'methods';
+                            } else if (tabHref === '#schedule_tab' || tabHref.includes('schedule')) {
+                                currentTab = 'schedule';
+                            }
+                        }
+                    }
+                }
+                
+                if (objectId) {
+                    // Перейти на указанную вкладку
+                    var newUrl = window.location.pathname + '?view=object&object=' + objectId;
+                    if (currentTab) {
+                        newUrl += '&tab=' + currentTab;
+                    }
+                    window.location.href = newUrl;
+                } else {
+                    // Если нет object ID, просто перезагрузить страницу
+                    window.location.reload();
+                }
+            } else {
+                alert(data.msg || 'Failed to ' + (enable ? 'enable' : 'disable') + ' task');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error ' + (enable ? 'enabling' : 'disabling') + ' task');
+        });
+    }
+</script>
 {% include 'includes/code_block_styles.html' %}
 
 {% endblock %}

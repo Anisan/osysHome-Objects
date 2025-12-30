@@ -8,7 +8,7 @@ from app.core.models.Tasks import Task
 from app.core.lib.common import getJob
 from app.core.lib.crontab import nextStartCronJob
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, DateTimeLocalField
+from wtforms import StringField, SubmitField, TextAreaField, DateTimeLocalField, BooleanField
 from wtforms.validators import DataRequired, Optional
 
 
@@ -17,6 +17,7 @@ class TaskForm(FlaskForm):
     code = TextAreaField('Code', validators=[DataRequired()])
     crontab = StringField('Crontab',validators=[Optional()])
     runtime = DateTimeLocalField('Runtime',validators=[Optional()])
+    active = BooleanField('Active', default=True)
     submit = SubmitField('Submit')
 
 def addPrefix(name,num):
@@ -59,8 +60,10 @@ def routeSchedule(request):
             task.code = form.code.data
             task.crontab = form.crontab.data
             task.runtime = convert_utc_to_local(form.runtime.data)
+            task.active = form.active.data if hasattr(form, 'active') else True
         else:
             task = Task(name=form.name.data, code=form.code.data, crontab=form.crontab.data)
+            task.active = form.active.data if hasattr(form, 'active') else True
             db.session.add(task)
 
         if form.crontab.data == "":
@@ -87,6 +90,8 @@ def routeSchedule(request):
         form.code.data = task.code
         form.crontab.data = task.crontab
         form.runtime.data = convert_utc_to_local(task.runtime)
+        if hasattr(form, 'active'):
+            form.active.data = task.active if task.active is not None else True
     else:
         name = ''
         code = ''

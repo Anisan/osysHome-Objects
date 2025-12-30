@@ -38,6 +38,14 @@
             <label class="form-label">{{ _('Cron') }}</label>
             {{ form.crontab(class="form-control") }}
         </div>
+        <div class="mb-3">
+            <div class="form-check">
+                {{ form.active(class="form-check-input") }}
+                <label class="form-check-label" for="{{ form.active.id }}">
+                    {{ _('Active') }}
+                </label>
+            </div>
+        </div>
     </div>
     <!-- Кнопка отправки формы -->
     <button type="submit" class="btn btn-primary"><i class="fas fa-check me-2"></i>{{ _('Submit')}}</button>
