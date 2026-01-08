@@ -192,6 +192,68 @@ def routeObject(request, config):
         }
         return render_template('objects_permissions.html', **content)
 
+    if op == 'clone':
+        source_obj = Object.query.get_or_404(id)
+        # Генерируем имя для клона
+        base_name = source_obj.name
+        clone_name = base_name + "_clone"
+        counter = 1
+        while Object.query.filter(Object.name == clone_name).first():
+            clone_name = f"{base_name}_clone_{counter}"
+            counter += 1
+        
+        # Создаем новый объект
+        new_obj = Object(
+            name=clone_name,
+            description=source_obj.description,
+            class_id=source_obj.class_id,
+            template=source_obj.template
+        )
+        db.session.add(new_obj)
+        db.session.flush()  # Получаем ID нового объекта
+        
+        # Копируем свойства объекта
+        source_properties = Property.query.filter(Property.object_id == id).all()
+        for prop in source_properties:
+            new_prop = Property(
+                name=prop.name,
+                description=prop.description,
+                object_id=new_obj.id,
+                type=prop.type,
+                params=prop.params,
+                method_id=prop.method_id,
+                history=prop.history
+            )
+            db.session.add(new_prop)
+        
+        # Копируем значения свойств
+        source_values = Value.query.filter(Value.object_id == id).all()
+        for val in source_values:
+            new_val = Value(
+                object_id=new_obj.id,
+                name=val.name,
+                value=val.value,
+                source=val.source,
+                changed=val.changed
+            )
+            db.session.add(new_val)
+        
+        # Копируем методы объекта
+        source_methods = Method.query.filter(Method.object_id == id).all()
+        for method in source_methods:
+            new_method = Method(
+                name=method.name,
+                description=method.description,
+                object_id=new_obj.id,
+                code=method.code,
+                call_parent=method.call_parent
+            )
+            db.session.add(new_method)
+        
+        db.session.commit()
+        objects_storage.reload_object(new_obj.id)
+        return redirect(f"Objects?view=object&object={new_obj.id}")
+    
     if op == 'delete':
         # TODO delete linked
         sql = delete(Value).where(Value.object_id == id)
