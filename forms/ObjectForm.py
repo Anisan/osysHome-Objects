@@ -138,7 +138,8 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
         raw_params = property.get('params')
         if raw_params:
             try:
-                params = json.loads(raw_params)
+                parsed = json.loads(raw_params)
+                params = parsed if isinstance(parsed, dict) else {}
             except Exception:
                 params = {}
 
