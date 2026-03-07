@@ -718,35 +718,23 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         socket.emit('subscribeActions', ['executedMethod']);
-        
-        // Переопределяем обработчик changeProperty для форматирования enum значений
-        // Удаляем стандартный обработчик и создаем свой с поддержкой enum
-        socket.off('changeProperty');
+
+        // Дополнительный обработчик ТОЛЬКО для страницы Objects:
+        // - форматирование enum значений
+        // - корректное обновление <textarea id="prop:..."> через `.value`
+        //
+        // Важно: НЕ используем socket.off('changeProperty'), чтобы не ломать глобальные биндинги (data-prop-*) и общий обработчик.
         socket.on('changeProperty', function (msg) {
             var elements = document.querySelectorAll(`[id^="prop:${msg.property}"]`);
             elements.forEach(function(element) {
                 if (element.id === `prop:${msg.property}`) {
                     var displayValue = typeof msg.value === "object" ? JSON.stringify(msg.value) : msg.value;
-                    // Форматируем значение для enum свойств
                     displayValue = formatEnumValue(msg.property, displayValue);
-                    // Обновляем value для textarea, textContent для других элементов
                     if (element.tagName === 'TEXTAREA') {
                         element.value = displayValue;
                     } else {
                         element.textContent = displayValue;
                     }
-                }
-            });
-            var changedElements = document.querySelectorAll(`[id^="prop_changed:${msg.property}"]`);
-            changedElements.forEach(function(element) {
-                if (element.id === `prop_changed:${msg.property}`) {
-                    element.textContent = msg.changed;
-                }
-            });
-            var sourceElements = document.querySelectorAll(`[id^="prop_source:${msg.property}"]`);
-            sourceElements.forEach(function(element) {
-                if (element.id === `prop_source:${msg.property}`) {
-                    element.textContent = msg.source;
                 }
             });
         });
