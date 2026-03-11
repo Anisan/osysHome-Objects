@@ -5,9 +5,19 @@ from wtforms.validators import DataRequired, Optional, ValidationError
 from sqlalchemy import delete
 from flask import redirect, render_template, abort
 from app.database import db, row2dict
-from app.core.models.Clasess import Class, Object, Property, Value, Method
+from app.core.models.Clasess import Class, Object, Property, Value, Method, History
 from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import no_spaces_or_dots, no_reserved, getMethodsParents, checkPermission, getObjectId, getClassId
+
+
+def _get_class_chain_ids(class_id):
+    """Собирает id класса и всех предков по parent_id (вся цепочка наследования)."""
+    ids = []
+    while class_id:
+        ids.append(class_id)
+        cls = Class.query.get(class_id)
+        class_id = cls.parent_id if cls else None
+    return ids
 import json
 import ast
 
@@ -77,17 +87,39 @@ def routeProperty(request):
         if object_id:
             prop_o = Property.query.filter(Property.object_id == object_id, Property.id == id).one_or_none()
             name = prop_o.name
-            prop_c = Property.query.filter(Property.class_id == class_id, Property.id == id).one_or_none()
-            if not prop_c:
-                sql = delete(Value).where(Value.object_id == object_id, Value.name == name)
-                db.session.execute(sql)
+            # Удаляем Value и History только если в цепочке классов (включая предков) нет
+            # такого же свойства: при снятии override объект будет использовать свойство
+            # класса и то же значение
+            obj = Object.query.filter(Object.id == object_id).first()
+            has_same_in_class = False
+            if obj and obj.class_id:
+                class_ids = _get_class_chain_ids(obj.class_id)
+                if class_ids:
+                    has_same_in_class = Property.query.filter(
+                        Property.class_id.in_(class_ids),
+                        Property.name == name,
+                        Property.object_id.is_(None)
+                    ).first() is not None
+            if not has_same_in_class:
+                values = db.session.query(Value).filter(Value.object_id == object_id, Value.name == name).all()
+                value_ids = [v.id for v in values]
+                if value_ids:
+                    db.session.execute(delete(History).where(History.value_id.in_(value_ids)))
+                db.session.execute(delete(Value).where(Value.object_id == object_id, Value.name == name))
             sql = delete(Property).where(Property.id == id)
             db.session.execute(sql)
             db.session.commit()
         else:
-            # todo delete value
-            sql = delete(Property).where(Property.id == id)
-            db.session.execute(sql)
+            prop = Property.query.filter(Property.class_id == class_id, Property.id == id).one_or_none()
+            if prop:
+                objs = db.session.query(Object).filter(Object.class_id == class_id).all()
+                for obj in objs:
+                    values = db.session.query(Value).filter(Value.object_id == obj.id, Value.name == prop.name).all()
+                    value_ids = [v.id for v in values]
+                    if value_ids:
+                        db.session.execute(delete(History).where(History.value_id.in_(value_ids)))
+                    db.session.execute(delete(Value).where(Value.object_id == obj.id, Value.name == prop.name))
+            db.session.execute(delete(Property).where(Property.id == id))
             db.session.commit()
 
         if object_id:

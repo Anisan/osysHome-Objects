@@ -10,7 +10,7 @@ from sqlalchemy import delete
 from app.database import db, row2dict, convert_utc_to_local
 from app.core.lib.common import getJobs
 from app.core.utils import CustomJSONEncoder
-from app.core.models.Clasess import Class, Object, Property, Method, Value
+from app.core.models.Clasess import Class, Object, Property, Method, Value, History
 from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents, checkPermission, getClassId, getObjectId
 
@@ -257,8 +257,11 @@ def routeObject(request, config):
     
     if op == 'delete':
         # TODO delete linked
-        sql = delete(Value).where(Value.object_id == id)
-        db.session.execute(sql)
+        values = db.session.query(Value.id).filter(Value.object_id == id).all()
+        value_ids = [v[0] for v in values]
+        if value_ids:
+            db.session.execute(delete(History).where(History.value_id.in_(value_ids)))
+        db.session.execute(delete(Value).where(Value.object_id == id))
         sql = delete(Property).where(Property.object_id == id)
         db.session.execute(sql)
         sql = delete(Method).where(Method.object_id == id)
