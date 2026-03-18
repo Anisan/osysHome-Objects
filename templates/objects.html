@@ -7,37 +7,134 @@
 {% block title %} {{ _('Objects')}} {% endblock %} 
 
 {% block module_content %}
-<div class="d-flex align-items-start flex-wrap gap-2 w-100">
-  <div class="d-flex flex-wrap gap-2 flex-shrink-0">
-    <a href="?view=class" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>{{ _('Add class')}}</a>
-    <a href="?view=object" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>{{ _('Add object')}}</a>
-    <a href="?view=permissions" class="btn btn-outline-warning" role="button"><i class="fas fa-shield me-2"></i>{{ _('Permissions (global)')}}</a>
-    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
-      <i class="fas fa-cog me-2"></i>{{ _('Settings')}}
-    </button>
-  </div>
-  <div class="d-flex flex-grow-1" style="flex: 1 1 320px; min-width: 320px;">
-    <div class="input-group flex-grow-1">
-      <span class="input-group-text"><i class="fas fa-filter"></i></span>
-      <input type="text" id="objectFilter" class="form-control" placeholder="{{ _('Type to filter by name or description') }}">
-      <button class="btn btn-outline-secondary" type="button" id="clearFilter"><i class="fas fa-times me-1"></i></button>
+<style>
+  .objects-toolbar {
+    position: sticky;
+    top: 0.75rem;
+    z-index: 1015;
+    backdrop-filter: blur(6px);
+  }
+
+  .objects-toolbar .card-body {
+    background: rgba(var(--bs-body-bg-rgb), 0.92);
+  }
+
+  .object-tree-card {
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+
+  .object-tree-card:hover {
+    box-shadow: 0 .125rem .5rem rgba(0, 0, 0, 0.12);
+  }
+
+  .objects-page.compact-view .class-description,
+  .objects-page.compact-view .object-description,
+  .objects-page.compact-view .object-preview {
+    display: none !important;
+  }
+
+  .objects-page.compact-view .class-card .card-header,
+  .objects-page.compact-view .object-item {
+    padding-top: 0.45rem !important;
+    padding-bottom: 0.45rem !important;
+  }
+
+  .search-highlight {
+    background: rgba(255, 193, 7, 0.25);
+    border-radius: 0.2rem;
+    padding: 0 0.1rem;
+  }
+
+  .standalone-objects-section {
+    border-top: 1px solid rgba(var(--bs-secondary-rgb), 0.25);
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+  }
+
+  .objects-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    justify-content: flex-end;
+    align-items: center;
+  }
+</style>
+
+<div class="objects-page" id="objectsPage">
+  <div class="card border-0 shadow-sm mb-3 objects-toolbar">
+    <div class="card-body py-2">
+      <div class="d-flex align-items-start flex-wrap gap-2 w-100">
+        <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+          <a href="?view=class" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>{{ _('Add class')}}</a>
+          <a href="?view=object" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>{{ _('Add object')}}</a>
+          <a href="?view=permissions" class="btn btn-outline-warning" role="button"><i class="fas fa-shield me-2"></i>{{ _('Permissions (global)')}}</a>
+          <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+            <i class="fas fa-cog me-2"></i>{{ _('Settings')}}
+          </button>
+        </div>
+        <div class="d-flex flex-grow-1" style="flex: 1 1 320px; min-width: 320px;">
+          <div class="input-group flex-grow-1">
+            <span class="input-group-text"><i class="fas fa-filter"></i></span>
+            <input type="text" id="objectFilter" class="form-control" placeholder="{{ _('Type to filter by name or description') }}">
+            <button class="btn btn-outline-secondary" type="button" id="clearFilter"><i class="fas fa-times me-1"></i></button>
+          </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap flex-shrink-0">
+          <button class="btn btn-outline-secondary text-nowrap" type="button" id="treeCompactViewButton"><i class="fas fa-compress-alt me-2"></i>{{ _('Compact view') }}</button>
+          <button class="btn btn-outline-secondary text-nowrap" type="button" id="treeExpandAllButton"><i class="fas fa-angle-double-down me-2"></i>{{ _('Expand all') }}</button>
+          <button class="btn btn-outline-secondary text-nowrap" type="button" id="treeCollapseAllButton"><i class="fas fa-angle-double-up me-2"></i>{{ _('Collapse all') }}</button>
+        </div>
+        <div class="d-flex gap-2 flex-wrap flex-shrink-0">
+          <a href="../api/export/all" class="btn btn-outline-primary text-nowrap" role="button"><i class="fas fa-file-export me-2"></i>{{ _('Export all')}}</a>
+          <a href="#" class="btn btn-outline-primary text-nowrap" role="button"  data-bs-toggle="modal" data-bs-target="#uploadModal"><i class="fas fa-file-import me-2"></i>{{ _('Import from file')}}</a>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2 mt-2">
+        <span class="badge text-bg-secondary">{{ _('Classes') }}: {{ total_class_count }}</span>
+        <span class="badge text-bg-secondary">{{ _('Objects') }}: {{ total_object_count }}</span>
+        <span class="badge text-bg-dark">{{ _('Root classes') }}: {{ root_class_count }}</span>
+        <span class="badge text-bg-dark">{{ _('Standalone objects') }}: {{ standalone_object_count }}</span>
+      </div>
     </div>
   </div>
-  <div class="d-flex gap-2 flex-wrap flex-shrink-0">
-    <a href="../api/export/all" class="btn btn-outline-primary text-nowrap" role="button"><i class="fas fa-file-export me-2"></i>{{ _('Export all')}}</a>
-    <a href="#" class="btn btn-outline-primary text-nowrap" role="button"  data-bs-toggle="modal" data-bs-target="#uploadModal"><i class="fas fa-file-import me-2"></i>{{ _('Import from file')}}</a>
+
+  {% if classes or objects %}
+  <div class="accordion mt-2" id="accordionExample">
+    {% for class in classes %}
+    {% include 'class_template.html' %}
+    {% endfor %}
   </div>
+
+  {% if objects %}
+  <section class="standalone-objects-section" id="standaloneObjectsSection">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+      <div>
+        <h5 class="mb-0">{{ _('Standalone objects') }}</h5>
+        <small class="text-muted">{{ _('Objects without a class') }}</small>
+      </div>
+      <span class="badge text-bg-secondary">{{ standalone_object_count }}</span>
+    </div>
+    <ul class="list-group list-group-flush ps-2 mb-0 me-2">
+      {% for obj in objects %}
+      {% set object_class_name = '' %}
+      {% include 'object_template.html' %}
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <div class="alert alert-secondary mt-3 d-none" id="objectsEmptyState">
+    <div class="fw-semibold">{{ _('No matches found') }}</div>
+    <small>{{ _('Try another search query or clear the filter.') }}</small>
+  </div>
+  {% else %}
+  <div class="alert alert-secondary mt-3">
+    <div class="fw-semibold">{{ _('No classes or objects yet') }}</div>
+    <small>{{ _('Create a class or object to get started.') }}</small>
+  </div>
+  {% endif %}
 </div>
-<div class="accordion mt-2" id="accordionExample">
-  {% for class in classes %}
-  {% include 'class_template.html' %}
-  {% endfor %}
-</div>
-{% for obj in objects %}
-<ul class="ps-4 mb-0 me-2">
-{% include 'object_template.html' %}
-</ul>
-{% endfor %}
  <!-- Модальное окно с настройками -->
  <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -109,48 +206,259 @@
   </div>
 </div>
 <script>
-function loadConfiguration() {
-  // Check if local storage is available
-  if (typeof(Storage) !== "undefined") {
-    // Check if the collapse state is stored
-    if (localStorage.getItem('collapseClasses')) {
-      // Get the collapse state from local storage
-      var collapseState = JSON.parse(localStorage.getItem('collapseClasses'));
-      // Loop through each collapse element
-      collapseState.forEach(function(item) {
-        // Set the collapse state
-        var element = $('#' + item.id);
-        if (!item.collapsed) {
-          element.addClass('show');
-        } else {
-          element.removeClass('show');
-        }
-      });
-    } else {
-      // Initialize collapseState if it's not stored
-      var collapseState = [];
-      $('[id^="collapse"]').each(function() {
-        collapseState.push({id: $(this).attr('id'), collapsed: !$(this).hasClass('show')});
-      });
-      localStorage.setItem('collapseClasses', JSON.stringify(collapseState));
-    }
-  
-    // Store the collapse state when a collapse element is toggled
-    $('[data-bs-toggle="collapse"]').on('click', function () {
-      setTimeout(function() {
-        var collapseState = [];
-        $('[id^="collapse"]').each(function() {
-          collapseState.push({id: $(this).attr('id'), collapsed: !$(this).hasClass('show')});
-        });
-        localStorage.setItem('collapseClasses', JSON.stringify(collapseState));
-      }, 500);
-    });
+var branchLoadPromises = {};
+var fullTreeLoaded = false;
+var treeBranchUrl = '?view=tree_children&class=';
+var treeLoadingHtml = '<div class="text-muted small px-3 py-2"><i class="fas fa-circle-notch fa-spin me-2"></i>{{ _("Loading") }}</div>';
+var treeLoadErrorHtml = '<div class="text-danger small px-3 py-2">{{ _("Failed to load branch") }}</div>';
+var treeEmptyHtml = '<p class="px-3 ml-2 mt-2 text-muted">{{ _("No child classes or objects") }}</p>';
+var compactViewStorageKey = 'objectsCompactView';
+var compactViewLabel = '{{ _("Compact view") }}';
+var comfortableViewLabel = '{{ _("Comfortable view") }}';
+
+function updateCollapseTriggerState(collapseEl, isExpanded) {
+  var trigger = $(collapseEl).closest('.class-card').find('.class-toggle').first();
+  if (trigger.length) {
+    trigger.attr('aria-expanded', isExpanded ? 'true' : 'false');
   }
 }
 
-function filterObjects() {
+function setBranchLoadingState(collapseEl, isLoading) {
+  var loader = $(collapseEl).closest('.class-card').find('[data-role="branch-loader"]').first();
+  if (!loader.length) {
+    return;
+  }
+  loader.toggleClass('d-none', !isLoading);
+}
+
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function highlightElementContent(element, query) {
+  var originalText = element.getAttribute('data-original-text');
+  if (typeof originalText !== 'string') {
+    originalText = element.textContent || '';
+    element.setAttribute('data-original-text', originalText);
+  }
+
+  if (!query) {
+    element.textContent = originalText;
+    return;
+  }
+
+  var escapedQuery = escapeRegExp(query);
+  var regex = new RegExp('(' + escapedQuery + ')', 'ig');
+  element.innerHTML = escapeHtml(originalText).replace(regex, '<mark class="search-highlight">$1</mark>');
+}
+
+function updateSearchHighlights(query) {
+  document.querySelectorAll('.class-name, .class-description, .object-name, .object-description').forEach(function(element) {
+    highlightElementContent(element, query);
+  });
+}
+
+function updateCompactViewToggle() {
+  var isCompact = $('#objectsPage').hasClass('compact-view');
+  $('#treeCompactViewButton').html(
+    '<i class="fas ' + (isCompact ? 'fa-expand-alt' : 'fa-compress-alt') + ' me-2"></i>' +
+    compactViewLabel
+  );
+  $('#treeCompactViewButton').toggleClass('active', isCompact);
+  $('#treeCompactViewButton').attr('title', isCompact ? comfortableViewLabel : compactViewLabel);
+}
+
+function applyCompactViewPreference() {
+  if (typeof(Storage) !== "undefined" && localStorage.getItem(compactViewStorageKey) === '1') {
+    $('#objectsPage').addClass('compact-view');
+  } else {
+    $('#objectsPage').removeClass('compact-view');
+  }
+  updateCompactViewToggle();
+}
+
+function persistCollapseState() {
+  if (typeof(Storage) === "undefined") {
+    return;
+  }
+  var collapseState = [];
+  $('.collapse[data-class-id]').each(function() {
+    collapseState.push({id: $(this).attr('id'), collapsed: !$(this).hasClass('show')});
+  });
+  localStorage.setItem('collapseClasses', JSON.stringify(collapseState));
+}
+
+function getSavedCollapseStateMap() {
+  if (typeof(Storage) === "undefined") {
+    return {};
+  }
+  var rawState = localStorage.getItem('collapseClasses');
+  if (!rawState) {
+    return {};
+  }
+  try {
+    var collapseState = JSON.parse(rawState);
+    var stateMap = {};
+    collapseState.forEach(function(item) {
+      stateMap[item.id] = item;
+    });
+    return stateMap;
+  } catch (error) {
+    console.warn('Failed to parse collapse state', error);
+    return {};
+  }
+}
+
+function applyStoredCollapseState(scope) {
+  var stateMap = getSavedCollapseStateMap();
+  $(scope || document).find('.collapse[data-class-id]').each(function() {
+    var savedState = stateMap[$(this).attr('id')];
+    if (savedState && savedState.collapsed === false && typeof bootstrap !== 'undefined') {
+      bootstrap.Collapse.getOrCreateInstance(this, { toggle: false }).show();
+    }
+  });
+}
+
+function loadTreeBranch(collapseEl) {
+  collapseEl = $(collapseEl);
+  var classId = collapseEl.data('class-id');
+  if (!classId) {
+    return Promise.resolve();
+  }
+  if (collapseEl.attr('data-tree-loaded') === '1') {
+    return Promise.resolve();
+  }
+  if (branchLoadPromises[classId]) {
+    return branchLoadPromises[classId];
+  }
+
+  var container = collapseEl.children('.tree-branch-container');
+  var childrenCount = Number(collapseEl.attr('data-children-count') || 0);
+  var objectsCount = Number(collapseEl.attr('data-objects-count') || 0);
+
+  if (!childrenCount && !objectsCount) {
+    container.html(treeEmptyHtml);
+    collapseEl.attr('data-tree-loaded', '1');
+    updateCollapseTriggerState(collapseEl, collapseEl.hasClass('show'));
+    return Promise.resolve();
+  }
+
+  container.html(treeLoadingHtml);
+  setBranchLoadingState(collapseEl, true);
+
+  var request = $.getJSON(treeBranchUrl + classId)
+    .done(function(response) {
+      container.html(response.html || treeEmptyHtml);
+      collapseEl.attr('data-tree-loaded', '1');
+      applyStoredCollapseState(container[0]);
+      persistCollapseState();
+    })
+    .fail(function() {
+      container.html(treeLoadErrorHtml);
+    })
+    .always(function() {
+      setBranchLoadingState(collapseEl, false);
+      delete branchLoadPromises[classId];
+    });
+
+  branchLoadPromises[classId] = request;
+  return request;
+}
+
+function loadConfiguration() {
+  if (typeof(Storage) !== "undefined") {
+    if (!localStorage.getItem('collapseClasses')) {
+      persistCollapseState();
+    }
+  }
+  applyCompactViewPreference();
+}
+
+async function restoreSavedOpenBranches() {
+  if (typeof(Storage) === "undefined") {
+    return;
+  }
+
+  var stateMap = getSavedCollapseStateMap();
+  var restored = {};
+  var guard = 0;
+
+  while (guard < 1000) {
+    var pendingLoads = [];
+    var foundNewBranch = false;
+
+    $('.collapse[data-class-id]').each(function() {
+      var collapseEl = $(this);
+      var collapseId = collapseEl.attr('id');
+      var savedState = stateMap[collapseId];
+
+      if (!savedState || savedState.collapsed !== false || restored[collapseId]) {
+        return;
+      }
+
+      restored[collapseId] = true;
+      foundNewBranch = true;
+
+      if (typeof bootstrap !== 'undefined') {
+        bootstrap.Collapse.getOrCreateInstance(this, { toggle: false }).show();
+      } else {
+        collapseEl.addClass('show');
+      }
+
+      pendingLoads.push(loadTreeBranch(this));
+    });
+
+    if (!foundNewBranch) {
+      break;
+    }
+
+    if (pendingLoads.length) {
+      await Promise.all(pendingLoads);
+    }
+
+    guard += 1;
+  }
+
+  persistCollapseState();
+}
+
+async function ensureFullTreeLoaded() {
+  if (fullTreeLoaded) {
+    return;
+  }
+
+  var guard = 0;
+  while (guard < 1000) {
+    var unloaded = $('.collapse[data-class-id]').filter(function() {
+      return $(this).attr('data-tree-loaded') !== '1';
+    });
+    if (!unloaded.length) {
+      fullTreeLoaded = true;
+      return;
+    }
+    await Promise.all(unloaded.get().map(function(element) {
+      return loadTreeBranch(element);
+    }));
+    guard += 1;
+  }
+}
+
+async function filterObjects() {
   var query = $('#objectFilter').val().toLowerCase().trim();
   var hasQuery = query !== '';
+
+  if (hasQuery) {
+    await ensureFullTreeLoaded();
+  }
 
   $('.object-item').each(function() {
     var text = ($(this).data('search') || '').toLowerCase();
@@ -159,9 +467,11 @@ function filterObjects() {
   });
 
   $($('.class-card').get().reverse()).each(function() {
+    var classText = ($(this).data('search') || '').toLowerCase();
+    var classMatch = !hasQuery || classText.indexOf(query) !== -1;
     var hasVisibleObjects = $(this).find('.object-item').not('.d-none').length > 0;
     var hasVisibleClasses = $(this).find('.class-card').not('.d-none').length > 0;
-    var shouldShow = !hasQuery ? true : (hasVisibleObjects || hasVisibleClasses);
+    var shouldShow = !hasQuery ? true : (classMatch || hasVisibleObjects || hasVisibleClasses);
     $(this).toggleClass('d-none', !shouldShow);
   });
 
@@ -170,13 +480,18 @@ function filterObjects() {
     $(this).toggleClass('d-none', hasQuery && !hasVisible);
   });
 
+  var standaloneSection = $('#standaloneObjectsSection');
+  if (standaloneSection.length) {
+    var hasVisibleStandalone = standaloneSection.find('.object-item').not('.d-none').length > 0;
+    standaloneSection.toggleClass('d-none', hasQuery && !hasVisibleStandalone);
+  }
+
   if (hasQuery) {
     var openCollapse = function(collapseEl) {
       if (!collapseEl.length) return;
       if (!collapseEl.hasClass('show')) {
         collapseEl.addClass('show').attr('data-filter-open', '1');
-        var header = collapseEl.prev('.card-header').find('[data-bs-target="#' + collapseEl.attr('id') + '"]');
-        header.attr('aria-expanded', 'true');
+        updateCollapseTriggerState(collapseEl, true);
       }
       var parentCollapse = collapseEl.parents('.collapse').first();
       if (parentCollapse.length) {
@@ -192,10 +507,15 @@ function filterObjects() {
     $('[data-filter-open="1"]').each(function() {
       var collapseEl = $(this);
       collapseEl.removeClass('show').removeAttr('data-filter-open');
-      var header = collapseEl.prev('.card-header').find('[data-bs-target="#' + collapseEl.attr('id') + '"]');
-      header.attr('aria-expanded', 'false');
+      updateCollapseTriggerState(collapseEl, false);
     });
   }
+
+  updateSearchHighlights(query);
+
+  var hasVisibleCards = $('.class-card').not('.d-none').length > 0;
+  var hasVisibleObjects = $('.object-item').not('.d-none').length > 0;
+  $('#objectsEmptyState').toggleClass('d-none', !hasQuery || hasVisibleCards || hasVisibleObjects);
 }
 
 function uploadFile() {
@@ -238,9 +558,52 @@ function uploadFile() {
 
   // Call the function to load configuration after document is loaded
 $(document).ready(function() {
+  $(document).on('show.bs.collapse', '.collapse[data-class-id]', function() {
+    updateCollapseTriggerState(this, true);
+    loadTreeBranch(this);
+  });
+  $(document).on('shown.bs.collapse hidden.bs.collapse', '.collapse[data-class-id]', function() {
+    updateCollapseTriggerState(this, $(this).hasClass('show'));
+    persistCollapseState();
+  });
   loadConfiguration();
-  filterObjects();
-  $('#objectFilter').on('input', filterObjects);
+  restoreSavedOpenBranches().then(function() {
+    filterObjects();
+  });
+  $('#treeCompactViewButton').on('click', function() {
+    var isCompact = !$('#objectsPage').hasClass('compact-view');
+    $('#objectsPage').toggleClass('compact-view', isCompact);
+    if (typeof(Storage) !== "undefined") {
+      localStorage.setItem(compactViewStorageKey, isCompact ? '1' : '0');
+    }
+    updateCompactViewToggle();
+  });
+  $('#treeExpandAllButton').on('click', async function() {
+    await ensureFullTreeLoaded();
+    $('.collapse[data-class-id]').each(function() {
+      if (typeof bootstrap !== 'undefined') {
+        bootstrap.Collapse.getOrCreateInstance(this, { toggle: false }).show();
+      } else {
+        $(this).addClass('show');
+      }
+      updateCollapseTriggerState(this, true);
+    });
+    persistCollapseState();
+  });
+  $('#treeCollapseAllButton').on('click', function() {
+    $('.collapse[data-class-id]').each(function() {
+      if (typeof bootstrap !== 'undefined') {
+        bootstrap.Collapse.getOrCreateInstance(this, { toggle: false }).hide();
+      } else {
+        $(this).removeClass('show');
+      }
+      updateCollapseTriggerState(this, false);
+    });
+    persistCollapseState();
+  });
+  $('#objectFilter').on('input', function() {
+    filterObjects();
+  });
   $('#clearFilter').on('click', function() {
     $('#objectFilter').val('');
     filterObjects();

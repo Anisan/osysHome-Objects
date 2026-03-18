@@ -13,6 +13,7 @@ from app.core.utils import CustomJSONEncoder
 from app.core.models.Clasess import Class, Object, Property, Method, Value, History
 from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents, checkPermission, getClassId, getObjectId
+from plugins.Objects.tree_cache import invalidate_objects_tree_cache
 
 
 # Определение класса формы
@@ -82,7 +83,7 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
             property['changed'] = convert_utc_to_local(value.changed) if value.changed else ''
             if value.linked:
                 property['linked'] = value.linked.split(",")
-        job_name = item.name + "\_" + property['name'] + "\_%"   # noqa
+        job_name = item.name + r"\_" + property['name'] + r"\_%"   # noqa
         jobs = getJobs(job_name)
         if jobs:
             property['jobs'] = jobs
@@ -111,7 +112,7 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
     for method in methods:
         if method['class_id']:
             method["class_name"] = dict_classes[method["class_id"]]
-        job_name = item.name + "\_" + method['name'] + "\_%" # noqa
+        job_name = item.name + r"\_" + method['name'] + r"\_%" # noqa
         jobs = getJobs(job_name)
         if jobs:
             method['jobs'] = jobs
@@ -252,6 +253,7 @@ def routeObject(request, config):
             db.session.add(new_method)
         
         db.session.commit()
+        invalidate_objects_tree_cache()
         objects_storage.reload_object(new_obj.id)
         return redirect(f"Objects?view=object&object={new_obj.id}")
     
@@ -271,6 +273,7 @@ def routeObject(request, config):
         sql = delete(Object).where(Object.id == id)
         db.session.execute(sql)
         db.session.commit()
+        invalidate_objects_tree_cache()
         objects_storage.changeObject("delete",name, None, None, None)
         objects_storage.remove_object(name)
         return redirect("Objects")
@@ -311,6 +314,7 @@ def routeObject(request, config):
             item.class_id = int(form.class_id.data) if form.class_id.data else None
             db.session.add(item)
         db.session.commit()  # Сохраняем изменения в базе данных
+        invalidate_objects_tree_cache()
         # update object to storage
         if old_name != item.name:
             objects_storage.changeObject("rename", old_name, None, None, item.name)
@@ -340,7 +344,7 @@ def routeObject(request, config):
     template = ''
     if id:
         cls = objects_storage.getObjectByName(item.name)
-        schedules = getJobs(item.name + "\_%")  # noqa
+        schedules = getJobs(item.name + r"\_%")  # noqa
         template = cls.render()
 
     content = {

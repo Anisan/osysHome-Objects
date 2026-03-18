@@ -1,0 +1,13 @@
+{% for class in classes %}
+{% include 'class_template.html' %}
+{% endfor %}
+{% if objects %}
+<ul class="list-group list-group-flush ps-2 mb-0 me-2">
+  {% for obj in objects %}
+  {% set object_class_name = parent_class.name if parent_class is defined and parent_class else '' %}
+  {% include 'object_template.html' %}
+  {% endfor %}
+</ul>
+{% elif not classes %}
+<p class="px-3 ml-2 mt-2 text-muted">{{ _('No child classes or objects')}}</p>
+{% endif %}

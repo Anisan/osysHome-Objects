@@ -10,6 +10,7 @@ from app.database import db, row2dict
 from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, getTemplatesParents, no_spaces_or_dots, ValidationError, checkPermission, getClassId
 from app.core.main.ObjectsStorage import objects_storage
 from app.core.lib.object import getObject
+from plugins.Objects.tree_cache import invalidate_objects_tree_cache
 
 # Определение класса формы
 class ClassForm(FlaskForm):
@@ -168,6 +169,7 @@ def routeClass(request, config):
         sql = delete(Class).where(Class.id == id)
         db.session.execute(sql)
         db.session.commit()
+        invalidate_objects_tree_cache()
         objects_storage.remove_objects_by_class(id)
         return redirect("Objects")
     if id:
@@ -208,6 +210,7 @@ def routeClass(request, config):
             )
             db.session.add(item)
         db.session.commit()  # Сохраняем изменения в базе данных
+        invalidate_objects_tree_cache()
         # update object to storage
         saved = True
         # Обновляем id для нового класса, чтобы вкладки отображались
