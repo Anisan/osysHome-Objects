@@ -49,6 +49,12 @@
 <script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.js"></script>
 <script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism-python.min.js"></script>
 <style>
+  .nav-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
   .tab-with-action {
     position: relative;
   }
@@ -73,22 +79,24 @@
   }
 </style>
 <ul class="nav nav-tabs mb-3 align-items-center" id="configTabs" role="tablist">
-    <li class="nav-item"><a class="nav-link tab-button{% if tab == ''%} active{%endif%}" href="#general" data-bs-toggle="tab" role="tab">{{ _('General')}}</a></li>
+    <li class="nav-item">
+        <a class="nav-link tab-button{% if tab == ''%} active{%endif%}" id="general-tab" href="#general" data-bs-toggle="tab" role="tab" aria-controls="general" aria-selected="{{ 'true' if tab == '' else 'false' }}">{{ _('General')}}</a>
+    </li>
     {% if id %} 
     <li class="nav-item tab-with-action">
-        <a class="nav-link tab-button{% if tab == 'properties'%} active{%endif%}" href="#properties" data-bs-toggle="tab" role="tab">{{ _('Properties')}}</a>
+        <a class="nav-link tab-button{% if tab == 'properties'%} active{%endif%}" id="properties-tab" href="#properties" data-bs-toggle="tab" role="tab" aria-controls="properties" aria-selected="{{ 'true' if tab == 'properties' else 'false' }}">{{ _('Properties')}}</a>
         <a href="?view=property&object={{id}}" class="btn btn-success btn-sm tab-add-action" title="{{ _('Add property')}}"><i class="fas fa-plus"></i></a>
     </li>
     <li class="nav-item tab-with-action">
-        <a class="nav-link tab-button{% if tab == 'methods'%} active{%endif%}" href="#methods" data-bs-toggle="tab" role="tab">{{ _('Methods')}}</a>
+        <a class="nav-link tab-button{% if tab == 'methods'%} active{%endif%}" id="methods-tab" href="#methods" data-bs-toggle="tab" role="tab" aria-controls="methods" aria-selected="{{ 'true' if tab == 'methods' else 'false' }}">{{ _('Methods')}}</a>
         <a href="?view=method&object={{id}}" class="btn btn-warning btn-sm tab-add-action" title="{{ _('Add method')}}"><i class="fas fa-plus"></i></a>
     </li>
-    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}" href="#template_tab" data-bs-toggle="tab" role="tab">{{ _('Template')}}</a></li>
-    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'structure'%} active{%endif%}" href="#object_tab" data-bs-toggle="tab" role="tab">{{ _('Structure')}}</a></li>
-    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'schedule'%} active{%endif%}" href="#schedule_tab" data-bs-toggle="tab" role="tab">{{ _('Schedules')}}</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}" id="template-tab" href="#template_tab" data-bs-toggle="tab" role="tab" aria-controls="template_tab" aria-selected="{{ 'true' if tab == 'template' else 'false' }}">{{ _('Template')}}</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'structure'%} active{%endif%}" id="object-tab" href="#object_tab" data-bs-toggle="tab" role="tab" aria-controls="object_tab" aria-selected="{{ 'true' if tab == 'structure' else 'false' }}">{{ _('Structure')}}</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'schedule'%} active{%endif%}" id="schedule-tab" href="#schedule_tab" data-bs-toggle="tab" role="tab" aria-controls="schedule_tab" aria-selected="{{ 'true' if tab == 'schedule' else 'false' }}">{{ _('Schedules')}}</a></li>
     <li class="nav-item"><a class="nav-link tab-button" href="?view=object&object={{id}}&tab=permissions">{{ _('Permissions')}}</a></li>
     <li class="nav-item flex-grow-1"></li>
-    <li class="nav-item"><a class="nav-link tab-button" data-bs-toggle="tab" href="#tools">{{ _('Tools')}}</a></li>
+    <li class="nav-item"><a class="nav-link tab-button" id="tools-tab" data-bs-toggle="tab" href="#tools" role="tab" aria-controls="tools" aria-selected="false">{{ _('Tools')}}</a></li>
     {%endif%}
 </ul>
 {% if id %}
@@ -127,6 +135,7 @@
     <div class="tab-pane fade {% if tab == 'properties'%}show active{%endif%}" id="properties" role="tabpanel" aria-labelledby="properties-tab">
         <div class="table-responsive">
             <table class="table table-hover table-sm">
+                <thead>
                     <tr>
                         {% if show_id %}
                         <th style="width:1%; white-space:nowrap;">ID</th>
@@ -1100,7 +1109,10 @@
         if (modalTitle) {
             modalTitle.textContent = '{{ _("Loading")}}...';
         }
-        $('#myModal').modal('show');
+        var modalEl = document.getElementById('myModal');
+        if (modalEl && typeof bootstrap !== 'undefined') {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
         
         // Получить текущее значение
         var element = document.getElementById("prop:" + name);
@@ -1321,7 +1333,10 @@
                 }
             } else if (data.success === true) {
                 // Успешное сохранение - закрыть модальное окно
-                $('#myModal').modal('hide');
+                var modalEl = document.getElementById('myModal');
+                if (modalEl && typeof bootstrap !== 'undefined') {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                }
                 var saveBtn = document.getElementById("saveButton");
                 if (saveBtn) {
                     saveBtn.disabled = false;
@@ -1332,7 +1347,9 @@
     });
 
     // Сброс состояния при закрытии модального окна
-    $('#myModal').on('hidden.bs.modal', function () {
+    var myModalEl = document.getElementById('myModal');
+    if (myModalEl) {
+        myModalEl.addEventListener('hidden.bs.modal', function () {
         hideAllEditors();
         
         var errorMessage = document.getElementById('errorMessage');
@@ -1359,7 +1376,8 @@
         nameProperty = "";
         currentPropertyType = "";
         currentPropertyParams = {};
-    });
+        });
+    }
 
     $(document).ready(function () {
         window.setTimeout(function() {
