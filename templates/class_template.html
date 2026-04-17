@@ -11,7 +11,7 @@
       aria-controls="collapse{{ class.id }}"
     >
       <div class="d-flex align-items-start">
-        <i class="fas fa-folder text-warning mt-1 fs-5"></i>
+        <i class="fas fa-folder text-warning mt-1 me-1 fs-5"></i>
         <div class="px-2">
           <div class="d-flex align-items-center flex-wrap gap-2">
             {% if show_id %}
@@ -30,7 +30,7 @@
             {{ _('Description is empty')}}
             {% endif %}
           </small>
-          <div class="d-flex flex-wrap gap-2 mt-1">
+          <div class="d-flex flex-wrap gap-2 mt-1 class-counts">
             <span class="badge bg-dark-subtle text-body-secondary">{{ _('Count classes') }}: {{ children_count }}</span>
             <span class="badge bg-dark-subtle text-body-secondary">{{ _('Count objects') }}: {{ objects_count }}</span>
           </div>

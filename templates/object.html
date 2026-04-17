@@ -77,6 +77,10 @@
     justify-content: center;
     border-radius: 0.25rem;
   }
+
+  body.objects-compact-view .object-stats-card {
+    display: none !important;
+  }
 </style>
 <ul class="nav nav-tabs mb-3 align-items-center" id="configTabs" role="tablist">
     <li class="nav-item">
@@ -100,7 +104,7 @@
     {%endif%}
 </ul>
 {% if id %}
-<div class="card border-0 shadow-sm mb-3">
+<div class="card border-0 shadow-sm mb-3 object-stats-card">
     <div class="card-body py-2 d-flex flex-wrap gap-2">
         <span class="badge bg-secondary text-light">ID: {{ id }}</span>
         <span class="badge bg-primary">{{ _('Properties')}}: {{ properties|length }}</span>
@@ -110,6 +114,13 @@
     </div>
 </div>
 {% endif %}
+<script>
+  (function applyCompactViewClass() {
+    if (typeof Storage !== 'undefined' && localStorage.getItem('objectsCompactView') === '1') {
+      document.body.classList.add('objects-compact-view');
+    }
+  })();
+</script>
 <div class="tab-content" id="myTabContent">
     <div class="tab-pane fade {% if tab == ''%}show active{%endif%}" id="general" role="tabpanel" aria-labelledby="general-tab">
         <form method="POST">

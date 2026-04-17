@@ -27,9 +27,12 @@
     box-shadow: 0 .125rem .5rem rgba(0, 0, 0, 0.12);
   }
 
-  .objects-page.compact-view .class-description,
-  .objects-page.compact-view .object-description,
-  .objects-page.compact-view .object-preview {
+  .objects-page.compact-view .class-counts,
+  .objects-page.compact-view .object-class-name {
+    display: none !important;
+  }
+
+  .objects-page.compact-view .objects-stats {
     display: none !important;
   }
 
@@ -59,18 +62,58 @@
     justify-content: flex-end;
     align-items: center;
   }
+
+  .objects-page.multi-column-view .objects-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 0.75rem;
+    padding-left: 0 !important;
+    align-items: start;
+  }
+
+  .objects-page.multi-column-view .objects-list > .object-item {
+    border: 1px solid rgba(var(--bs-secondary-rgb), 0.35);
+    border-radius: 0.5rem;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    align-content: start;
+  }
+
+  .objects-page.multi-column-view .objects-list > .object-item > .col {
+    min-width: 0 !important;
+    width: auto !important;
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .objects-page.multi-column-view .objects-list > .object-item > .object-actions {
+    margin-left: 0;
+    align-self: start;
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .objects-page.multi-column-view .objects-list > .object-item .object-preview {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0 !important;
+    margin-right: 0 !important;
+    margin-bottom: 0;
+  }
 </style>
 
-<div class="objects-page" id="objectsPage">
+<div class="objects-page{% if multi_column %} multi-column-view{% endif %}" id="objectsPage">
   <div class="card border-0 shadow-sm mb-3 objects-toolbar">
     <div class="card-body py-2">
       <div class="d-flex align-items-start flex-wrap gap-2 w-100">
         <div class="d-flex flex-wrap gap-2 flex-shrink-0">
           <a href="?view=class" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>{{ _('Add class')}}</a>
           <a href="?view=object" class="btn btn-outline-success" role="button"><i class="fas fa-plus me-2"></i>{{ _('Add object')}}</a>
-          <a href="?view=permissions" class="btn btn-outline-warning" role="button"><i class="fas fa-shield me-2"></i>{{ _('Permissions (global)')}}</a>
-          <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
-            <i class="fas fa-cog me-2"></i>{{ _('Settings')}}
+          <a href="?view=permissions" class="btn btn-outline-warning" role="button" title="{{ _('Permissions (global)') }}" aria-label="{{ _('Permissions (global)') }}"><i class="fas fa-shield"></i></a>
+          <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#settingsModal" title="{{ _('Settings') }}" aria-label="{{ _('Settings') }}">
+            <i class="fas fa-cog"></i>
           </button>
         </div>
         <div class="d-flex flex-grow-1" style="flex: 1 1 320px; min-width: 320px;">
@@ -81,16 +124,17 @@
           </div>
         </div>
         <div class="d-flex gap-2 flex-wrap flex-shrink-0">
-          <button class="btn btn-outline-secondary text-nowrap" type="button" id="treeCompactViewButton"><i class="fas fa-compress-alt me-2"></i>{{ _('Compact view') }}</button>
-          <button class="btn btn-outline-secondary text-nowrap" type="button" id="treeExpandAllButton"><i class="fas fa-angle-double-down me-2"></i>{{ _('Expand all') }}</button>
-          <button class="btn btn-outline-secondary text-nowrap" type="button" id="treeCollapseAllButton"><i class="fas fa-angle-double-up me-2"></i>{{ _('Collapse all') }}</button>
+          <button class="btn btn-outline-secondary" type="button" id="treeCompactViewButton" title="{{ _('Compact view') }}" aria-label="{{ _('Compact view') }}"><i class="fas fa-compress-alt"></i></button>
+          <button class="btn btn-outline-secondary" type="button" id="treeMultiColumnViewButton" title="{{ _('Columns view') }}" aria-label="{{ _('Columns view') }}"><i class="fas fa-table-columns"></i></button>
+          <button class="btn btn-outline-secondary" type="button" id="treeExpandAllButton" title="{{ _('Expand all') }}" aria-label="{{ _('Expand all') }}"><i class="fas fa-angle-double-down"></i></button>
+          <button class="btn btn-outline-secondary" type="button" id="treeCollapseAllButton" title="{{ _('Collapse all') }}" aria-label="{{ _('Collapse all') }}"><i class="fas fa-angle-double-up"></i></button>
         </div>
         <div class="d-flex gap-2 flex-wrap flex-shrink-0">
           <a href="../api/export/all" class="btn btn-outline-primary text-nowrap" role="button"><i class="fas fa-file-export me-2"></i>{{ _('Export all')}}</a>
           <a href="#" class="btn btn-outline-primary text-nowrap" role="button"  data-bs-toggle="modal" data-bs-target="#uploadModal"><i class="fas fa-file-import me-2"></i>{{ _('Import from file')}}</a>
         </div>
       </div>
-      <div class="d-flex flex-wrap gap-2 mt-2">
+      <div class="d-flex flex-wrap gap-2 mt-2 objects-stats">
         <span class="badge text-bg-secondary">{{ _('Classes') }}: {{ total_class_count }}</span>
         <span class="badge text-bg-secondary">{{ _('Objects') }}: {{ total_object_count }}</span>
         <span class="badge text-bg-dark">{{ _('Root classes') }}: {{ root_class_count }}</span>
@@ -115,7 +159,7 @@
       </div>
       <span class="badge text-bg-secondary">{{ standalone_object_count }}</span>
     </div>
-    <ul class="list-group list-group-flush ps-2 mb-0 me-2">
+    <ul class="list-group list-group-flush ps-2 mb-0 me-2 objects-list">
       {% for obj in objects %}
       {% set object_class_name = '' %}
       {% include 'object_template.html' %}
@@ -213,8 +257,11 @@ var treeLoadingHtml = '<div class="text-muted small px-3 py-2"><i class="fas fa-
 var treeLoadErrorHtml = '<div class="text-danger small px-3 py-2">{{ _("Failed to load branch") }}</div>';
 var treeEmptyHtml = '<p class="px-3 ml-2 mt-2 text-muted">{{ _("No child classes or objects") }}</p>';
 var compactViewStorageKey = 'objectsCompactView';
+var multiColumnViewStorageKey = 'objectsMultiColumnView';
 var compactViewLabel = '{{ _("Compact view") }}';
 var comfortableViewLabel = '{{ _("Comfortable view") }}';
+var columnsViewLabel = '{{ _("Columns view") }}';
+var listViewLabel = '{{ _("List view") }}';
 
 function updateCollapseTriggerState(collapseEl, isExpanded) {
   var trigger = $(collapseEl).closest('.class-card').find('.class-toggle').first();
@@ -270,11 +317,11 @@ function updateSearchHighlights(query) {
 function updateCompactViewToggle() {
   var isCompact = $('#objectsPage').hasClass('compact-view');
   $('#treeCompactViewButton').html(
-    '<i class="fas ' + (isCompact ? 'fa-expand-alt' : 'fa-compress-alt') + ' me-2"></i>' +
-    compactViewLabel
+    '<i class="fas ' + (isCompact ? 'fa-expand-alt' : 'fa-compress-alt') + '"></i>'
   );
   $('#treeCompactViewButton').toggleClass('active', isCompact);
   $('#treeCompactViewButton').attr('title', isCompact ? comfortableViewLabel : compactViewLabel);
+  $('#treeCompactViewButton').attr('aria-label', isCompact ? comfortableViewLabel : compactViewLabel);
 }
 
 function applyCompactViewPreference() {
@@ -284,6 +331,33 @@ function applyCompactViewPreference() {
     $('#objectsPage').removeClass('compact-view');
   }
   updateCompactViewToggle();
+}
+
+function updateMultiColumnViewToggle() {
+  var isMultiColumn = $('#objectsPage').hasClass('multi-column-view');
+  $('#treeMultiColumnViewButton').html(
+    '<i class="fas ' + (isMultiColumn ? 'fa-list' : 'fa-table-columns') + '"></i>'
+  );
+  $('#treeMultiColumnViewButton').toggleClass('active', isMultiColumn);
+  $('#treeMultiColumnViewButton').attr('title', isMultiColumn ? listViewLabel : columnsViewLabel);
+  $('#treeMultiColumnViewButton').attr('aria-label', isMultiColumn ? listViewLabel : columnsViewLabel);
+}
+
+function applyMultiColumnViewPreference() {
+  var defaultIsMultiColumn = $('#objectsPage').hasClass('multi-column-view');
+  var isMultiColumn = defaultIsMultiColumn;
+
+  if (typeof(Storage) !== "undefined") {
+    var storedValue = localStorage.getItem(multiColumnViewStorageKey);
+    if (storedValue === '1') {
+      isMultiColumn = true;
+    } else if (storedValue === '0') {
+      isMultiColumn = false;
+    }
+  }
+
+  $('#objectsPage').toggleClass('multi-column-view', isMultiColumn);
+  updateMultiColumnViewToggle();
 }
 
 function persistCollapseState() {
@@ -328,6 +402,47 @@ function applyStoredCollapseState(scope) {
   });
 }
 
+function renderHtmlWithModuleScripts(containerEl, html) {
+  if (!containerEl) {
+    return Promise.resolve();
+  }
+
+  var wrapper = document.createElement('div');
+  wrapper.innerHTML = html || '';
+  var moduleScripts = Array.prototype.slice.call(wrapper.querySelectorAll('script[type="module"]'));
+
+  moduleScripts.forEach(function(script) {
+    script.parentNode.removeChild(script);
+  });
+
+  containerEl.innerHTML = wrapper.innerHTML;
+
+  var sequence = Promise.resolve();
+  moduleScripts.forEach(function(sourceScript) {
+    sequence = sequence.then(function() {
+      return new Promise(function(resolve) {
+        var runtimeScript = document.createElement('script');
+        Array.prototype.slice.call(sourceScript.attributes).forEach(function(attr) {
+          runtimeScript.setAttribute(attr.name, attr.value);
+        });
+        runtimeScript.text = sourceScript.text || sourceScript.textContent || '';
+
+        runtimeScript.addEventListener('load', function() { resolve(); }, { once: true });
+        runtimeScript.addEventListener('error', function() { resolve(); }, { once: true });
+
+        // Inline module scripts do not emit load/error reliably in all browsers.
+        if (!runtimeScript.src) {
+          resolve();
+        }
+
+        containerEl.appendChild(runtimeScript);
+      });
+    });
+  });
+
+  return sequence;
+}
+
 function loadTreeBranch(collapseEl) {
   collapseEl = $(collapseEl);
   var classId = collapseEl.data('class-id');
@@ -357,10 +472,12 @@ function loadTreeBranch(collapseEl) {
 
   var request = $.getJSON(treeBranchUrl + classId)
     .done(function(response) {
-      container.html(response.html || treeEmptyHtml);
+      var renderPromise = renderHtmlWithModuleScripts(container[0], response.html || treeEmptyHtml);
       collapseEl.attr('data-tree-loaded', '1');
-      applyStoredCollapseState(container[0]);
-      persistCollapseState();
+      renderPromise.then(function() {
+        applyStoredCollapseState(container[0]);
+        persistCollapseState();
+      });
     })
     .fail(function() {
       container.html(treeLoadErrorHtml);
@@ -381,6 +498,7 @@ function loadConfiguration() {
     }
   }
   applyCompactViewPreference();
+  applyMultiColumnViewPreference();
 }
 
 async function restoreSavedOpenBranches() {
@@ -577,6 +695,14 @@ $(document).ready(function() {
       localStorage.setItem(compactViewStorageKey, isCompact ? '1' : '0');
     }
     updateCompactViewToggle();
+  });
+  $('#treeMultiColumnViewButton').on('click', function() {
+    var isMultiColumn = !$('#objectsPage').hasClass('multi-column-view');
+    $('#objectsPage').toggleClass('multi-column-view', isMultiColumn);
+    if (typeof(Storage) !== "undefined") {
+      localStorage.setItem(multiColumnViewStorageKey, isMultiColumn ? '1' : '0');
+    }
+    updateMultiColumnViewToggle();
   });
   $('#treeExpandAllButton').on('click', async function() {
     await ensureFullTreeLoaded();

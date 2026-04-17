@@ -50,6 +50,52 @@
       justify-content: center;
       border-radius: 0.25rem;
     }
+
+    .class-objects-view.multi-column-view .objects-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 0.75rem;
+      padding-left: 0 !important;
+      align-items: start;
+    }
+
+    .class-objects-view.multi-column-view .objects-list > .object-item {
+      border: 1px solid rgba(var(--bs-secondary-rgb), 0.35);
+      border-radius: 0.5rem;
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      align-content: start;
+    }
+
+    .class-objects-view.multi-column-view .objects-list > .object-item > .col {
+      min-width: 0 !important;
+      width: auto !important;
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .class-objects-view.multi-column-view .objects-list > .object-item > .object-actions {
+      margin-left: 0;
+      align-self: start;
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .class-objects-view.multi-column-view .objects-list > .object-item .object-preview {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      min-height: 180px;
+      width: 100%;
+      min-width: 0 !important;
+      margin-right: 0 !important;
+      margin-top: 0.75rem !important;
+      margin-bottom: 0;
+    }
+
+    body.objects-compact-view .class-stats-card {
+      display: none !important;
+    }
 </style>
 <!-- Подключение стилей Prism -->
 <link rel="stylesheet" href="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.css">
@@ -81,7 +127,7 @@
     {%endif%}
 </ul>
 {% if id %}
-<div class="card border-0 shadow-sm mb-3">
+<div class="card border-0 shadow-sm mb-3 class-stats-card">
     <div class="card-body py-2 d-flex flex-wrap gap-2">
         <span class="badge bg-secondary text-light">ID: {{ id }}</span>
         <span class="badge bg-primary">{{ _('Properties')}}: {{ properties|length + parent_properties|length }}</span>
@@ -488,9 +534,9 @@
         </div>
         <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     </div>
-    <div class="tab-pane fade {% if tab == 'objects'%}show active{%endif%}" id="objects" role="tabpanel" aria-labelledby="objects-tab">
+    <div class="tab-pane fade class-objects-view {% if tab == 'objects'%}show active{%endif%}" id="objects" role="tabpanel" aria-labelledby="objects-tab">
         {%if objects %}
-        <ul class="list-group list-group-flush ps-2 mb-0 me-2">
+        <ul class="list-group list-group-flush ps-2 mb-0 me-2 objects-list">
             {% for obj in objects %}
                 {% set object_class_name = form.name.data %}
                 {% include 'object_template.html' %}
@@ -547,6 +593,12 @@
     </div>
 </div>
   <script>
+  (function applyCompactViewClass() {
+    if (typeof Storage !== 'undefined' && localStorage.getItem('objectsCompactView') === '1') {
+      document.body.classList.add('objects-compact-view');
+    }
+  })();
+
  function downloadFile() {
       const baseUrl = '../api/export/class/{{id}}';
       const params = [];
@@ -571,6 +623,23 @@
       link.click();
       document.body.removeChild(link);
     }
+
+    function applyClassObjectsColumnsViewPreference() {
+      var objectsTab = document.getElementById('objects');
+      if (!objectsTab) {
+        return;
+      }
+      var storageKey = 'objectsMultiColumnView';
+      var isMultiColumn = false;
+      if (typeof(Storage) !== "undefined") {
+        isMultiColumn = localStorage.getItem(storageKey) === '1';
+      }
+      objectsTab.classList.toggle('multi-column-view', isMultiColumn);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      applyClassObjectsColumnsViewPreference();
+    });
   </script>
 {% include 'includes/code_block_styles.html' %}
 
