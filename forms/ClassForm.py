@@ -68,6 +68,31 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
     for method in parent_methods:
         dict_methods[method['id']] = method['name']
     
+    def _safe_parse_params(raw_params):
+        """
+        params могут храниться в БД как:
+        - None / пустая строка
+        - строка JSON (в т.ч. "null")
+        - уже распарсенный dict (на некоторых ветках кода)
+        """
+        if not raw_params:
+            return {}
+
+        # Если сразу dict — используем как есть.
+        if isinstance(raw_params, dict):
+            return raw_params
+
+        # Если строка — пытаемся распарсить как JSON.
+        if isinstance(raw_params, str):
+            try:
+                parsed = json.loads(raw_params)
+                return parsed if isinstance(parsed, dict) else {}
+            except Exception:
+                return {}
+
+        # На неожиданные типы (list/int/etc.) не полагаемся.
+        return {}
+
     # Обогащаем свойства и родительские свойства метаданными (icon, color, sort_order, validation params)
     for idx, prop in enumerate(properties):
         prop['_idx'] = idx  # исходный порядок
@@ -76,13 +101,7 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
                 prop['method'] = dict_methods[prop['method_id']]
 
         # Разбираем params (JSON) для доп. информации (icon, color, validation params)
-        params = {}
-        raw_params = prop.get('params')
-        if raw_params:
-            try:
-                params = json.loads(raw_params)
-            except Exception:
-                params = {}
+        params = _safe_parse_params(prop.get('params'))
 
         prop['icon'] = params.get('icon', '')
         prop['color'] = params.get('color', '')
@@ -96,13 +115,7 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
                 prop['method'] = dict_methods[prop['method_id']]
 
         # Для родительских свойств тоже пробуем разобрать icon/color/validation params
-        params = {}
-        raw_params = prop.get('params')
-        if raw_params:
-            try:
-                params = json.loads(raw_params)
-            except Exception:
-                params = {}
+        params = _safe_parse_params(prop.get('params'))
 
         prop['icon'] = params.get('icon', '')
         prop['color'] = params.get('color', '')

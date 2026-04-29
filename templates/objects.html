@@ -11,12 +11,19 @@
   .objects-toolbar {
     position: sticky;
     top: 0.75rem;
-    z-index: 1015;
+    /* Must be lower than Bootstrap dropdown menu,
+       otherwise dropdowns are partially hidden by the sticky toolbar. */
+    z-index: 990;
     backdrop-filter: blur(6px);
   }
 
   .objects-toolbar .card-body {
     background: rgba(var(--bs-body-bg-rgb), 0.92);
+  }
+
+  /* Ensure dropdown menus render above sticky toolbar. */
+  .objects-page .dropdown-menu {
+    z-index: 1100;
   }
 
   .object-tree-card {
@@ -409,33 +416,43 @@ function renderHtmlWithModuleScripts(containerEl, html) {
 
   var wrapper = document.createElement('div');
   wrapper.innerHTML = html || '';
-  var moduleScripts = Array.prototype.slice.call(wrapper.querySelectorAll('script[type="module"]'));
 
-  moduleScripts.forEach(function(script) {
-    script.parentNode.removeChild(script);
+  // Browsers don't execute <script> tags inserted via innerHTML.
+  // Your users' obj.template can contain arbitrary inline <script>,
+  // so we extract scripts, set innerHTML, then re-append scripts to execute them.
+  var scripts = Array.prototype.slice.call(wrapper.querySelectorAll('script'));
+  scripts.forEach(function(script) {
+    if (script.parentNode) {
+      script.parentNode.removeChild(script);
+    }
   });
 
   containerEl.innerHTML = wrapper.innerHTML;
 
+  // Preserve execution order by appending scripts sequentially.
   var sequence = Promise.resolve();
-  moduleScripts.forEach(function(sourceScript) {
+  scripts.forEach(function(sourceScript) {
     sequence = sequence.then(function() {
       return new Promise(function(resolve) {
         var runtimeScript = document.createElement('script');
+
+        // Copy attributes (type, src, async, defer, etc.)
         Array.prototype.slice.call(sourceScript.attributes).forEach(function(attr) {
           runtimeScript.setAttribute(attr.name, attr.value);
         });
+
+        // Copy inline content (if any).
         runtimeScript.text = sourceScript.text || sourceScript.textContent || '';
 
         runtimeScript.addEventListener('load', function() { resolve(); }, { once: true });
         runtimeScript.addEventListener('error', function() { resolve(); }, { once: true });
 
-        // Inline module scripts do not emit load/error reliably in all browsers.
+        containerEl.appendChild(runtimeScript);
+
+        // Inline scripts (no src) won't reliably fire load/error, resolve immediately.
         if (!runtimeScript.src) {
           resolve();
         }
-
-        containerEl.appendChild(runtimeScript);
       });
     });
   });
