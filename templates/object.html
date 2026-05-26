@@ -1,4 +1,4 @@
-{% extends "admin.html" %}
+{% extends "objects_shell.html" %}
 {% macro render_dict(data, indent=0) %}
   {% for key, value in data.items() %}
     {% if value is mapping %}
