@@ -1,8 +1,8 @@
 {% extends "objects_shell.html" %}
 {% from "macros/code_editor.html" import render_editor %}
+{% from "includes/objects_breadcrumb.html" import breadcrumb_schedule with context %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Objects">{{ _('Objects')}}</a></li>
-<li class="breadcrumb-item"><a href="Objects?view=object&object={{object_id}}&tab={{tab}}">{{object_name}}</a></li>
+{{ breadcrumb_schedule(class_hierarchy, object_id, object_name, id, form.name.data if id else None) }}
 {% endblock %}
 {% block module %}
 

@@ -1,0 +1,141 @@
+{% macro _render_crumb(label, url=None, active=False) %}
+<li class="breadcrumb-item{% if active %} active{% endif %}"{% if active %} aria-current="page"{% endif %}>
+    {% if url and not active %}
+    <a href="{{ url }}">{{ label }}</a>
+    {% else %}
+    {{ label }}
+    {% endif %}
+</li>
+{% endmacro %}
+
+{% macro _class_url(class_id, suffix='') -%}
+Objects?view=class&class={{ class_id }}{{ suffix }}
+{%- endmacro %}
+
+{% macro _render_class_hierarchy(class_hierarchy, last_suffix='', active_leaf=False) %}
+{% for cls in class_hierarchy %}
+    {% if active_leaf and loop.last %}
+    {{ _render_crumb(cls.name, active=True) }}
+    {% else %}
+    {% set suffix = last_suffix if loop.last else '' %}
+    {{ _render_crumb(cls.name, _class_url(cls.id, suffix)) }}
+    {% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro entity_action_label(entity_type, entity_name=None, op=None, is_new=False) -%}
+{%- if entity_type == 'property' -%}
+    {%- if op == 'redefine' -%}{{ _('Redefine property') }}{% if entity_name %}: {{ entity_name }}{% endif %}
+    {%- elif is_new -%}{{ _('Add property') }}
+    {%- else -%}{{ _('Property') }}{% if entity_name %}: {{ entity_name }}{% else %}: {{ _('Edit') }}{% endif %}
+    {%- endif -%}
+{%- elif entity_type == 'method' -%}
+    {%- if op == 'redefine' -%}{{ _('Redefine method') }}{% if entity_name %}: {{ entity_name }}{% endif %}
+    {%- elif is_new -%}{{ _('Add method') }}
+    {%- else -%}{{ _('Method') }}{% if entity_name %}: {{ entity_name }}{% else %}: {{ _('Edit') }}{% endif %}
+    {%- endif -%}
+{%- elif entity_type == 'schedule' -%}
+    {%- if is_new -%}{{ _('Add schedule') }}
+    {%- else -%}{{ _('Schedule') }}{% if entity_name %}: {{ entity_name }}{% else %}: {{ _('Edit') }}{% endif %}
+    {%- endif -%}
+{%- elif entity_type == 'class' -%}
+    {%- if is_new -%}{{ _('Add class') }}
+    {%- else -%}{{ _('Class') }}{% if entity_name %}: {{ entity_name }}{% endif %}
+    {%- endif -%}
+{%- elif entity_type == 'object' -%}
+    {%- if is_new -%}{{ _('Add object') }}
+    {%- else -%}{{ _('Object') }}{% if entity_name %}: {{ entity_name }}{% endif %}
+    {%- endif -%}
+{%- endif -%}
+{%- endmacro %}
+
+{# Main list page #}
+{% macro breadcrumb_list() %}
+{{ _render_crumb(_('Objects'), 'Objects') }}
+{{ _render_crumb(_('Overview'), active=True) }}
+{% endmacro %}
+
+{# Class editor #}
+{% macro breadcrumb_class(class_hierarchy=None, class_id=None) %}
+{{ _render_crumb(_('Objects'), 'Objects') }}
+{% if class_hierarchy %}
+{{ _render_class_hierarchy(class_hierarchy, active_leaf=True) }}
+{% else %}
+{{ _render_crumb(_('Add class'), active=True) }}
+{% endif %}
+{% endmacro %}
+
+{# Object editor #}
+{% macro breadcrumb_object(class_hierarchy=None, object_id=None, object_name=None) %}
+{{ _render_crumb(_('Objects'), 'Objects') }}
+{% if class_hierarchy %}
+{{ _render_class_hierarchy(class_hierarchy, last_suffix='&tab=objects') }}
+{% endif %}
+{% if object_id %}
+{{ _render_crumb(object_name, active=True) }}
+{% else %}
+{{ _render_crumb(_('Add object'), active=True) }}
+{% endif %}
+{% endmacro %}
+
+{# Property editor #}
+{% macro breadcrumb_property(class_hierarchy=None, object_id=None, object_name=None, entity_id=None, entity_name=None, op='') %}
+{{ _render_crumb(_('Objects'), 'Objects') }}
+{% if class_hierarchy %}
+    {% if object_id and object_name %}
+    {{ _render_class_hierarchy(class_hierarchy, last_suffix='&tab=objects') }}
+    {{ _render_crumb(object_name, 'Objects?view=object&object=' ~ object_id ~ '&tab=properties') }}
+    {% else %}
+    {{ _render_class_hierarchy(class_hierarchy, last_suffix='&tab=properties') }}
+    {% endif %}
+{% endif %}
+{{ _render_crumb(entity_action_label('property', entity_name, op, not entity_id), active=True) }}
+{% endmacro %}
+
+{# Method editor #}
+{% macro breadcrumb_method(class_hierarchy=None, object_id=None, object_name=None, entity_id=None, entity_name=None, op='') %}
+{{ _render_crumb(_('Objects'), 'Objects') }}
+{% if class_hierarchy %}
+    {% if object_id and object_name %}
+    {{ _render_class_hierarchy(class_hierarchy, last_suffix='&tab=objects') }}
+    {{ _render_crumb(object_name, 'Objects?view=object&object=' ~ object_id ~ '&tab=methods') }}
+    {% else %}
+    {{ _render_class_hierarchy(class_hierarchy, last_suffix='&tab=methods') }}
+    {% endif %}
+{% endif %}
+{{ _render_crumb(entity_action_label('method', entity_name, op, not entity_id), active=True) }}
+{% endmacro %}
+
+{# Schedule editor #}
+{% macro breadcrumb_schedule(class_hierarchy=None, object_id=None, object_name=None, schedule_id=None, schedule_name=None) %}
+{{ _render_crumb(_('Objects'), 'Objects') }}
+{% if class_hierarchy %}
+{{ _render_class_hierarchy(class_hierarchy, last_suffix='&tab=objects') }}
+{% endif %}
+{% if object_id and object_name %}
+{{ _render_crumb(object_name, 'Objects?view=object&object=' ~ object_id ~ '&tab=schedule') }}
+{% endif %}
+{{ _render_crumb(entity_action_label('schedule', schedule_name, None, not schedule_id), active=True) }}
+{% endmacro %}
+
+{# Permissions page #}
+{% macro breadcrumb_permissions(class_hierarchy=None, entity_type='object', entity_id=None, entity_name=None) %}
+{{ _render_crumb(_('Objects'), 'Objects') }}
+{% if entity_type == 'object' %}
+    {% if class_hierarchy %}
+    {{ _render_class_hierarchy(class_hierarchy, last_suffix='&tab=objects') }}
+    {% endif %}
+    {% if entity_id and entity_name %}
+    {{ _render_crumb(entity_name, 'Objects?view=object&object=' ~ entity_id) }}
+    {% endif %}
+{% elif entity_type == 'class' %}
+    {% if class_hierarchy %}
+    {{ _render_class_hierarchy(class_hierarchy) }}
+    {% elif entity_id and entity_name %}
+    {{ _render_crumb(entity_name, 'Objects?view=class&class=' ~ entity_id) }}
+    {% endif %}
+{% elif entity_id and entity_name %}
+{{ _render_crumb(entity_name, 'Objects?view=' ~ entity_type ~ '&' ~ entity_type ~ '=' ~ entity_id) }}
+{% endif %}
+{{ _render_crumb(_('Permissions'), active=True) }}
+{% endmacro %}

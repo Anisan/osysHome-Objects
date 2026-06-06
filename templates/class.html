@@ -1,11 +1,11 @@
 {% extends "objects_shell.html" %}
 {% from "macros/code_editor.html" import render_editor %}
+{% from "includes/objects_breadcrumb.html" import breadcrumb_class with context %}
 
 {% block title %} Class {% endblock %} 
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Objects">{{ _('Objects')}}</a></li>
-<li class="breadcrumb-item"><a href="Objects?view=class&class={{id}}">{{form.name.data}}</a></li>
+{{ breadcrumb_class(class_hierarchy, id) }}
 {% endblock %}
 
 {% block module_content %}
@@ -95,6 +95,164 @@
     body.objects-compact-view .class-stats-card {
       display: none !important;
     }
+
+    @media (max-width: 991.98px) {
+      #myTabContent .table td:last-child,
+      #myTabContent .table th:last-child {
+        min-width: 190px;
+        white-space: normal !important;
+      }
+
+      .class-objects-view.multi-column-view .objects-list {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 767.98px) {
+      #configTabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        padding-bottom: 0.25rem;
+      }
+
+      #configTabs .nav-item {
+        flex: 0 0 auto;
+      }
+
+      .tab-with-action .nav-link {
+        padding-right: 2.3rem;
+      }
+
+      .tab-with-action .tab-add-action {
+        right: 0.5rem;
+      }
+
+      #myTabContent .table {
+        font-size: 0.92rem;
+      }
+
+      #myTabContent .table td:last-child .btn,
+      #myTabContent .table th:last-child .btn {
+        margin-bottom: 0.35rem;
+      }
+
+      #myTabContent .table td:last-child .btn:last-child,
+      #myTabContent .table th:last-child .btn:last-child {
+        margin-bottom: 0;
+      }
+
+      #myTabContent .btn-group {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 0.35rem;
+      }
+
+      #myTabContent .properties-table thead,
+      #myTabContent .methods-table thead {
+        display: none;
+      }
+
+      #myTabContent .properties-table tbody tr,
+      #myTabContent .methods-table tbody tr {
+        display: block;
+        border: 1px solid rgba(var(--bs-secondary-rgb), 0.3);
+        border-radius: 0.5rem;
+        margin-bottom: 0.45rem;
+        padding: 0.25rem;
+      }
+
+      #myTabContent .properties-table tbody td,
+      #myTabContent .properties-table tbody th,
+      #myTabContent .methods-table tbody td,
+      #myTabContent .methods-table tbody th {
+        display: block;
+        width: 100% !important;
+        border: 0 !important;
+        padding: 0.18rem 0.22rem;
+        white-space: normal !important;
+      }
+
+      #myTabContent .properties-table tbody td:last-child,
+      #myTabContent .methods-table tbody td:last-child {
+        margin-top: 0.2rem;
+        min-width: 0 !important;
+      }
+
+      #myTabContent .properties-table .badge,
+      #myTabContent .methods-table .badge {
+        font-size: 0.68rem !important;
+        padding: 0.22rem 0.4rem;
+      }
+
+      .class-objects-view .objects-list {
+        padding-left: 0 !important;
+        margin-right: 0 !important;
+      }
+
+      .class-objects-view .object-item {
+        flex-wrap: wrap;
+        align-items: stretch !important;
+      }
+
+      .class-objects-view .object-item > .col,
+      .class-objects-view .object-item > .object-preview,
+      .class-objects-view .object-item > .object-actions {
+        width: 100%;
+        min-width: 0 !important;
+        margin: 0 !important;
+      }
+
+      .class-objects-view .object-item > .object-preview {
+        order: 2;
+        margin-top: 0.6rem !important;
+      }
+
+      .class-objects-view .object-item > .object-actions {
+        order: 3;
+        justify-content: flex-end;
+      }
+    }
+
+    @media (max-width: 575.98px) {
+      #myTabContent .table td:last-child .btn,
+      #myTabContent .table th:last-child .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      #myTabContent .properties-table tbody td:last-child,
+      #myTabContent .methods-table tbody td:last-child {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 0.3rem;
+      }
+
+      #myTabContent .properties-table tbody td:last-child .btn,
+      #myTabContent .methods-table tbody td:last-child .btn {
+        width: auto;
+        min-width: 2rem;
+        padding: 0.2rem 0.45rem;
+        font-size: 0.78rem;
+        margin-bottom: 0 !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .class-stats-card .card-body {
+        padding-top: 0.6rem !important;
+        padding-bottom: 0.6rem !important;
+      }
+
+      .class-objects-view .object-item {
+        padding-left: 0.65rem !important;
+        padding-right: 0.65rem !important;
+      }
+    }
 </style>
 <!-- Подключение стилей Prism -->
 <link rel="stylesheet" href="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.css">
@@ -159,7 +317,7 @@
     </div>
     <div class="tab-pane fade {% if tab == 'properties'%}show active{%endif%}" id="properties" role="tabpanel" aria-labelledby="properties-tab">
         <div class="table-responsive">
-            <table class="table table-hover align-middle">
+            <table class="table table-hover align-middle properties-table">
                 <thead>
                     <tr>
                         {% if show_id %}
@@ -432,7 +590,7 @@
     </div>
     <div class="tab-pane fade {% if tab == 'methods'%}show active{%endif%}" id="methods" role="tabpanel" aria-labelledby="methods-tab">
         <div class="table-responsive">
-            <table class="table table-hover align-middle">
+            <table class="table table-hover align-middle methods-table">
                 <thead>
                     <tr>
                         {% if show_id %}
@@ -593,7 +751,7 @@
 </div>
   <script>
   (function applyCompactViewClass() {
-    if (typeof Storage !== 'undefined' && localStorage.getItem('objectsCompactView') === '1') {
+    if (typeof Storage !== 'undefined' && (localStorage.getItem('objectsCompactView') === '1' || localStorage.getItem('objectsCompactView') === 'true')) {
       document.body.classList.add('objects-compact-view');
     }
   })();

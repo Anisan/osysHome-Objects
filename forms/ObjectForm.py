@@ -12,7 +12,7 @@ from app.core.lib.common import getJobs
 from app.core.utils import CustomJSONEncoder
 from app.core.models.Clasess import Class, Object, Property, Method, Value, History
 from app.core.main.ObjectsStorage import objects_storage
-from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents, checkPermission, getClassId, getObjectId
+from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents, get_class_hierarchy, checkPermission, getClassId, getObjectId
 from plugins.Objects.tree_cache import invalidate_objects_tree_cache
 
 
@@ -62,6 +62,8 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
     for c in object_properties:
         properties.append(row2dict(c))
     
+    om = objects_storage.getObjectByName(item.name)
+
     for property in properties:
         property['linked'] = []
         value = Value.query.filter(Value.object_id == object_id, Value.name == property['name']).one_or_none()
@@ -107,8 +109,25 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
         m = row2dict(c)
         m['redefined'] = False
         methods.append(m)
-    
-    om = objects_storage.getObjectByName(item.name)
+
+    for property in properties:
+        if property.get('type') == 'color' and om and property['name'] in om.properties:
+            runtime_prop = om.properties[property['name']]
+            display_value = runtime_prop.getValue()
+            if isinstance(display_value, dict):
+                property['value'] = json.dumps(display_value, ensure_ascii=False)
+            else:
+                property['value'] = display_value
+            try:
+                preview = runtime_prop.getColorValue('hex')
+                property['color_preview'] = preview if isinstance(preview, str) else None
+            except Exception:
+                property['color_preview'] = None
+            if runtime_prop.source:
+                property['source'] = runtime_prop.source
+            if runtime_prop.changed:
+                property['changed'] = convert_utc_to_local(runtime_prop.changed)
+
     for method in methods:
         if method['class_id']:
             method["class_name"] = dict_classes[method["class_id"]]
@@ -191,6 +210,7 @@ def routeObject(request, config):
             'name': item.name,
             'class_id': class_id,
             'tab': tab,
+            'class_hierarchy': get_class_hierarchy(item.class_id),
         }
         return render_template('objects_permissions.html', **content)
 
@@ -359,5 +379,6 @@ def routeObject(request, config):
         'obj': cls.to_dict() if cls else None,
         'saved': saved,
         'show_id': config.get("show_id", False),
+        'class_hierarchy': get_class_hierarchy(class_owner.id if class_owner else None),
     }
     return render_template('object.html', **content)

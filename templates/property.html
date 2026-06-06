@@ -1,13 +1,15 @@
 {% extends "objects_shell.html" %}
+{% from "includes/objects_breadcrumb.html" import breadcrumb_property with context %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Objects">{{ _('Objects')}}</a></li>
-{% if class %}
-<li class="breadcrumb-item"><a href="Objects?view=class&class={{class.id}}&tab=properties">{{class.name}}</a></li>
-{%endif%}
-{% if object %}
-<li class="breadcrumb-item"><a href="Objects?view=class&object={{object.id}}&tab=properties">{{object.name}}</a></li>
-{% endif %}
+{{ breadcrumb_property(
+    class_hierarchy,
+    object.id if object else None,
+    object.name if object else None,
+    id,
+    form.name.data if id else None,
+    request.args.get('op', '')
+) }}
 {% endblock %}
 
 {% block module_content %}
@@ -22,70 +24,111 @@
     </ul>
 </div>
 {% endif %}
-<form method="POST">
-    <!-- Поля формы -->
+<style>
+    .objects-property-page .nav-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    @media (max-width: 767.98px) {
+        .objects-property-page .nav-tabs {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            padding-bottom: 0.25rem;
+        }
+
+        .objects-property-page .nav-tabs .nav-item {
+            flex: 0 0 auto;
+        }
+    }
+</style>
+
+<form method="POST" class="objects-property-page">
     {{ form.hidden_tag() }}
-    <div class="mb-3">
-        <label class="form-label">{{ _('Name') }}</label>
-        {{ form.name(class="form-control") }}
-    </div>
-    <div class="mb-3">
-        <label class="form-label">{{ _('Description') }}</label>
-        {{ form.description(class="form-control") }}
-    </div>
-    <div class="mb-3">
-        <label class="form-label">{{ _('Method') }}</label>
-        {{ form.method_id(class="form-control") }}
-    </div>
-    <div class="mb-3">
-        <label class="form-label">{{ _('History (days)') }}</label>
-        {{ form.history(class="form-control") }}
-    </div>
-    <div class="mb-3">
-        <label class="form-label">{{ _('Type') }}</label>
-        {{ form.type(class="form-control", id="property-type") }}
-    </div>
-    
-    <!-- Common Parameters -->
-    <div class="card mb-3">
-        <div class="card-header">{{ _('Additional Parameters') }}</div>
-        <div class="card-body">
+
+    <ul class="nav nav-tabs" id="propertyFormTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <a class="nav-link tab-button active" id="prop-tab-general-btn" data-bs-toggle="tab" href="#prop-tab-general" role="tab" aria-controls="prop-tab-general" aria-selected="true">{{ _('General') }}</a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link tab-button" id="prop-tab-display-btn" data-bs-toggle="tab" href="#prop-tab-display" role="tab" aria-controls="prop-tab-display" aria-selected="false">{{ _('Display') }}</a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link tab-button" id="prop-tab-type-btn" data-bs-toggle="tab" href="#prop-tab-type" role="tab" aria-controls="prop-tab-type" aria-selected="false">{{ _('Type parameters') }}</a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link tab-button" id="prop-tab-validation-btn" data-bs-toggle="tab" href="#prop-tab-validation" role="tab" aria-controls="prop-tab-validation" aria-selected="false">{{ _('Validation') }}</a>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-3" id="propertyFormTabContent">
+        <!-- Основное -->
+        <div class="tab-pane fade show active" id="prop-tab-general" role="tabpanel" aria-labelledby="prop-tab-general-btn" tabindex="0">
+            <div class="mb-3">
+                <label class="form-label">{{ _('Name') }}</label>
+                {{ form.name(class="form-control") }}
+            </div>
+            <div class="mb-3">
+                <label class="form-label">{{ _('Description') }}</label>
+                {{ form.description(class="form-control") }}
+            </div>
+            <div class="mb-3">
+                <label class="form-label">{{ _('Method') }}</label>
+                {{ form.method_id(class="form-control") }}
+            </div>
+            <div class="mb-3">
+                <label class="form-label">{{ _('History (days)') }}</label>
+                {{ form.history(class="form-control") }}
+            </div>
+            <div class="mb-3">
+                <label class="form-label">{{ _('Type') }}</label>
+                {{ form.type(class="form-control", id="property-type") }}
+            </div>
+        </div>
+
+        <!-- Отображение -->
+        <div class="tab-pane fade" id="prop-tab-display" role="tabpanel" aria-labelledby="prop-tab-display-btn" tabindex="0">
+            <p class="text-muted small mb-3">{{ _('UI settings for object cards and property lists') }}</p>
             <div class="row">
-                <div class="col-md-3">
+                <div class="col-md-6 col-lg-3 mb-3">
                     <label class="form-label">{{ _('Icon') }}</label>
                     <input type="text" class="form-control" id="param-icon" placeholder="fas fa-icon">
                     <small class="form-text text-muted">FontAwesome or Iconify icon class</small>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-6 col-lg-3 mb-3">
                     <label class="form-label">{{ _('Color') }}</label>
-                    <input type="color" class="form-control" id="param-color" style="height: 37.78px;">
+                    <input type="color" class="form-control form-control-color w-100" id="param-color">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-6 col-lg-3 mb-3">
                     <label class="form-label">{{ _('Sort Order') }}</label>
                     <input type="number" class="form-control" id="param-sort-order" placeholder="0">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-6 col-lg-3 mb-3">
                     <label class="form-label">{{ _('Default Value') }}</label>
                     <input type="text" class="form-control" id="param-default-value">
                 </div>
             </div>
-            <div class="row mt-2">
-                <div class="col-md-12">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="param-read-only">
-                        <label class="form-check-label" for="param-read-only">
-                            {{ _('Read Only') }}
-                        </label>
-                    </div>
-                </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="param-read-only">
+                <label class="form-check-label" for="param-read-only">
+                    {{ _('Read Only') }}
+                </label>
             </div>
         </div>
-    </div>
 
-    <!-- Type-specific Parameters -->
-    <div class="card mb-3" id="validation-params" style="display: none;">
-        <div class="card-header">{{ _('Validation Parameters') }}</div>
-        <div class="card-body">
+        <!-- Параметры типа -->
+        <div class="tab-pane fade" id="prop-tab-type" role="tabpanel" aria-labelledby="prop-tab-type-btn" tabindex="0">
+            <p class="text-muted small mb-3" id="tab-type-hint">{{ _('Settings that depend on the selected property type') }}</p>
+            <p class="text-muted mb-0" id="tab-type-empty" style="display: none;">
+                <i class="fas fa-info-circle me-1"></i>{{ _('No type-specific parameters for this type') }}
+            </p>
+
+            <div id="validation-params" style="display: none;">
+                <h6 class="text-muted mb-3">{{ _('Validation Parameters') }}</h6>
             <!-- For int/float types -->
             <div class="row" id="numeric-params" style="display: none;">
                 <div class="col-md-6">
@@ -137,17 +180,71 @@
                     </small>
                 </div>
             </div>
-        </div>
-    </div>
+            </div>
 
-    <!-- Advanced Validation Parameters -->
-    <div class="card mb-3">
-        <div class="card-header">
-            <i class="fas fa-shield-alt me-2"></i>{{ _('Advanced Validation') }}
-            <small class="text-muted ms-2">({{ _('Optional') }})</small>
+            <div id="color-format-params" style="display: none;">
+                <h6 class="text-muted mb-3 mt-2">{{ _('Color type parameters') }}</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">{{ _('Read format') }}</label>
+                    <select class="form-control" id="param-read-format">
+                        <option value="canonical">canonical</option>
+                        <option value="hex">hex</option>
+                        <option value="rgb">rgb</option>
+                        <option value="xy">xy</option>
+                        <option value="hs">hs</option>
+                        <option value="hsv">hsv</option>
+                        <option value="hsl">hsl</option>
+                        <option value="hsb">hsb</option>
+                        <option value="color_temp">color_temp</option>
+                        <option value="zigbee2mqtt">zigbee2mqtt</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ _('Write format') }}</label>
+                    <select class="form-control" id="param-write-format">
+                        <option value="auto">auto</option>
+                        <option value="hex">hex</option>
+                        <option value="rgb">rgb</option>
+                        <option value="xy">xy</option>
+                        <option value="hs">hs</option>
+                        <option value="hsv">hsv</option>
+                        <option value="hsl">hsl</option>
+                        <option value="hsb">hsb</option>
+                        <option value="color_temp">color_temp</option>
+                        <option value="zigbee2mqtt">zigbee2mqtt</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ _('Color temperature unit') }}</label>
+                    <select class="form-control" id="param-color-temp-unit">
+                        <option value="kelvin">kelvin</option>
+                        <option value="mired">mired</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-6">
+                    <label class="form-label">{{ _('Hue scale') }}</label>
+                    <select class="form-control" id="param-hue-scale">
+                        <option value="360">360</option>
+                        <option value="254">254</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">{{ _('Saturation scale') }}</label>
+                    <select class="form-control" id="param-sat-scale">
+                        <option value="100">100</option>
+                        <option value="254">254</option>
+                    </select>
+                </div>
+            </div>
+            </div>
         </div>
-        <div class="card-body">
-            <!-- Allowed Values -->
+
+        <!-- Расширенная валидация -->
+        <div class="tab-pane fade" id="prop-tab-validation" role="tabpanel" aria-labelledby="prop-tab-validation-btn" tabindex="0">
+            <p class="text-muted small mb-3">{{ _('Optional') }} — {{ _('Advanced Validation') }}</p>
             <div class="row mb-3">
                 <div class="col-md-12">
                     <label class="form-label">{{ _('Allowed Values') }}</label>
@@ -188,13 +285,14 @@
 
     <!-- Hidden field for params -->
     {{ form.params(style="display: none;", id="params-json") }}
-    <!-- Кнопка отправки формы -->
-    <button type="submit" class="btn btn-primary"><i class="fas fa-check me-2"></i>{{ _('Submit')}}</button>
-    {% if object %}
-    <a href="?view=object&object={{object.id}}&tab=properties" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
-    {% else %}
-    <a href="?view=class&class={{class.id}}&tab=properties" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
-    {% endif %}
+    <div class="mt-3">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-check me-2"></i>{{ _('Submit')}}</button>
+        {% if object %}
+        <a href="?view=object&object={{object.id}}&tab=properties" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
+        {% else %}
+        <a href="?view=class&class={{class.id}}&tab=properties" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
+        {% endif %}
+    </div>
 </form>
 
 <script>
@@ -206,6 +304,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const intStepParams = document.getElementById('int-step-params');
     const stringParams = document.getElementById('string-params');
     const enumParams = document.getElementById('enum-params');
+    const colorFormatParams = document.getElementById('color-format-params');
+    const tabTypeEmpty = document.getElementById('tab-type-empty');
+    const tabTypeHint = document.getElementById('tab-type-hint');
+    const propTabTypeBtn = document.getElementById('prop-tab-type-btn');
     const paramsJsonField = document.getElementById('params-json');
     
     // Get individual parameter fields
@@ -224,20 +326,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const allowedValuesField = document.getElementById('param-allowed-values');
     const rateLimitField = document.getElementById('param-rate-limit');
     const dependsOnField = document.getElementById('param-depends-on');
+    const readFormatField = document.getElementById('param-read-format');
+    const writeFormatField = document.getElementById('param-write-format');
+    const colorTempUnitField = document.getElementById('param-color-temp-unit');
+    const hueScaleField = document.getElementById('param-hue-scale');
+    const satScaleField = document.getElementById('param-sat-scale');
     
     function toggleValidationParams() {
         const type = typeSelect.value;
-        
-        // Hide all validation params first
+        let hasTypeParams = false;
+
         numericParams.style.display = 'none';
         floatParams.style.display = 'none';
         intStepParams.style.display = 'none';
         stringParams.style.display = 'none';
         enumParams.style.display = 'none';
         validationParams.style.display = 'none';
-        
-        // Show relevant params based on type
+        colorFormatParams.style.display = 'none';
+
         if (type === 'int' || type === 'float') {
+            hasTypeParams = true;
             validationParams.style.display = 'block';
             numericParams.style.display = 'flex';
             if (type === 'float') {
@@ -246,11 +354,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 intStepParams.style.display = 'flex';
             }
         } else if (type === 'str') {
+            hasTypeParams = true;
             validationParams.style.display = 'block';
             stringParams.style.display = 'flex';
         } else if (type === 'enum') {
+            hasTypeParams = true;
             validationParams.style.display = 'block';
             enumParams.style.display = 'flex';
+        } else if (type === 'color') {
+            hasTypeParams = true;
+            colorFormatParams.style.display = 'block';
+        }
+
+        if (tabTypeEmpty) {
+            tabTypeEmpty.style.display = hasTypeParams ? 'none' : 'block';
+        }
+        if (tabTypeHint) {
+            tabTypeHint.style.display = hasTypeParams ? 'block' : 'none';
+        }
+        if (propTabTypeBtn) {
+            propTabTypeBtn.classList.toggle('text-muted', !hasTypeParams);
+        }
+    }
+
+    function focusTypeTabIfNeeded(type) {
+        if (['int', 'float', 'str', 'enum', 'color'].indexOf(type) === -1) {
+            return;
+        }
+        const tabBtn = document.getElementById('prop-tab-type-btn');
+        if (tabBtn && window.bootstrap && bootstrap.Tab) {
+            bootstrap.Tab.getOrCreateInstance(tabBtn).show();
         }
     }
     
@@ -293,6 +426,12 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (e) {
                 console.error('Invalid enum values JSON:', e);
             }
+        } else if (type === 'color') {
+            if (readFormatField.value) params.read_format = readFormatField.value;
+            if (writeFormatField.value) params.write_format = writeFormatField.value;
+            if (colorTempUnitField.value) params.color_temp_unit = colorTempUnitField.value;
+            if (hueScaleField.value) params.hue_scale = parseInt(hueScaleField.value);
+            if (satScaleField.value) params.sat_scale = parseInt(satScaleField.value);
         }
         
         // Add advanced validation parameters
@@ -347,6 +486,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (params.enum_values) {
                     enumValuesField.value = JSON.stringify(params.enum_values, null, 2);
                 }
+
+                if (params.read_format) {
+                    readFormatField.value = params.read_format;
+                }
+                if (params.write_format) {
+                    writeFormatField.value = params.write_format;
+                }
+                if (params.color_temp_unit) {
+                    colorTempUnitField.value = params.color_temp_unit;
+                }
+                if (params.hue_scale !== undefined) {
+                    hueScaleField.value = String(params.hue_scale);
+                }
+                if (params.sat_scale !== undefined) {
+                    satScaleField.value = String(params.sat_scale);
+                }
                 
                 // Load advanced validation parameters
                 if (params.allowed_values) {
@@ -369,12 +524,16 @@ document.addEventListener('DOMContentLoaded', function() {
     loadParamsFromJson();
     
     // Listen for changes
-    typeSelect.addEventListener('change', toggleValidationParams);
+    typeSelect.addEventListener('change', function() {
+        toggleValidationParams();
+        focusTypeTabIfNeeded(typeSelect.value);
+    });
     
     // Update JSON on any field change
     const allFields = [iconField, colorField, sortOrderField, defaultValueField, readOnlyField, 
                        minField, maxField, decimalsField, stepIntField, stepFloatField, regexpField, 
-                       enumValuesField, allowedValuesField, rateLimitField, dependsOnField];
+                       enumValuesField, allowedValuesField, rateLimitField, dependsOnField,
+                       readFormatField, writeFormatField, colorTempUnitField, hueScaleField, satScaleField];
     allFields.forEach(field => {
         if (field) {
             field.addEventListener('change', buildParamsJson);

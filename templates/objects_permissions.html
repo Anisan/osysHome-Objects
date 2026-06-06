@@ -1,9 +1,7 @@
 {% extends "objects_shell.html" %}
+{% from "includes/objects_breadcrumb.html" import breadcrumb_permissions with context %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Objects">{{ _('Objects')}}</a></li>
-{%if tab %}
-<li class="breadcrumb-item"><a href="Objects?view={{type}}&{{type}}={{id}}">{{name}}</a></li>
-{%endif%}
+{{ breadcrumb_permissions(class_hierarchy, type, id, name) }}
 {% endblock %}
 
 {% block module_content %}

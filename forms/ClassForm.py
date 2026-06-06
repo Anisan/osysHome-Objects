@@ -7,7 +7,7 @@ from flask import redirect, render_template, abort
 from sqlalchemy import delete
 from app.core.models.Clasess import Class, Property, Method, Object
 from app.database import db, row2dict
-from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, getTemplatesParents, no_spaces_or_dots, ValidationError, checkPermission, getClassId
+from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, getTemplatesParents, get_class_hierarchy, no_spaces_or_dots, ValidationError, checkPermission, getClassId
 from app.core.main.ObjectsStorage import objects_storage
 from app.core.lib.object import getObject
 from plugins.Objects.tree_cache import invalidate_objects_tree_cache
@@ -169,6 +169,7 @@ def routeClass(request, config):
             'name': item.name,
             'class_id': id,
             'tab': tab,
+            'class_hierarchy': get_class_hierarchy(id),
         }
         return render_template('objects_permissions.html', **content)
 
@@ -259,5 +260,6 @@ def routeClass(request, config):
         'templates': templates,
         'tab': tab,
         'show_id': config.get("show_id", False),
+        'class_hierarchy': get_class_hierarchy(id) if id else [],
     }
     return render_template('class.html', **content)

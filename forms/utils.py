@@ -42,6 +42,26 @@ def getTemplatesParents(id, templates):
         return getTemplatesParents(cls.parent_id, templates)
     return templates
 
+def get_class_hierarchy(class_id):
+    """Return class chain from root to class_id inclusive: [{'id': ..., 'name': ...}, ...]."""
+    if not class_id:
+        return []
+
+    chain = []
+    current_id = int(class_id)
+    visited = set()
+
+    while current_id and current_id not in visited:
+        visited.add(current_id)
+        cls = Class.get_by_id(current_id)
+        if not cls:
+            break
+        chain.append({'id': cls.id, 'name': cls.name})
+        current_id = cls.parent_id
+
+    chain.reverse()
+    return chain
+
 def no_spaces_or_dots(form, field):
     if ' ' in field.data or '.' in field.data:
         raise ValidationError('Field must not contain spaces or dots')

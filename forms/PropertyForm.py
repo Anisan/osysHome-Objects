@@ -7,7 +7,7 @@ from flask import redirect, render_template, abort
 from app.database import db, row2dict
 from app.core.models.Clasess import Class, Object, Property, Value, Method, History
 from app.core.main.ObjectsStorage import objects_storage
-from plugins.Objects.forms.utils import no_spaces_or_dots, no_reserved, getMethodsParents, checkPermission, getObjectId, getClassId
+from plugins.Objects.forms.utils import no_spaces_or_dots, no_reserved, getMethodsParents, get_class_hierarchy, checkPermission, getObjectId, getClassId
 
 
 def _get_class_chain_ids(class_id):
@@ -158,7 +158,7 @@ def routeProperty(request):
             methods.append(row2dict(method))
 
     form.method_id.choices = [('','')] + [(method['id'], method['name']) for method in methods]
-    form.type.choices = [('',''),('bool','Boolean'),('int','Integer'),('float','Float'),('str','String'),('datetime','Datetime'),('dict','Dictionary'),('list','List'),('enum','Enum')]
+    form.type.choices = [('',''),('bool','Boolean'),('int','Integer'),('float','Float'),('str','String'),('datetime','Datetime'),('dict','Dictionary'),('list','List'),('enum','Enum'),('color','Color')]
     if form.validate_on_submit():
         if id:
             if op == "redefine":
@@ -222,5 +222,6 @@ def routeProperty(request):
         'form':form,
         'class': class_owner,
         'object': object_owner,
+        'class_hierarchy': get_class_hierarchy(class_owner.id if class_owner else None),
     }
     return render_template('property.html', **content)

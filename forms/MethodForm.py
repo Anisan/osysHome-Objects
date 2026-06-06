@@ -8,7 +8,7 @@ from app.core.models.Clasess import Class, Object, Method
 from app.core.lib.common import getJob, addCronJob, clearScheduledJob
 from app.database import db
 from app.core.main.ObjectsStorage import objects_storage
-from plugins.Objects.forms.utils import no_spaces_or_dots, checkPermission, getClassId, getObjectId
+from plugins.Objects.forms.utils import no_spaces_or_dots, get_class_hierarchy, checkPermission, getClassId, getObjectId
 
 
 # Определение класса формы
@@ -145,5 +145,6 @@ def routeMethod(request):
         'class': class_owner,
         'object': object_owner,
         'saved': saved,
+        'class_hierarchy': get_class_hierarchy(class_owner.id if class_owner else None),
     }
     return render_template('method.html', **content)

@@ -13,19 +13,26 @@
     {% endif %}
   {% endfor %}
 {% endmacro %}
+{% macro color_css(value) -%}
+{%- set s = (value|string|trim) if value is not none and value != 'None' else '' -%}
+{%- if s.startswith('#') and s|length >= 4 -%}
+{{- s[:7] if s|length >= 7 else s -}}
+{%- elif s|length == 6 -%}
+#{{- s -}}
+{%- else -%}
+#e9ecef
+{%- endif -%}
+{%- endmacro %}
 {% from "macros/code_editor.html" import render_editor %}
+{% from "includes/objects_breadcrumb.html" import breadcrumb_object with context %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Objects">{{ _('Objects')}}</a></li>
-{% if class %}
-<li class="breadcrumb-item"><a href="Objects?view=class&class={{class.id}}&tab=objects">{{class.name}}</a></li>
-{%endif%}
-<li class="breadcrumb-item"><a href="Objects?view=object&object={{id}}">{{form.name.data}}</a></li>
+{{ breadcrumb_object(class_hierarchy, id, form.name.data) }}
 {% endblock %}
 
 {% block title %} {{form.name.data}} {% endblock %} 
 
 {% block module_content %}
-<div class="row">
+<div class="row objects-object-page">
 <div class="col">
 {% if form.errors %}
 <div class="alert alert-warning mt-3">
@@ -81,6 +88,156 @@
   body.objects-compact-view .object-stats-card {
     display: none !important;
   }
+
+  .property-color-swatch {
+    display: inline-block;
+    width: 1.75rem;
+    height: 1.75rem;
+    min-width: 1.75rem;
+    border-radius: 0.25rem;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    vertical-align: middle;
+  }
+
+  .objects-object-page .tab-content .table td,
+  .objects-object-page .tab-content .table th {
+    vertical-align: top;
+  }
+
+  @media (max-width: 991.98px) {
+    .objects-object-page > .col,
+    .objects-object-page > .col-2 {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+
+    .objects-object-page > .col-2 {
+      margin-top: 1rem;
+    }
+
+    .objects-object-page .tab-content .table td:last-child,
+    .objects-object-page .tab-content .table th:last-child {
+      white-space: normal !important;
+      min-width: 210px;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .objects-object-page .nav-tabs {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      padding-bottom: 0.25rem;
+    }
+
+    .objects-object-page .nav-tabs .nav-item {
+      flex: 0 0 auto;
+    }
+
+    .objects-object-page .tab-with-action .nav-link {
+      padding-right: 2.3rem;
+    }
+
+    .objects-object-page .tab-with-action .tab-add-action {
+      right: 0.5rem;
+    }
+
+    .objects-object-page .tab-content .table {
+      font-size: 0.92rem;
+    }
+
+    .objects-object-page .tab-content .table td:last-child .btn,
+    .objects-object-page .tab-content .table th:last-child .btn {
+      margin-bottom: 0.35rem;
+    }
+
+    .objects-object-page .tab-content .table td:last-child .btn:last-child,
+    .objects-object-page .tab-content .table th:last-child .btn:last-child {
+      margin-bottom: 0;
+    }
+
+    .objects-object-page .tab-content .btn-group {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.35rem;
+    }
+
+    .objects-object-page .properties-table thead,
+    .objects-object-page .methods-table thead {
+      display: none;
+    }
+
+    .objects-object-page .properties-table tbody tr,
+    .objects-object-page .methods-table tbody tr {
+      display: block;
+      border: 1px solid rgba(var(--bs-secondary-rgb), 0.3);
+      border-radius: 0.5rem;
+      margin-bottom: 0.45rem;
+      padding: 0.25rem;
+    }
+
+    .objects-object-page .properties-table tbody td,
+    .objects-object-page .properties-table tbody th,
+    .objects-object-page .methods-table tbody td,
+    .objects-object-page .methods-table tbody th {
+      display: block;
+      width: 100% !important;
+      border: 0 !important;
+      padding: 0.18rem 0.22rem;
+      white-space: normal !important;
+    }
+
+    .objects-object-page .properties-table tbody td:last-child,
+    .objects-object-page .methods-table tbody td:last-child {
+      margin-top: 0.2rem;
+      min-width: 0 !important;
+    }
+
+    .objects-object-page .properties-table .badge,
+    .objects-object-page .methods-table .badge {
+      font-size: 0.68rem !important;
+      padding: 0.22rem 0.4rem;
+    }
+
+    .objects-object-page .object-stats-card .card-body {
+      padding-top: 0.6rem !important;
+      padding-bottom: 0.6rem !important;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .objects-object-page .tab-content .table td:last-child .btn,
+    .objects-object-page .tab-content .table th:last-child .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .objects-object-page .properties-table tbody td:last-child,
+    .objects-object-page .methods-table tbody td:last-child {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.3rem;
+    }
+
+    .objects-object-page .properties-table tbody td:last-child .btn,
+    .objects-object-page .methods-table tbody td:last-child .btn {
+      width: auto;
+      min-width: 2rem;
+      padding: 0.2rem 0.45rem;
+      font-size: 0.78rem;
+      margin-bottom: 0 !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .objects-object-page .btn i.me-2 {
+      margin-right: 0.4rem !important;
+    }
+  }
 </style>
 <ul class="nav nav-tabs mb-3 align-items-center" id="configTabs" role="tablist">
     <li class="nav-item">
@@ -116,7 +273,7 @@
 {% endif %}
 <script>
   (function applyCompactViewClass() {
-    if (typeof Storage !== 'undefined' && localStorage.getItem('objectsCompactView') === '1') {
+    if (typeof Storage !== 'undefined' && (localStorage.getItem('objectsCompactView') === '1' || localStorage.getItem('objectsCompactView') === 'true')) {
       document.body.classList.add('objects-compact-view');
     }
   })();
@@ -145,7 +302,7 @@
     </div>
     <div class="tab-pane fade {% if tab == 'properties'%}show active{%endif%}" id="properties" role="tabpanel" aria-labelledby="properties-tab">
         <div class="table-responsive">
-            <table class="table table-hover table-sm">
+            <table class="table table-hover table-sm properties-table">
                 <thead>
                     <tr>
                         {% if show_id %}
@@ -309,6 +466,11 @@
                                 >
                                     <i class="fas fa-edit mt-0"></i>
                                 </button>
+                                {% if property.type == 'color' %}
+                                <span class="input-group-text py-1 px-2" id="prop_swatch:{{form.name.data}}.{{property.name}}" title="{{ property.color_preview or property.value }}">
+                                    <span class="property-color-swatch" style="background-color: {{ property.color_preview or color_css(property.value) }};"></span>
+                                </span>
+                                {% endif %}
                                 <textarea class="form-control" id="prop:{{form.name.data}}.{{property.name}}" rows="1" readonly>
                                     {% if property.type == 'enum' and property.params.get('enum_values') and property.value and property.value in property.params['enum_values'] %}
                                     {{ property.params['enum_values'][property.value] }} ({{ property.value }})
@@ -346,7 +508,7 @@
     </div>
     <div class="tab-pane fade {% if tab == 'methods'%}show active{%endif%}" id="methods" role="tabpanel" aria-labelledby="methods-tab">
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover methods-table">
                 <thead>
                     <tr>
                         {% if show_id %}
@@ -689,6 +851,22 @@
               <textarea id="value-json" class="form-control font-monospace" rows="10" placeholder="{{ _('Enter JSON')}}"></textarea>
               <div class="form-text" id="hint-json">{{ _('Enter valid JSON format')}}</div>
             </div>
+
+            <!-- color editor -->
+            <div id="editor-color" class="property-editor" style="display: none;">
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <label class="form-label">{{ _('Color HEX') }}</label>
+                  <input type="color" id="value-color-hex-picker" class="form-control form-control-color" value="#ffffff">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">{{ _('Color HEX') }}</label>
+                  <input type="text" id="value-color-hex-text" class="form-control" placeholder="#547CFF">
+                </div>
+              </div>
+              <textarea id="value-color-json" class="form-control font-monospace mt-2" rows="4" placeholder='{"color":{"x":0.123,"y":0.123}}' style="display: none;"></textarea>
+              <div class="form-text" id="hint-color"></div>
+            </div>
             
             <!-- default editor (fallback) -->
             <div id="editor-default" class="property-editor" style="display: none;">
@@ -744,7 +922,9 @@
         {% for property in properties %}
         "{{form.name.data}}.{{property.name}}": {
             type: "{{property.type}}",
-            enum_values: {% if property.type == 'enum' and property.params.get('enum_values') %}{{ property.params['enum_values']|tojson }}{% else %}null{% endif %}
+            enum_values: {% if property.type == 'enum' and property.params.get('enum_values') %}{{ property.params['enum_values']|tojson }}{% else %}null{% endif %},
+            read_format: {% if property.type == 'color' and property.params.get('read_format') %}"{{ property.params.get('read_format') }}"{% else %}null{% endif %},
+            write_format: {% if property.type == 'color' and property.params.get('write_format') %}"{{ property.params.get('write_format') }}"{% else %}null{% endif %}
         }{% if not loop.last %},{% endif %}
         {% endfor %}
     };
@@ -763,6 +943,373 @@
             }
         }
         return value;
+    }
+
+    function rgbToHsv(r, g, b) {
+        r = (parseInt(r, 10) || 0) / 255;
+        g = (parseInt(g, 10) || 0) / 255;
+        b = (parseInt(b, 10) || 0) / 255;
+        var maxC = Math.max(r, g, b);
+        var minC = Math.min(r, g, b);
+        var diff = maxC - minC;
+        var h = 0;
+        var s = maxC === 0 ? 0 : diff / maxC;
+        if (diff !== 0) {
+            if (maxC === r) {
+                h = (60 * ((g - b) / diff) + 360) % 360;
+            } else if (maxC === g) {
+                h = (60 * ((b - r) / diff) + 120) % 360;
+            } else {
+                h = (60 * ((r - g) / diff) + 240) % 360;
+            }
+        }
+        return {
+            h: Math.round(h),
+            s: Math.round(s * 100),
+            v: Math.round(maxC * 100)
+        };
+    }
+
+    function rgbToHsl(r, g, b) {
+        r = (parseInt(r, 10) || 0) / 255;
+        g = (parseInt(g, 10) || 0) / 255;
+        b = (parseInt(b, 10) || 0) / 255;
+        var maxC = Math.max(r, g, b);
+        var minC = Math.min(r, g, b);
+        var diff = maxC - minC;
+        var h = 0;
+        var l = (maxC + minC) / 2;
+        var s = 0;
+        if (diff !== 0) {
+            s = diff / (2 - maxC - minC);
+            if (l > 0.5) {
+                s = diff / (2 - maxC - minC);
+            } else {
+                s = diff / (maxC + minC);
+            }
+            if (maxC === r) {
+                h = (60 * ((g - b) / diff) + 360) % 360;
+            } else if (maxC === g) {
+                h = (60 * ((b - r) / diff) + 120) % 360;
+            } else {
+                h = (60 * ((r - g) / diff) + 240) % 360;
+            }
+        }
+        return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+    }
+
+    function rgbToXy(r, g, b) {
+        r = (parseInt(r, 10) || 0) / 255;
+        g = (parseInt(g, 10) || 0) / 255;
+        b = (parseInt(b, 10) || 0) / 255;
+        function gammaReverse(val) {
+            return val > 0.04045 ? Math.pow((val + 0.055) / 1.055, 2.4) : val / 12.92;
+        }
+        r = gammaReverse(r);
+        g = gammaReverse(g);
+        b = gammaReverse(b);
+        var X = (r * 0.4124 + g * 0.3576 + b * 0.1805) * 100;
+        var Y = (r * 0.2126 + g * 0.7152 + b * 0.0722) * 100;
+        var Z = (r * 0.0193 + g * 0.1192 + b * 0.9505) * 100;
+        var sum = X + Y + Z;
+        if (!sum) {
+            return { x: 0, y: 0 };
+        }
+        return {
+            x: Math.round((X / sum) * 1000000) / 1000000,
+            y: Math.round((Y / sum) * 1000000) / 1000000
+        };
+    }
+
+    function buildColorWriteValue(hexValue, params) {
+        params = params || {};
+        var writeFormat = (params.write_format || 'auto').toLowerCase();
+        var readFormat = (params.read_format || 'canonical').toLowerCase();
+        var target = writeFormat !== 'auto' ? writeFormat : readFormat;
+        var hex = String(hexValue || '').trim();
+        if (!hex) {
+            return hex;
+        }
+        if (!hex.startsWith('#')) {
+            hex = '#' + hex;
+        }
+
+        if (target === 'hex') {
+            return hex;
+        }
+        if (target === 'rgb') {
+            var rgb = hexToRgb(hex);
+            return rgb.r + ',' + rgb.g + ',' + rgb.b;
+        }
+        if (target === 'hsv') {
+            var rgbHsv = hexToRgb(hex);
+            var hsv = rgbToHsv(rgbHsv.r, rgbHsv.g, rgbHsv.b);
+            return JSON.stringify({ hsv: hsv.h + ',' + hsv.s + ',' + hsv.v });
+        }
+        if (target === 'hsl') {
+            var rgbHsl = hexToRgb(hex);
+            var hsl = rgbToHsl(rgbHsl.r, rgbHsl.g, rgbHsl.b);
+            return JSON.stringify({ hsl: hsl.h + ',' + hsl.s + ',' + hsl.l });
+        }
+        if (target === 'hsb') {
+            var rgbHsb = hexToRgb(hex);
+            var hsb = rgbToHsv(rgbHsb.r, rgbHsb.g, rgbHsb.b);
+            return JSON.stringify({ hsb: hsb.h + ',' + hsb.s + ',' + hsb.v });
+        }
+        if (target === 'xy') {
+            var rgbXy = hexToRgb(hex);
+            var xy = rgbToXy(rgbXy.r, rgbXy.g, rgbXy.b);
+            return JSON.stringify({ x: xy.x, y: xy.y });
+        }
+        if (target === 'hs') {
+            var rgbHs = hexToRgb(hex);
+            var hsvHs = rgbToHsv(rgbHs.r, rgbHs.g, rgbHs.b);
+            return JSON.stringify({ hue: hsvHs.h, saturation: hsvHs.s });
+        }
+        if (writeFormat === 'auto') {
+            return hex;
+        }
+        return hex;
+    }
+
+    function syncColorJsonFromHex() {
+        var jsonField = document.getElementById('value-color-json');
+        if (!jsonField || jsonField.style.display === 'none') {
+            return;
+        }
+        var hexText = document.getElementById('value-color-hex-text');
+        if (!hexText) {
+            return;
+        }
+        var built = buildColorWriteValue(hexText.value.trim(), currentPropertyParams);
+        if (String(built).trim().startsWith('{')) {
+            try {
+                jsonField.value = JSON.stringify(JSON.parse(built), null, 2);
+            } catch (e) {
+                jsonField.value = built;
+            }
+        } else {
+            jsonField.value = built;
+        }
+    }
+
+    function xyzToRgb(x, y, z) {
+        x = parseFloat(x) / 100.0;
+        y = parseFloat(y) / 100.0;
+        z = parseFloat(z) / 100.0;
+        var r = x * 3.2406 + y * -1.5372 + z * -0.4986;
+        var g = x * -0.9689 + y * 1.8758 + z * 0.0415;
+        var b = x * 0.0557 + y * -0.2040 + z * 1.0570;
+        function gamma(val) {
+            return val > 0.0031308 ? (1.055 * Math.pow(val, 1 / 2.4) - 0.055) : (12.92 * val);
+        }
+        return {
+            r: Math.max(0, Math.min(255, Math.round(gamma(r) * 255))),
+            g: Math.max(0, Math.min(255, Math.round(gamma(g) * 255))),
+            b: Math.max(0, Math.min(255, Math.round(gamma(b) * 255)))
+        };
+    }
+
+    function xyToRgb(x, y, luminance) {
+        var Y = luminance === undefined ? 1.0 : parseFloat(luminance);
+        x = parseFloat(x);
+        y = parseFloat(y);
+        if (!y) {
+            return { r: 0, g: 0, b: 0 };
+        }
+        var X = (x / y) * Y * 100;
+        var Z = ((1 - x - y) / y) * Y * 100;
+        return xyzToRgb(X, Y * 100, Z);
+    }
+
+    function hslToRgb(h, s, l) {
+        h = ((parseFloat(h) % 360) + 360) % 360 / 360;
+        s = Math.max(0, Math.min(100, parseFloat(s))) / 100;
+        l = Math.max(0, Math.min(100, parseFloat(l))) / 100;
+        if (s === 0) {
+            var gray = Math.round(l * 255);
+            return { r: gray, g: gray, b: gray };
+        }
+        function hue2rgb(p, q, t) {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        }
+        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        var p = 2 * l - q;
+        return {
+            r: Math.round(hue2rgb(p, q, h + 1 / 3) * 255),
+            g: Math.round(hue2rgb(p, q, h) * 255),
+            b: Math.round(hue2rgb(p, q, h - 1 / 3) * 255)
+        };
+    }
+
+    function kelvinToRgb(kelvin) {
+        var temp = parseFloat(kelvin) / 100.0;
+        var r, g, b;
+        if (temp <= 66) {
+            r = 255;
+            g = 99.4708025861 * Math.log(temp) - 161.1195681661;
+        } else {
+            r = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
+            g = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
+        }
+        if (temp >= 66) {
+            b = 255;
+        } else if (temp <= 19) {
+            b = 0;
+        } else {
+            b = 138.5177312231 * Math.log(temp - 10) - 305.0447927307;
+        }
+        return {
+            r: Math.max(0, Math.min(255, Math.round(r))),
+            g: Math.max(0, Math.min(255, Math.round(g))),
+            b: Math.max(0, Math.min(255, Math.round(b)))
+        };
+    }
+
+    function colorPartsToRgb(parts) {
+        if (!parts || parts.length < 2) {
+            return null;
+        }
+        return {
+            r: parseInt(parts[0], 10),
+            g: parseInt(parts[1], 10),
+            b: parseInt(parts[2], 10)
+        };
+    }
+
+    function colorObjectToRgb(obj) {
+        if (!obj || typeof obj !== 'object') {
+            return null;
+        }
+        if (obj.color && typeof obj.color === 'object') {
+            return colorObjectToRgb(obj.color);
+        }
+        if (obj.hex) {
+            return hexToRgb(String(obj.hex).replace('#', ''));
+        }
+        if (obj.rgb && Array.isArray(obj.rgb) && obj.rgb.length >= 3) {
+            return { r: obj.rgb[0], g: obj.rgb[1], b: obj.rgb[2] };
+        }
+        if (obj.r !== undefined && obj.g !== undefined && obj.b !== undefined) {
+            return { r: obj.r, g: obj.g, b: obj.b };
+        }
+        if (obj.x !== undefined && obj.y !== undefined) {
+            return xyToRgb(obj.x, obj.y);
+        }
+        if (obj.xy && Array.isArray(obj.xy) && obj.xy.length >= 2) {
+            return xyToRgb(obj.xy[0], obj.xy[1]);
+        }
+        if (obj.hsv) {
+            var hsvParts = String(obj.hsv).split(',').map(function(p) { return p.trim(); });
+            if (hsvParts.length >= 3) {
+                return hsvToRgb(hsvParts[0], hsvParts[1], hsvParts[2]);
+            }
+        }
+        if (obj.hsl) {
+            var hslParts = String(obj.hsl).split(',').map(function(p) { return p.trim(); });
+            if (hslParts.length >= 3) {
+                return hslToRgb(hslParts[0], hslParts[1], hslParts[2]);
+            }
+        }
+        if (obj.hsb) {
+            var hsbParts = String(obj.hsb).split(',').map(function(p) { return p.trim(); });
+            if (hsbParts.length >= 3) {
+                return hsvToRgb(hsbParts[0], hsbParts[1], hsbParts[2]);
+            }
+        }
+        if (obj.hue !== undefined && obj.saturation !== undefined) {
+            return hsvToRgb(obj.hue, obj.saturation, 100);
+        }
+        if (obj.color_temp !== undefined) {
+            return kelvinToRgb(obj.color_temp);
+        }
+        if (obj.mired !== undefined) {
+            var kelvin = Math.round(1000000 / parseFloat(obj.mired));
+            return kelvinToRgb(kelvin);
+        }
+        return null;
+    }
+
+    function hsvToRgb(h, s, v) {
+        h = ((parseFloat(h) % 360) + 360) % 360;
+        s = Math.max(0, Math.min(100, parseFloat(s))) / 100;
+        v = Math.max(0, Math.min(100, parseFloat(v))) / 100;
+        var c = v * s;
+        var x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        var m = v - c;
+        var rp = 0, gp = 0, bp = 0;
+        if (h < 60) { rp = c; gp = x; }
+        else if (h < 120) { rp = x; gp = c; }
+        else if (h < 180) { gp = c; bp = x; }
+        else if (h < 240) { gp = x; bp = c; }
+        else if (h < 300) { rp = x; bp = c; }
+        else { rp = c; bp = x; }
+        return {
+            r: Math.round((rp + m) * 255),
+            g: Math.round((gp + m) * 255),
+            b: Math.round((bp + m) * 255)
+        };
+    }
+
+    function colorValueToCss(value) {
+        if (value == null || value === '' || value === 'None' || value === 'null') {
+            return null;
+        }
+        var s = String(value).trim();
+        if (s.charAt(0) === '#') {
+            if (/^#[0-9a-fA-F]{6}$/.test(s)) {
+                return s;
+            }
+            if (/^#[0-9a-fA-F]{3}$/.test(s)) {
+                return '#' + s[1] + s[1] + s[2] + s[2] + s[3] + s[3];
+            }
+        }
+        if (/^[0-9a-fA-F]{6}$/.test(s)) {
+            return '#' + s;
+        }
+        if (/^\s*\d+\s*,\s*\d+\s*,\s*\d+\s*$/.test(s)) {
+            var rgbParts = s.split(',').map(function(p) { return p.trim(); });
+            var csvRgb = colorPartsToRgb(rgbParts);
+            if (csvRgb) {
+                return rgbToHex(csvRgb.r, csvRgb.g, csvRgb.b);
+            }
+        }
+        try {
+            var o = (typeof value === 'object') ? value : JSON.parse(s);
+            var rgb = colorObjectToRgb(o);
+            if (rgb) {
+                return rgbToHex(rgb.r, rgb.g, rgb.b);
+            }
+        } catch (e) {}
+        if (/^\d+$/.test(s)) {
+            var kRgb = kelvinToRgb(s);
+            return rgbToHex(kRgb.r, kRgb.g, kRgb.b);
+        }
+        return null;
+    }
+
+    function updatePropertyColorSwatch(propertyName, value) {
+        var swatchWrap = document.getElementById('prop_swatch:' + propertyName);
+        if (!swatchWrap) {
+            return;
+        }
+        var swatch = swatchWrap.querySelector('.property-color-swatch');
+        if (!swatch) {
+            return;
+        }
+        var css = colorValueToCss(value);
+        if (css) {
+            swatch.style.backgroundColor = css;
+            swatchWrap.title = css;
+        } else {
+            swatch.style.backgroundColor = '#e9ecef';
+            swatchWrap.title = '';
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -786,6 +1333,22 @@
                     }
                 }
             });
+            var propInfo = propertiesInfo[msg.property];
+            if (propInfo && propInfo.type === 'color') {
+                updatePropertyColorSwatch(msg.property, msg.value);
+            }
+        });
+
+        Object.keys(propertiesInfo).forEach(function(propertyName) {
+            if (propertiesInfo[propertyName].type !== 'color') {
+                return;
+            }
+            var element = document.getElementById('prop:' + propertyName);
+            if (!element) {
+                return;
+            }
+            var rawValue = element.tagName === 'TEXTAREA' ? element.value : element.textContent;
+            updatePropertyColorSwatch(propertyName, rawValue);
         });
     })
 
@@ -853,6 +1416,23 @@
             case 'dict':
             case 'list':
                 return document.getElementById('value-json').value;
+            case 'color':
+                var hexInput = document.getElementById('value-color-hex-text');
+                var jsonInput = document.getElementById('value-color-json');
+                var hexValue = hexInput ? hexInput.value.trim() : '';
+                var jsonVisible = jsonInput && jsonInput.style.display !== 'none';
+                if (jsonVisible) {
+                    return buildColorWriteValue(hexValue, currentPropertyParams);
+                }
+                var fmt = (currentPropertyParams.write_format || 'auto').toLowerCase();
+                if (fmt === 'hex' || fmt === 'auto') {
+                    return hexValue;
+                }
+                if (fmt === 'rgb') {
+                    var rgb = hexToRgb(hexValue);
+                    return rgb.r + ',' + rgb.g + ',' + rgb.b;
+                }
+                return buildColorWriteValue(hexValue, currentPropertyParams);
             default:
                 return document.getElementById('value-default').value;
         }
@@ -919,6 +1499,9 @@
                 } catch(e) {
                     document.getElementById('value-json').value = value || '';
                 }
+                break;
+            case 'color':
+                setColorEditorValue(value);
                 break;
             default:
                 document.getElementById('value-default').value = value || '';
@@ -993,6 +1576,32 @@
                 JSON.parse(value);
             } catch(e) {
                 return '{{ _("Invalid JSON format")}}: ' + e.message;
+            }
+        }
+
+        if (currentPropertyType === 'color') {
+            var hexInput = document.getElementById('value-color-hex-text');
+            var hexText = hexInput ? String(hexInput.value || '').trim() : '';
+
+            function validateHexColor(hex) {
+                if (!/^#?[0-9a-fA-F]{6}$/.test(hex)) {
+                    return '{{ _("Value does not match required format")}}';
+                }
+                return null;
+            }
+
+            var hexErr = validateHexColor(hexText || String(value || '').trim());
+            if (hexErr) {
+                return hexErr;
+            }
+
+            var payload = String(value || '').trim();
+            if (payload.startsWith('{') || payload.startsWith('[')) {
+                try {
+                    JSON.parse(payload);
+                } catch (e) {
+                    return '{{ _("Invalid JSON format")}}: ' + e.message;
+                }
             }
         }
         
@@ -1104,10 +1713,117 @@
                     }
                 }
             }
+
+            if (type === 'color') {
+                setupColorEditor(params, value);
+            }
             
             // Установить текущее значение
             setEditorValue(value);
+            if (type === 'color') {
+                syncColorJsonFromHex();
+            }
         }
+    }
+
+    function hexToRgb(hex) {
+        var clean = String(hex || '').trim().replace('#', '');
+        if (clean.length === 3) {
+            clean = clean[0] + clean[0] + clean[1] + clean[1] + clean[2] + clean[2];
+        }
+        var num = parseInt(clean, 16);
+        return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+    }
+
+    function rgbToHex(r, g, b) {
+        function toHex(c) {
+            var v = Math.max(0, Math.min(255, parseInt(c, 10) || 0));
+            return ('0' + v.toString(16)).slice(-2);
+        }
+        return '#' + toHex(r) + toHex(g) + toHex(b);
+    }
+
+    function setupColorEditor(params, value) {
+        var hint = document.getElementById('hint-color');
+        var readFormat = (params.read_format || 'canonical').toLowerCase();
+        var writeFormat = (params.write_format || 'auto').toLowerCase();
+        hint.textContent = 'read_format=' + readFormat + ' | write_format=' + writeFormat;
+
+        var jsonField = document.getElementById('value-color-json');
+        var showJson = writeFormat === 'zigbee2mqtt' || writeFormat === 'xy' || writeFormat === 'canonical';
+        if (writeFormat === 'auto' && readFormat !== 'hex' && readFormat !== 'rgb') {
+            showJson = true;
+        }
+        jsonField.style.display = showJson ? 'block' : 'none';
+        if (!showJson) {
+            jsonField.value = '';
+        }
+    }
+
+    function setColorEditorValue(value) {
+        var hexText = document.getElementById('value-color-hex-text');
+        var hexPicker = document.getElementById('value-color-hex-picker');
+        var jsonField = document.getElementById('value-color-json');
+
+        if (value && typeof value === 'string' && value.trim().startsWith('{')) {
+            jsonField.value = value;
+            try {
+                var parsed = JSON.parse(value);
+                var previewHex = colorValueToCss(parsed);
+                if (previewHex) {
+                    hexText.value = previewHex;
+                    hexPicker.value = previewHex;
+                } else if (parsed.color && parsed.color.hex) {
+                    hexText.value = parsed.color.hex;
+                    hexPicker.value = parsed.color.hex;
+                }
+            } catch (e) {}
+            return;
+        }
+
+        if (value && typeof value === 'string' && value.trim().startsWith('#')) {
+            hexText.value = value.trim();
+            hexPicker.value = value.trim();
+            jsonField.value = '';
+            return;
+        }
+
+        if (value && typeof value === 'object') {
+            if (value.r !== undefined && value.g !== undefined && value.b !== undefined) {
+                var hex = rgbToHex(value.r, value.g, value.b);
+                hexText.value = hex;
+                hexPicker.value = hex;
+                jsonField.value = '';
+                return;
+            }
+            var objectHex = colorValueToCss(value);
+            jsonField.value = JSON.stringify(value, null, 2);
+            if (objectHex) {
+                hexText.value = objectHex;
+                hexPicker.value = objectHex;
+            }
+            return;
+        }
+
+        hexText.value = '#ffffff';
+        hexPicker.value = '#ffffff';
+        jsonField.value = '';
+    }
+
+    var colorPickerEl = document.getElementById('value-color-hex-picker');
+    var colorTextEl = document.getElementById('value-color-hex-text');
+    if (colorPickerEl && colorTextEl) {
+        colorPickerEl.addEventListener('input', function() {
+            colorTextEl.value = colorPickerEl.value;
+            syncColorJsonFromHex();
+        });
+        colorTextEl.addEventListener('input', function() {
+            var v = colorTextEl.value.trim();
+            if (/^#?[0-9a-fA-F]{6}$/.test(v)) {
+                colorPickerEl.value = v.startsWith('#') ? v : ('#' + v);
+            }
+            syncColorJsonFromHex();
+        });
     }
     
     // Функция для открытия модального окна

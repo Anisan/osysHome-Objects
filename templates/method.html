@@ -1,14 +1,16 @@
 {% extends "objects_shell.html" %}
 {% from "macros/code_editor.html" import render_editor %}
+{% from "includes/objects_breadcrumb.html" import breadcrumb_method with context %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="Objects">{{ _('Objects')}}</a></li>
-{% if class %}
-<li class="breadcrumb-item"><a href="Objects?view=class&class={{class.id}}&tab=methods">{{class.name}}</a></li>
-{%endif%}
-{% if object %}
-<li class="breadcrumb-item"><a href="Objects?view=object&object={{object.id}}&tab=methods">{{object.name}}</a></li>
-{% endif %}
+{{ breadcrumb_method(
+    class_hierarchy,
+    object.id if object else None,
+    object.name if object else None,
+    id,
+    form.name.data if id else None,
+    request.args.get('op', '')
+) }}
 {% endblock %}
 
 {% block module_content %}
@@ -84,7 +86,7 @@
   </button>
   {% if object %}
   <a href="?view=object&object={{object.id}}&tab=methods" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
-  <a href="#" class="btn btn-success" onClick="callMethodWithResult('{{object.name}}.{{form.name.data}}')" role="button"><i class="fas fa-play me-2"></i>{{ _('Run')}}</a>
+  <a href="#" class="btn btn-success" onClick="return runCurrentMethod()" role="button"><i class="fas fa-play me-2"></i>{{ _('Run')}}</a>
   {% else %}
   <a href="?view=class&class={{class.id}}&tab=methods" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
   {% endif %}
@@ -92,12 +94,26 @@
 
 {% if object %}
 <div class="alert alert-info mt-3">
-    <i class="fas fa-exclamation-circle me-3"></i>callMethod('{{object.name}}.{{form.name.data}}');
+    <i class="fas fa-exclamation-circle me-3"></i>callMethod('{{object.name}}.<span id="method-name-preview">{{ form.name.data or '' }}</span>');
 </div>
 {%endif%}
 </div>
 
 <script>
+function runCurrentMethod() {
+    const nameField = document.getElementById('name');
+    const preview = document.getElementById('method-name-preview');
+    const methodName = nameField ? nameField.value.trim() : '';
+    if (preview) {
+        preview.textContent = methodName;
+    }
+    if (!methodName) {
+        return false;
+    }
+    callMethodWithResult('{{object.name}}.' + methodName);
+    return false;
+}
+
 function toggleHiddenField() {
     var checkbox = document.getElementById('checkbox');
     var hiddenField = document.getElementById('hidden_field_wrapper');
@@ -234,6 +250,15 @@ async function submitForm(event) {
 // Ensure the field visibility is correct on page load if the checkbox is checked
 document.addEventListener('DOMContentLoaded', function() {
     toggleHiddenField();
+    const nameField = document.getElementById('name');
+    const preview = document.getElementById('method-name-preview');
+    if (nameField && preview) {
+        const syncPreview = () => {
+            preview.textContent = nameField.value.trim();
+        };
+        nameField.addEventListener('input', syncPreview);
+        syncPreview();
+    }
 });
 </script>
 

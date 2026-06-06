@@ -4,6 +4,7 @@ from app.database import db, convert_utc_to_local, get_now_to_utc, convert_local
 from sqlalchemy import delete
 from flask import redirect, render_template
 from app.core.models.Clasess import Object, Property, Method
+from plugins.Objects.forms.utils import get_class_hierarchy
 from app.core.models.Tasks import Task
 from app.core.lib.common import getJob
 from app.core.lib.crontab import nextStartCronJob
@@ -115,5 +116,6 @@ def routeSchedule(request):
         'object_name': obj.name,
         'tab': tab,
         'form':form,
+        'class_hierarchy': get_class_hierarchy(obj.class_id),
     }
     return render_template('object_schedule.html', **content)
