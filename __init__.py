@@ -15,6 +15,8 @@ from plugins.Objects.tree_cache import (
     get_objects_tree_payload,
     attach_object_templates,
 )
+from plugins.Objects.class_tools import routeClassTools
+from plugins.Objects.object_tools import routeObjectTools
 
 class Objects(BasePlugin):
 
@@ -52,6 +54,10 @@ class Objects(BasePlugin):
                 'tab': None,
             }
             return render_template('objects_permissions.html', **content)
+        elif view == "class_tool":
+            return routeClassTools(request)
+        elif view == "object_tool":
+            return routeObjectTools(request)
         elif view == "reload":
             from app.core.main.ObjectsStorage import objects_storage
             typeReload = args.get('type', None)

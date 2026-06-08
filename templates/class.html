@@ -216,6 +216,29 @@
       }
     }
 
+    #myTabContent > .tab-pane:not(.show) {
+      display: none !important;
+    }
+
+    #tools .card {
+      border-color: rgba(var(--bs-secondary-rgb), 0.45) !important;
+    }
+
+    #tools .card-header {
+      border-bottom-color: rgba(var(--bs-secondary-rgb), 0.35);
+      background-color: rgba(var(--bs-secondary-rgb), 0.06);
+    }
+
+    #tools .card-body.d-flex {
+      align-items: flex-start;
+    }
+
+    #tools .card-body .btn {
+      flex: 0 0 auto;
+      width: auto;
+      align-self: auto;
+    }
+
     @media (max-width: 575.98px) {
       #myTabContent .table td:last-child .btn,
       #myTabContent .table th:last-child .btn {
@@ -278,9 +301,9 @@
         <a href="?view=object&class={{id}}" class="btn btn-primary btn-sm tab-add-action" title="{{ _('Add object')}}"><i class="fas fa-plus"></i></a>
     </li>
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}" href="#template_tab" data-bs-toggle="tab" role="tab">{{ _('Template')}}</a></li>
-    <li class="nav-item"><a class="nav-link tab-button" href="?view=class&class={{id}}&tab=permissions">{{ _('Permissions')}}</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'permissions'%} active{%endif%}" href="?view=class&class={{id}}&tab=permissions">{{ _('Permissions')}}</a></li>
     <li class="nav-item flex-grow-1"></li>
-    <li class="nav-item"><a class="nav-link tab-button" data-bs-toggle="tab" href="#tools">{{ _('Tools')}}</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'tools'%} active{%endif%}" id="tools-tab" href="#tools" data-bs-toggle="tab" role="tab" aria-controls="tools">{{ _('Tools')}}</a></li>
     {%endif%}
 </ul>
 {% if id %}
@@ -731,24 +754,256 @@
             </div>
         </form>
     </div>
-    <div class="tab-pane fade" id="tools" role="tabpanel" aria-labelledby="tools-tab">
-        <div class="form-group  mb-2">
-            <label>
-            <input type="checkbox" class="form-check-input" id="include_objects">
-            {{ _('Include objects')}}
-            </label>
+    <div class="tab-pane fade {% if tab == 'tools'%}show active{%endif%}" id="tools" role="tabpanel" aria-labelledby="tools-tab">
+        <div id="classToolsStatus" class="alert d-none mb-3" role="alert"></div>
+        <div class="alert alert-light border small mb-3" role="note">
+            <i class="fas fa-info-circle me-2 text-muted"></i>{{ _('Class tools apply to objects of this class and all descendant classes. Bulk create adds objects only to this class.') }}
         </div>
 
-        <div class="form-group mb-2">
-            <label>
-            <input type="checkbox" class="form-check-input" id="include_children">
-            {{ _('Include children')}}
-            </label>
-        </div>
+        <div class="row g-3">
+            <div class="col-12">
+                <h6 class="text-muted text-uppercase small mb-0">{{ _('Objects management')}}</h6>
+            </div>
 
-        <button class="btn btn-primary btn-sm" onclick="downloadFile()"><i class="fas fa-file-export me-2"></i>{{ _('Export class')}}</button>
+            <div class="col-lg-6">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fas fa-plus-square me-2 text-primary"></i>{{ _('Bulk create objects')}}</div>
+                    <div class="card-body">
+                        <div class="row g-2 mb-2">
+                            <div class="col-sm-6">
+                                <label class="form-label" for="bulkCreatePrefix">{{ _('Name prefix')}}</label>
+                                <input type="text" class="form-control form-control-sm" id="bulkCreatePrefix" placeholder="Device">
+                            </div>
+                            <div class="col-sm-3">
+                                <label class="form-label" for="bulkCreateSeparator">{{ _('Separator')}}</label>
+                                <input type="text" class="form-control form-control-sm" id="bulkCreateSeparator" value="_" maxlength="3">
+                            </div>
+                            <div class="col-sm-3">
+                                <label class="form-label" for="bulkCreateStart">{{ _('Start index')}}</label>
+                                <input type="number" class="form-control form-control-sm" id="bulkCreateStart" value="1" min="0">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-sm-4">
+                                <label class="form-label" for="bulkCreateCount">{{ _('Count')}}</label>
+                                <input type="number" class="form-control form-control-sm" id="bulkCreateCount" value="1" min="1" max="100">
+                            </div>
+                            <div class="col-sm-8">
+                                <label class="form-label" for="bulkCreateDescription">{{ _('Description')}}</label>
+                                <input type="text" class="form-control form-control-sm" id="bulkCreateDescription" placeholder="{{ _('Description')}}">
+                            </div>
+                        </div>
+                        <div class="form-text text-muted mb-2">{{ _('Example')}}: Device + _ + 1 → Device_1</div>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="bulkCreateObjects()">
+                            <i class="fas fa-plus me-2"></i>{{ _('Create objects')}}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fas fa-trash-alt me-2 text-danger"></i>{{ _('Bulk delete objects')}}</div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">{{ _('Delete all objects of this class permanently.')}}</p>
+                        {% if tools_objects %}
+                        <div class="form-text text-muted mb-2">{{ _('Objects')}}: {{ tools_objects|length }}</div>
+                        {% endif %}
+                        <button type="button" class="btn btn-danger btn-sm" onclick="bulkDeleteObjects()" {% if not tools_objects %}disabled{% endif %}>
+                            <i class="fas fa-trash me-2"></i>{{ _('Delete all objects')}}
+                        </button>
+                        {% if not tools_objects %}
+                        <div class="form-text text-muted mt-2">{{ _('No objects in this class')}}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 mt-2">
+                <h6 class="text-muted text-uppercase small mb-0">{{ _('Bulk values and methods')}}</h6>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fa-solid fa-gears me-2 text-warning"></i>{{ _('Run method on all objects')}}</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="bulkMethodSelect">{{ _('Select method')}}</label>
+                            <select class="form-select form-select-sm" id="bulkMethodSelect" {% if not methods and not parent_methods %}disabled{% endif %}>
+                                <option value="">{{ _('Select method')}}...</option>
+                                {% for method in methods %}
+                                <option value="{{ method.name }}">{{ method.name }}{% if method.description %} — {{ method.description }}{% endif %}</option>
+                                {% endfor %}
+                                {% for method in parent_methods %}
+                                    {% set method_overridden = namespace(found=false) %}
+                                    {% for m in methods %}
+                                        {% if m.name == method.name %}{% set method_overridden.found = true %}{% endif %}
+                                    {% endfor %}
+                                    {% if not method_overridden.found %}
+                                <option value="{{ method.name }}">{{ method.name }}{% if method.description %} — {{ method.description }}{% endif %} ({{ _('Parent') }})</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            {% if not methods and not parent_methods %}
+                            <div class="form-text text-muted">{{ _('No methods available')}}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-text text-muted mb-2">{{ _('Results of each method call will be shown in a summary dialog.')}}</div>
+                        <button type="button" class="btn btn-warning btn-sm" id="bulkRunMethodBtn" onclick="runMethodOnAllObjects()" {% if not tools_objects %}disabled{% endif %}>
+                            <i class="fa-solid fa-play me-2"></i>{{ _('Run on all')}}
+                        </button>
+                        {% if not tools_objects %}
+                        <div class="form-text text-muted mt-2">{{ _('No objects in this class')}}</div>
+                        {% else %}
+                        <div class="form-text text-muted mt-2">{{ _('Objects')}}: {{ tools_objects|length }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fas fa-sliders-h me-2 text-success"></i>{{ _('Set property on all objects')}}</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="bulkPropertySelect">{{ _('Select property')}}</label>
+                            <select class="form-select form-select-sm" id="bulkPropertySelect" {% if not properties and not parent_properties %}disabled{% endif %}>
+                                <option value="">{{ _('Select property')}}...</option>
+                                {% for property in properties %}
+                                <option value="{{ property.name }}" data-type="{{ property.type }}">{{ property.name }} ({{ property.type }}){% if property.description %} — {{ property.description }}{% endif %}</option>
+                                {% endfor %}
+                                {% for property in parent_properties %}
+                                    {% set property_overridden = namespace(found=false) %}
+                                    {% for p in properties %}
+                                        {% if p.name == property.name %}{% set property_overridden.found = true %}{% endif %}
+                                    {% endfor %}
+                                    {% if not property_overridden.found %}
+                                <option value="{{ property.name }}" data-type="{{ property.type }}">{{ property.name }} ({{ property.type }}){% if property.description %} — {{ property.description }}{% endif %} ({{ _('Parent') }})</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            {% if not properties and not parent_properties %}
+                            <div class="form-text text-muted">{{ _('No properties available')}}</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="bulkPropertyValue">{{ _('Property value')}}</label>
+                            <input type="text" class="form-control form-control-sm" id="bulkPropertyValue" placeholder="{{ _('Enter new value')}}">
+                            <div class="form-text text-muted">{{ _('For bool use 1/0 or true/false. For JSON types use valid JSON.')}}</div>
+                        </div>
+                        <button type="button" class="btn btn-success btn-sm" id="bulkSetPropertyBtn" onclick="setPropertyOnAllObjects()" {% if not tools_objects %}disabled{% endif %}>
+                            <i class="fas fa-check me-2"></i>{{ _('Set on all')}}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 mt-2">
+                <h6 class="text-muted text-uppercase small mb-0">{{ _('Maintenance')}}</h6>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fas fa-rotate me-2 text-info"></i>{{ _('Reload class in runtime')}}</div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">{{ _('Reload all cached objects of this class from the database without server restart.')}}</p>
+                        <button type="button" class="btn btn-info btn-sm" onclick="reloadClassRuntime()">
+                            <i class="fas fa-sync me-2"></i>{{ _('Reload runtime')}}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fas fa-history me-2 text-secondary"></i>{{ _('Clear property history')}}</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="clearHistoryPropertySelect">{{ _('Select property')}}</label>
+                            <select class="form-select form-select-sm" id="clearHistoryPropertySelect" {% if not properties and not parent_properties %}disabled{% endif %}>
+                                <option value="">{{ _('Select property')}}...</option>
+                                {% for property in properties %}
+                                    {% if property.history and property.history > 0 %}
+                                <option value="{{ property.name }}">{{ property.name }} ({{ _('History')}}: {{ property.history }} {{ _('days')}})</option>
+                                    {% endif %}
+                                {% endfor %}
+                                {% for property in parent_properties %}
+                                    {% set property_overridden = namespace(found=false) %}
+                                    {% for p in properties %}
+                                        {% if p.name == property.name %}{% set property_overridden.found = true %}{% endif %}
+                                    {% endfor %}
+                                    {% if not property_overridden.found and property.history and property.history > 0 %}
+                                <option value="{{ property.name }}">{{ property.name }} ({{ _('Parent') }}, {{ _('History')}}: {{ property.history }} {{ _('days')}})</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div class="form-text text-muted">{{ _('Deletes all history records for the selected property on all class objects.')}}</div>
+                        </div>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearPropertyHistory()" {% if not tools_objects %}disabled{% endif %}>
+                            <i class="fas fa-eraser me-2"></i>{{ _('Clear history')}}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 mt-2">
+                <h6 class="text-muted text-uppercase small mb-0">{{ _('Export')}}</h6>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fas fa-file-export me-2 text-primary"></i>{{ _('Export class')}}</div>
+                    <div class="card-body">
+                        <div class="form-check mb-2">
+                            <input type="checkbox" class="form-check-input" id="include_objects">
+                            <label class="form-check-label" for="include_objects">{{ _('Include objects')}}</label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="include_children">
+                            <label class="form-check-label" for="include_children">{{ _('Include children')}}</label>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="downloadFile()">
+                            <i class="fas fa-download me-2"></i>{{ _('Export class')}}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<div class="modal fade" id="bulkMethodResultModal" tabindex="-1" aria-labelledby="bulkMethodResultModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkMethodResultModalLabel">{{ _('Bulk method results')}}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close')}}"></button>
+            </div>
+            <div class="modal-body">
+                <div id="bulkMethodResultSummary" class="mb-3 d-flex flex-wrap gap-2"></div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 22%;">{{ _('Object')}}</th>
+                                <th style="width: 10%;">{{ _('Status')}}</th>
+                                <th>{{ _('Result')}}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bulkMethodResultTable"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary me-auto" id="bulkMethodResultCopyBtn">
+                    <i class="fa-regular fa-copy me-1"></i>{{ _('Copy')}}
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Close')}}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
   <script>
   (function applyCompactViewClass() {
     if (typeof Storage !== 'undefined' && (localStorage.getItem('objectsCompactView') === '1' || localStorage.getItem('objectsCompactView') === 'true')) {
@@ -756,7 +1011,9 @@
     }
   })();
 
- function downloadFile() {
+    var classObjectNames = {{ tools_objects | map(attribute='name') | list | tojson }};
+
+    function downloadFile() {
       const baseUrl = '../api/export/class/{{id}}';
       const params = [];
 
@@ -772,13 +1029,337 @@
         ? baseUrl + '?' + params.join('&')
         : baseUrl;
 
-      // Загрузка
       const link = document.createElement('a');
       link.href = fullUrl;
       link.download = '';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    }
+
+    var bulkMethodResultModalInstance = null;
+    var lastBulkMethodReport = '';
+
+    function escapeHtml(text) {
+      return String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function getBulkMethodResultModal() {
+      var element = document.getElementById('bulkMethodResultModal');
+      if (!element || typeof bootstrap === 'undefined') {
+        return null;
+      }
+      if (!bulkMethodResultModalInstance) {
+        bulkMethodResultModalInstance = bootstrap.Modal.getOrCreateInstance(element);
+      }
+      return bulkMethodResultModalInstance;
+    }
+
+    function buildBulkMethodReport(data) {
+      var lines = [];
+      var methodName = data.method || '';
+      lines.push('{{ _("Bulk method results") }}: ' + methodName);
+      lines.push('{{ _("Success") }}: ' + (data.ok_count || 0) + ', {{ _("Errors") }}: ' + (data.error_count || 0));
+      lines.push('');
+      (data.results || []).forEach(function(item) {
+        lines.push(item.object + ':');
+        if (item.success) {
+          lines.push(item.result || '{{ _("Empty") }}');
+        } else {
+          lines.push('{{ _("Error") }}: ' + (item.error || ''));
+        }
+        lines.push('');
+      });
+      return lines.join('\n').trim();
+    }
+
+    function showBulkMethodResults(data) {
+      var summary = document.getElementById('bulkMethodResultSummary');
+      var tableBody = document.getElementById('bulkMethodResultTable');
+      var title = document.getElementById('bulkMethodResultModalLabel');
+      if (!summary || !tableBody) {
+        return;
+      }
+
+      if (title) {
+        title.textContent = '{{ _("Bulk method results") }}: ' + (data.method || '');
+      }
+
+      summary.innerHTML = ''
+        + '<span class="badge bg-primary">{{ _("Method") }}: ' + escapeHtml(data.method || '') + '</span>'
+        + '<span class="badge bg-success">{{ _("Success") }}: ' + (data.ok_count || 0) + '</span>'
+        + '<span class="badge bg-danger">{{ _("Errors") }}: ' + (data.error_count || 0) + '</span>'
+        + '<span class="badge bg-secondary">{{ _("Total") }}: ' + (data.total_count || 0) + '</span>';
+
+      tableBody.innerHTML = '';
+      (data.results || []).forEach(function(item) {
+        var row = document.createElement('tr');
+        var statusBadge = item.success
+          ? '<span class="badge bg-success">{{ _("OK") }}</span>'
+          : '<span class="badge bg-danger">{{ _("Error") }}</span>';
+        var resultText = item.success
+          ? (item.result ? escapeHtml(item.result) : '<span class="text-muted">{{ _("Empty") }}</span>')
+          : '<span class="text-danger">' + escapeHtml(item.error || '{{ _("Error") }}') + '</span>';
+        row.innerHTML = ''
+          + '<td class="font-monospace">' + escapeHtml(item.object) + '</td>'
+          + '<td>' + statusBadge + '</td>'
+          + '<td><pre class="mb-0 small" style="white-space: pre-wrap;">' + resultText + '</pre></td>';
+        tableBody.appendChild(row);
+      });
+
+      lastBulkMethodReport = buildBulkMethodReport(data);
+      var modal = getBulkMethodResultModal();
+      if (modal) {
+        modal.show();
+      }
+    }
+
+    function setBulkRunMethodLoading(isLoading) {
+      var button = document.getElementById('bulkRunMethodBtn');
+      if (!button) {
+        return;
+      }
+      button.disabled = isLoading || !classObjectNames.length;
+      if (isLoading) {
+        button.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>{{ _("Running method") }}...';
+      } else {
+        button.innerHTML = '<i class="fa-solid fa-play me-2"></i>{{ _("Run on all") }}';
+      }
+    }
+
+    function runMethodOnAllObjects() {
+      var methodSelect = document.getElementById('bulkMethodSelect');
+      var methodName = methodSelect ? methodSelect.value : '';
+      if (!methodName) {
+        alert('{{ _("Select method") }}');
+        return;
+      }
+      if (!classObjectNames.length) {
+        alert('{{ _("No objects in this class") }}');
+        return;
+      }
+      var confirmMsg = {{ _('Run method %(method)s on %(count)s objects?')|tojson }}
+        .replace('%(method)s', methodName)
+        .replace('%(count)s', classObjectNames.length);
+      if (!confirm(confirmMsg)) {
+        return;
+      }
+
+      setBulkRunMethodLoading(true);
+      classToolRequest('bulk_call_method', {method: methodName})
+        .then(function(data) {
+          showBulkMethodResults(data);
+        })
+        .catch(function(error) {
+          showClassToolsStatus(error.message, true);
+        })
+        .finally(function() {
+          setBulkRunMethodLoading(false);
+        });
+    }
+
+    function parseBulkPropertyValue(rawValue, propertyType) {
+      var trimmed = (rawValue || '').trim();
+      if (propertyType === 'bool') {
+        var lower = trimmed.toLowerCase();
+        if (lower === '1' || lower === 'true') {
+          return '1';
+        }
+        if (lower === '0' || lower === 'false') {
+          return '0';
+        }
+      }
+      if (propertyType === 'dict' || propertyType === 'list' || propertyType === 'enum') {
+        JSON.parse(trimmed);
+        return trimmed;
+      }
+      return trimmed;
+    }
+
+    function setPropertyOnAllObjects() {
+      var propertySelect = document.getElementById('bulkPropertySelect');
+      var valueInput = document.getElementById('bulkPropertyValue');
+      var propertyName = propertySelect ? propertySelect.value : '';
+      var rawValue = valueInput ? valueInput.value : '';
+      if (!propertyName) {
+        alert('{{ _("Select property") }}');
+        return;
+      }
+      if (!rawValue && rawValue !== '0') {
+        alert('{{ _("Enter new value") }}');
+        return;
+      }
+      if (!classObjectNames.length) {
+        alert('{{ _("No objects in this class") }}');
+        return;
+      }
+      var propertyType = '';
+      if (propertySelect && propertySelect.selectedOptions.length) {
+        propertyType = propertySelect.selectedOptions[0].getAttribute('data-type') || '';
+      }
+      var parsedValue;
+      try {
+        parsedValue = parseBulkPropertyValue(rawValue, propertyType);
+      } catch (error) {
+        alert('{{ _("Invalid JSON format") }}');
+        return;
+      }
+      var confirmMsg = {{ _('Set %(property)s to %(value)s on %(count)s objects?')|tojson }}
+        .replace('%(count)s', classObjectNames.length)
+        .replace('%(property)s', propertyName)
+        .replace('%(value)s', parsedValue);
+      if (!confirm(confirmMsg)) {
+        return;
+      }
+      if (typeof setProperty !== 'function') {
+        alert('{{ _("WebSocket is not available") }}');
+        return;
+      }
+      classObjectNames.forEach(function(objectName) {
+        setProperty(objectName + '.' + propertyName, parsedValue);
+      });
+    }
+
+    var classToolsBaseUrl = '?view=class_tool&class={{ id }}';
+
+    function showClassToolsStatus(message, isError) {
+      var status = document.getElementById('classToolsStatus');
+      if (!status) {
+        alert(message);
+        return;
+      }
+      status.className = 'alert mb-0 ' + (isError ? 'alert-danger' : 'alert-success');
+      status.textContent = message;
+      status.classList.remove('d-none');
+    }
+
+    function classToolRequest(op, body) {
+      var options = {
+        method: body ? 'POST' : 'GET',
+        headers: body ? {'Content-Type': 'application/json'} : {}
+      };
+      if (body) {
+        options.body = JSON.stringify(body);
+      }
+      return fetch(classToolsBaseUrl + '&op=' + encodeURIComponent(op), options)
+        .then(function(response) {
+          return response.json().then(function(data) {
+            if (!response.ok) {
+              throw new Error(data.message || '{{ _("An error occurred while saving") }}');
+            }
+            return data;
+          });
+        });
+    }
+
+    function reloadClassRuntime() {
+      if (!confirm({{ _('Reload all objects of this class in runtime?')|tojson }})) {
+        return;
+      }
+      classToolRequest('reload')
+        .then(function(data) {
+          showClassToolsStatus(data.message || '{{ _("Class reloaded in runtime") }}', false);
+        })
+        .catch(function(error) {
+          showClassToolsStatus(error.message, true);
+        });
+    }
+
+    function bulkCreateObjects() {
+      var prefix = (document.getElementById('bulkCreatePrefix') || {}).value || '';
+      var separator = (document.getElementById('bulkCreateSeparator') || {}).value;
+      if (separator === undefined || separator === null) {
+        separator = '_';
+      }
+      var start = parseInt((document.getElementById('bulkCreateStart') || {}).value, 10);
+      var count = parseInt((document.getElementById('bulkCreateCount') || {}).value, 10);
+      var description = (document.getElementById('bulkCreateDescription') || {}).value || '';
+
+      if (!prefix.trim()) {
+        alert('{{ _("Name prefix") }}');
+        return;
+      }
+      if (!count || count < 1) {
+        alert('{{ _("Count") }}');
+        return;
+      }
+      var confirmMsg = {{ _('Create %(count)s objects with prefix %(prefix)s?')|tojson }}
+        .replace('%(count)s', count)
+        .replace('%(prefix)s', prefix.trim());
+      if (!confirm(confirmMsg)) {
+        return;
+      }
+
+      classToolRequest('bulk_create', {
+        prefix: prefix.trim(),
+        separator: separator,
+        start: isNaN(start) ? 1 : start,
+        count: count,
+        description: description.trim()
+      }).then(function(data) {
+        var message = data.message || '';
+        if (data.created_count !== undefined) {
+          message += ' (' + data.created_count + ')';
+        }
+        if (data.skipped_count) {
+          message += '. {{ _("Skipped") }}: ' + data.skipped_count;
+        }
+        showClassToolsStatus(message, false);
+        if (data.created_count > 0) {
+          setTimeout(function() { window.location.href = '?view=class&class={{ id }}&tab=objects'; }, 1200);
+        }
+      }).catch(function(error) {
+        showClassToolsStatus(error.message, true);
+      });
+    }
+
+    function bulkDeleteObjects() {
+      if (!classObjectNames.length) {
+        alert('{{ _("No objects in this class") }}');
+        return;
+      }
+      var confirmMsg = {{ _('Delete all %(count)s objects of this class permanently?')|tojson }}
+        .replace('%(count)s', classObjectNames.length);
+      if (!confirm(confirmMsg)) {
+        return;
+      }
+      classToolRequest('bulk_delete', {})
+        .then(function(data) {
+          showClassToolsStatus((data.message || '') + ' (' + (data.deleted_count || 0) + ')', false);
+          setTimeout(function() { window.location.reload(); }, 1200);
+        })
+        .catch(function(error) {
+          showClassToolsStatus(error.message, true);
+        });
+    }
+
+    function clearPropertyHistory() {
+      var propertySelect = document.getElementById('clearHistoryPropertySelect');
+      var propertyName = propertySelect ? propertySelect.value : '';
+      if (!propertyName) {
+        alert('{{ _("Select property") }}');
+        return;
+      }
+      var confirmMsg = {{ _('Clear history for property %(property)s on all class objects?')|tojson }}
+        .replace('%(property)s', propertyName);
+      if (!confirm(confirmMsg)) {
+        return;
+      }
+      classToolRequest('clear_history', {property: propertyName})
+        .then(function(data) {
+          var message = data.message || '{{ _("History cleared") }}';
+          if (data.deleted_count !== undefined) {
+            message += ' (' + data.deleted_count + ')';
+          }
+          showClassToolsStatus(message, false);
+        })
+        .catch(function(error) {
+          showClassToolsStatus(error.message, true);
+        });
     }
 
     function applyClassObjectsColumnsViewPreference() {
@@ -794,8 +1375,69 @@
       objectsTab.classList.toggle('multi-column-view', isMultiColumn);
     }
 
+    function activateSingleConfigTabPane(activePane) {
+      var tabContent = document.getElementById('myTabContent');
+      if (!tabContent || !activePane) {
+        return;
+      }
+      tabContent.querySelectorAll('.tab-pane').forEach(function(pane) {
+        var isActive = pane === activePane;
+        pane.classList.toggle('show', isActive);
+        pane.classList.toggle('active', isActive);
+      });
+    }
+
+    function initConfigTabsVisibility() {
+      var tabContent = document.getElementById('myTabContent');
+      if (!tabContent) {
+        return;
+      }
+
+      document.querySelectorAll('#configTabs [data-bs-toggle="tab"]').forEach(function(tabLink) {
+        tabLink.addEventListener('shown.bs.tab', function(event) {
+          var targetSelector = event.target.getAttribute('href');
+          if (!targetSelector || targetSelector.charAt(0) !== '#') {
+            return;
+          }
+          var pane = document.querySelector(targetSelector);
+          activateSingleConfigTabPane(pane);
+        });
+      });
+
+      var urlTab = new URLSearchParams(window.location.search).get('tab');
+      var paneIdByTab = {
+        '': 'general',
+        'properties': 'properties',
+        'methods': 'methods',
+        'objects': 'objects',
+        'template': 'template_tab',
+        'tools': 'tools'
+      };
+      if (urlTab !== null && paneIdByTab.hasOwnProperty(urlTab)) {
+        var pane = document.getElementById(paneIdByTab[urlTab]);
+        activateSingleConfigTabPane(pane);
+      } else {
+        var visiblePane = tabContent.querySelector('.tab-pane.show');
+        if (visiblePane) {
+          activateSingleConfigTabPane(visiblePane);
+        }
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       applyClassObjectsColumnsViewPreference();
+      initConfigTabsVisibility();
+      var copyBtn = document.getElementById('bulkMethodResultCopyBtn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+          if (!lastBulkMethodReport) {
+            return;
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(lastBulkMethodReport);
+          }
+        });
+      }
     });
   </script>
 {% include 'includes/code_block_styles.html' %}

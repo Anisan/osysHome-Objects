@@ -87,10 +87,12 @@ Click the **pencil** icon in the class card, or navigate to `Objects?view=class&
 - **Methods** — list of own methods and inherited methods
 - **Objects** — all objects that belong to this class
 - **Template** — Jinja2 HTML template for rendering objects on the Dashboard
-- **Permissions** — access control
-- **Tools** — export this class as JSON
+- **Permissions** — access control (separate page)
+- **Tools** — bulk operations, maintenance, and export (see [Tools Tab](#tools-tab))
 
 The class page also shows a compact summary block with:
+
+Tab switching (General, Properties, Methods, etc.) uses Bootstrap and does **not** reload the page. The Tools tab works the same way.
 
 - Class ID
 - Total properties count (own + inherited)
@@ -189,12 +191,97 @@ Lists all scheduled tasks associated with this object. You can:
 
 #### Permissions Tab
 
-Configure read/write access per user group.
+Opens a separate page (`?tab=permissions`) to configure read/write/execute access per user group.
 
 #### Tools Tab
 
-- **Export object** — download as JSON
-- **Clone object** — create a copy with all properties and values
+Grouped cards for maintenance and bulk actions:
+
+**Maintenance**
+
+| Tool | Description |
+|---|---|
+| Reload runtime | Reload this object from the database into runtime without server restart |
+| Clear property history | Delete history records for one property or for all properties |
+| Clear all links | Reset the `linked` field on all property values |
+| Delete all schedules | Remove all cron tasks associated with this object |
+
+**Copy and export**
+
+| Tool | Description |
+|---|---|
+| Clone object | Create a copy with object-level properties, methods, and values; optional custom name and description copy |
+| Export object | Download full object definition (`GET /api/export/object/<id>`) |
+| Export values | Download a JSON snapshot of current values only |
+
+---
+
+## Tools Tab
+
+The **Tools** tab is available on both class and object detail pages. Actions are grouped into cards with confirmation dialogs for destructive operations.
+
+### Class Tools
+
+Navigate to `Objects?view=class&class=<id>` and open the **Tools** tab.
+
+Class tools operate on objects of this class **and all descendant classes** (child classes down the tree). The object count on tool cards includes this full scope. **Bulk create** is the exception: new objects are always assigned to the current class only.
+
+#### Objects management
+
+- **Bulk create objects** — create up to 100 objects in **this class** with a name pattern: `prefix` + `separator` + index (e.g. `Device_1` … `Device_10`). Existing names are skipped.
+- **Bulk delete objects** — permanently delete all objects of this class and descendant classes (database + runtime).
+
+#### Bulk values and methods
+
+- **Run method on all objects** — executes the selected class method on every object sequentially. A modal shows per-object results (success, return value, or error).
+- **Set property on all objects** — sets the same value on a property for every object via WebSocket (`setProperty`). Supports inherited properties. For `bool` use `1`/`0` or `true`/`false`; for `dict`/`list` use valid JSON.
+
+#### Maintenance
+
+- **Reload class in runtime** — reloads objects of this class and descendant classes from the database into runtime (`reload_objects_by_class`). Use after direct DB edits or plugin changes.
+- **Clear property history** — deletes all `History` rows for the selected property across every object of the class (only properties with history enabled are listed).
+
+#### Export
+
+- **Export class** — download class definition as JSON. Options: **Include objects** (with values), **Include children** (child classes).
+
+### Object Tools
+
+Navigate to `Objects?view=object&object=<id>` and open the **Tools** tab (card layout described in the [Object detail page](#object-detail-page-tabs) section above).
+
+### Tools API
+
+Programmatic access (requires write permission on the class/object):
+
+**Class tools** — `Objects?view=class_tool&class=<id>&op=<operation>`
+
+| `op` | Method | Body (JSON) | Response |
+|---|---|---|---|
+| `reload` | GET or POST | — | `{ success, message }` |
+| `bulk_create` | POST | `prefix`, `separator`, `start`, `count`, `description` | `{ created[], skipped[], created_count }` |
+| `bulk_delete` | POST | — | `{ deleted[], deleted_count }` |
+| `clear_history` | POST | `property` (name) | `{ deleted_count, property }` |
+| `bulk_call_method` | POST | `method` (name) | `{ results[], ok_count, error_count }` |
+
+**Object tools** — `Objects?view=object_tool&object=<id>&op=<operation>`
+
+| `op` | Method | Body (JSON) | Response |
+|---|---|---|---|
+| `reload` | GET or POST | — | `{ success, message }` |
+| `export_values` | GET | — | JSON file download |
+| `clear_history` | POST | `property` (optional; empty = all) | `{ deleted_count, property }` |
+| `clear_links` | POST | — | `{ cleared_count }` |
+| `clear_schedules` | POST | — | `{ deleted_count, jobs[] }` |
+| `clone` | POST | `name` (optional), `copy_description` (bool) | `{ object_id, object_name }` |
+
+### Reload: Tools vs Legacy Endpoint
+
+| Mechanism | URL | Effect |
+|---|---|---|
+| Legacy cache eviction | `Objects?view=reload&type=class&id=<id>` | Removes runtime objects (`remove_objects_by_class`) |
+| Legacy cache eviction | `Objects?view=reload&type=object&id=<id>` | Removes one object from cache (`remove_object`) |
+| Tools reload (class) | `class_tool&op=reload` | Reloads this class and descendant classes (`reload_objects_by_class`) |
+| Tools reload (object) | `object_tool&op=reload` | Reloads one object from DB into runtime (`reload_object`) |
 
 ---
 

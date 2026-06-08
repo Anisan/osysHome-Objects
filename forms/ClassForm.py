@@ -7,7 +7,7 @@ from flask import redirect, render_template, abort
 from sqlalchemy import delete
 from app.core.models.Clasess import Class, Property, Method, Object
 from app.database import db, row2dict
-from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, getTemplatesParents, get_class_hierarchy, no_spaces_or_dots, ValidationError, checkPermission, getClassId
+from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, getTemplatesParents, get_class_hierarchy, get_objects_for_class_tree, no_spaces_or_dots, ValidationError, checkPermission, getClassId
 from app.core.main.ObjectsStorage import objects_storage
 from app.core.lib.object import getObject
 from plugins.Objects.tree_cache import invalidate_objects_tree_cache
@@ -249,6 +249,13 @@ def routeClass(request, config):
             objects_storage.reload_objects_by_class(item.id)
             # Перезагружаем данные после редактирования существующего класса
             properties, parent_properties, methods, parent_methods, objects, templates = _load_class_properties_methods_and_objects(item, id, config)
+    tools_objects = []
+    if id:
+        tools_objects = [
+            {'id': obj.id, 'name': obj.name, 'description': obj.description}
+            for obj in get_objects_for_class_tree(id)
+        ]
+
     content = {
         'id': id,
         'form':form,
@@ -257,6 +264,7 @@ def routeClass(request, config):
         'methods': methods,
         'parent_methods': parent_methods,
         'objects': objects,
+        'tools_objects': tools_objects,
         'templates': templates,
         'tab': tab,
         'show_id': config.get("show_id", False),

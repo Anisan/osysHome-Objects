@@ -238,6 +238,29 @@
       margin-right: 0.4rem !important;
     }
   }
+
+  #myTabContent > .tab-pane:not(.show) {
+    display: none !important;
+  }
+
+  #tools .card {
+    border-color: rgba(var(--bs-secondary-rgb), 0.45) !important;
+  }
+
+  #tools .card-header {
+    border-bottom-color: rgba(var(--bs-secondary-rgb), 0.35);
+    background-color: rgba(var(--bs-secondary-rgb), 0.06);
+  }
+
+  #tools .card-body.d-flex {
+    align-items: flex-start;
+  }
+
+  #tools .card-body .btn {
+    flex: 0 0 auto;
+    width: auto;
+    align-self: auto;
+  }
 </style>
 <ul class="nav nav-tabs mb-3 align-items-center" id="configTabs" role="tablist">
     <li class="nav-item">
@@ -255,9 +278,9 @@
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}" id="template-tab" href="#template_tab" data-bs-toggle="tab" role="tab" aria-controls="template_tab" aria-selected="{{ 'true' if tab == 'template' else 'false' }}">{{ _('Template')}}</a></li>
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'structure'%} active{%endif%}" id="object-tab" href="#object_tab" data-bs-toggle="tab" role="tab" aria-controls="object_tab" aria-selected="{{ 'true' if tab == 'structure' else 'false' }}">{{ _('Structure')}}</a></li>
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'schedule'%} active{%endif%}" id="schedule-tab" href="#schedule_tab" data-bs-toggle="tab" role="tab" aria-controls="schedule_tab" aria-selected="{{ 'true' if tab == 'schedule' else 'false' }}">{{ _('Schedules')}}</a></li>
-    <li class="nav-item"><a class="nav-link tab-button" href="?view=object&object={{id}}&tab=permissions">{{ _('Permissions')}}</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'permissions'%} active{%endif%}" href="?view=object&object={{id}}&tab=permissions">{{ _('Permissions')}}</a></li>
     <li class="nav-item flex-grow-1"></li>
-    <li class="nav-item"><a class="nav-link tab-button" id="tools-tab" data-bs-toggle="tab" href="#tools" role="tab" aria-controls="tools" aria-selected="false">{{ _('Tools')}}</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'tools'%} active{%endif%}" id="tools-tab" href="#tools" data-bs-toggle="tab" role="tab" aria-controls="tools">{{ _('Tools')}}</a></li>
     {%endif%}
 </ul>
 {% if id %}
@@ -686,6 +709,16 @@
             </li>
             {% endfor %}
             <hr>
+            <b>{{ _('Object runtime')}}</b>
+            <small class="text-muted ms-1">({{ _('in-memory, not persisted')}})</small>
+            <div class="ms-3" id="runtime:{{obj.name}}">
+                {% if obj.runtime %}
+                {{ render_dict(obj.runtime) }}
+                {% else %}
+                <span class="text-muted">{{ _('Empty')}}</span>
+                {% endif %}
+            </div>
+            <hr>
             <b>{{ _('Parents')}}</b>
             <div>
              {% for parent in obj.parents %}
@@ -766,12 +799,116 @@
         </div>
         <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     </div>
-    <div class="tab-pane fade" id="tools" role="tabpanel" aria-labelledby="tools-tab">
-        <div class="d-flex flex-wrap gap-2">
-            <a href="../api/export/object/{{id}}" class="btn btn-primary btn-sm" role="button"><i class="fas fa-file-export me-2"></i>{{ _('Export object')}}</a>
-            {% if id %}
-            <a href="?view=object&object={{id}}&op=clone" class="btn btn-info btn-sm" role="button"><i class="fas fa-copy me-2"></i>{{ _('Clone object')}}</a>
-            {% endif %}
+    <div class="tab-pane fade {% if tab == 'tools'%}show active{%endif%}" id="tools" role="tabpanel" aria-labelledby="tools-tab">
+        <div id="objectToolsStatus" class="alert d-none mb-3" role="alert"></div>
+
+        <div class="row g-3">
+            <div class="col-12">
+                <h6 class="text-muted text-uppercase small mb-0">{{ _('Maintenance')}}</h6>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fas fa-rotate me-2 text-info"></i>{{ _('Reload object in runtime')}}</div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">{{ _('Reload this object from the database without server restart.')}}</p>
+                        <button type="button" class="btn btn-info btn-sm" onclick="reloadObjectRuntime()">
+                            <i class="fas fa-sync me-2"></i>{{ _('Reload runtime')}}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fas fa-history me-2 text-secondary"></i>{{ _('Clear property history')}}</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="objectClearHistoryProperty">{{ _('Select property')}}</label>
+                            <select class="form-select form-select-sm" id="objectClearHistoryProperty">
+                                <option value="">{{ _('All properties history')}}</option>
+                                {% for property in properties %}
+                                    {% if property.history and property.history > 0 %}
+                                <option value="{{ property.name }}">{{ property.name }} ({{ _('History')}}: {{ property.history }} {{ _('days')}})</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div class="form-text text-muted">{{ _('Leave empty to clear history for all properties of this object.')}}</div>
+                        </div>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearObjectHistory()">
+                            <i class="fas fa-eraser me-2"></i>{{ _('Clear history')}}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fas fa-unlink me-2 text-warning"></i>{{ _('Clear all links')}}</div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">{{ _('Remove all module links (linked) from property values of this object.')}}</p>
+                        <button type="button" class="btn btn-warning btn-sm" onclick="clearObjectLinks()">
+                            <i class="fas fa-unlink me-2"></i>{{ _('Clear links')}}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fa-solid fa-calendar-xmark me-2 text-danger"></i>{{ _('Delete all schedules')}}</div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">{{ _('Remove all cron tasks associated with this object.')}}</p>
+                        {% if schedules %}
+                        <div class="form-text text-muted mb-2">{{ _('Schedules')}}: {{ schedules|length }}</div>
+                        {% endif %}
+                        <button type="button" class="btn btn-danger btn-sm" onclick="clearObjectSchedules()" {% if not schedules %}disabled{% endif %}>
+                            <i class="fas fa-trash me-2"></i>{{ _('Delete all schedules')}}
+                        </button>
+                        {% if not schedules %}
+                        <div class="form-text text-muted mt-2">{{ _('No schedules')}}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 mt-2">
+                <h6 class="text-muted text-uppercase small mb-0">{{ _('Copy and export')}}</h6>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fas fa-copy me-2 text-info"></i>{{ _('Clone object')}}</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="cloneObjectName">{{ _('New object name')}}</label>
+                            <input type="text" class="form-control form-control-sm" id="cloneObjectName" placeholder="{{ form.name.data }}_clone">
+                            <div class="form-text text-muted">{{ _('Leave empty to generate a name automatically.')}}</div>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="cloneCopyDescription" checked>
+                            <label class="form-check-label" for="cloneCopyDescription">{{ _('Copy description')}}</label>
+                        </div>
+                        <button type="button" class="btn btn-info btn-sm" onclick="cloneObjectTool()">
+                            <i class="fas fa-copy me-2"></i>{{ _('Clone object')}}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fas fa-file-export me-2 text-primary"></i>{{ _('Export')}}</div>
+                    <div class="card-body d-flex flex-wrap gap-2 align-items-start">
+                        <a href="../api/export/object/{{id}}" class="btn btn-primary btn-sm" role="button">
+                            <i class="fas fa-download me-2"></i>{{ _('Export object')}}
+                        </a>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="exportObjectValues()">
+                            <i class="fas fa-file-code me-2"></i>{{ _('Export values')}}
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -1312,7 +1449,58 @@
         }
     }
 
+    function activateSingleConfigTabPane(activePane) {
+        var tabContent = document.getElementById('myTabContent');
+        if (!tabContent || !activePane) {
+            return;
+        }
+        tabContent.querySelectorAll('.tab-pane').forEach(function(pane) {
+            var isActive = pane === activePane;
+            pane.classList.toggle('show', isActive);
+            pane.classList.toggle('active', isActive);
+        });
+    }
+
+    function initConfigTabsVisibility() {
+        var tabContent = document.getElementById('myTabContent');
+        if (!tabContent) {
+            return;
+        }
+
+        document.querySelectorAll('#configTabs [data-bs-toggle="tab"]').forEach(function(tabLink) {
+            tabLink.addEventListener('shown.bs.tab', function(event) {
+                var targetSelector = event.target.getAttribute('href');
+                if (!targetSelector || targetSelector.charAt(0) !== '#') {
+                    return;
+                }
+                var pane = document.querySelector(targetSelector);
+                activateSingleConfigTabPane(pane);
+            });
+        });
+
+        var urlTab = new URLSearchParams(window.location.search).get('tab');
+        var paneIdByTab = {
+            '': 'general',
+            'properties': 'properties',
+            'methods': 'methods',
+            'template': 'template_tab',
+            'structure': 'object_tab',
+            'schedule': 'schedule_tab',
+            'tools': 'tools'
+        };
+        if (urlTab !== null && Object.prototype.hasOwnProperty.call(paneIdByTab, urlTab)) {
+            var pane = document.getElementById(paneIdByTab[urlTab]);
+            activateSingleConfigTabPane(pane);
+        } else {
+            var visiblePane = tabContent.querySelector('.tab-pane.show');
+            if (visiblePane) {
+                activateSingleConfigTabPane(visiblePane);
+            }
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
+        initConfigTabsVisibility();
         socket.emit('subscribeActions', ['executedMethod']);
 
         // Дополнительный обработчик ТОЛЬКО для страницы Objects:
@@ -2192,6 +2380,160 @@
 
     if (copyValueButton) {
         copyValueButton.addEventListener('click', copyValueToClipboard);
+    }
+
+    var objectToolsBaseUrl = '?view=object_tool&object={{ id }}';
+
+    function showObjectToolsStatus(message, isError) {
+        var status = document.getElementById('objectToolsStatus');
+        if (!status) {
+            alert(message);
+            return;
+        }
+        status.className = 'alert mb-3 ' + (isError ? 'alert-danger' : 'alert-success');
+        status.textContent = message;
+        status.classList.remove('d-none');
+    }
+
+    function objectToolRequest(op, body) {
+        var options = {
+            method: body ? 'POST' : 'GET',
+            headers: body ? {'Content-Type': 'application/json'} : {}
+        };
+        if (body) {
+            options.body = JSON.stringify(body);
+        }
+        return fetch(objectToolsBaseUrl + '&op=' + encodeURIComponent(op), options)
+            .then(function(response) {
+                if (op === 'export_values') {
+                    if (!response.ok) {
+                        throw new Error('{{ _("An error occurred while saving") }}');
+                    }
+                    return response.blob().then(function(blob) {
+                        return {success: true, blob: blob};
+                    });
+                }
+                return response.json().then(function(data) {
+                    if (!response.ok) {
+                        throw new Error(data.message || '{{ _("An error occurred while saving") }}');
+                    }
+                    return data;
+                });
+            });
+    }
+
+    function reloadObjectRuntime() {
+        if (!confirm({{ _('Reload this object in runtime?')|tojson }})) {
+            return;
+        }
+        objectToolRequest('reload')
+            .then(function(data) {
+                showObjectToolsStatus(data.message || '{{ _("Object reloaded in runtime") }}', false);
+            })
+            .catch(function(error) {
+                showObjectToolsStatus(error.message, true);
+            });
+    }
+
+    function clearObjectHistory() {
+        var propertySelect = document.getElementById('objectClearHistoryProperty');
+        var propertyName = propertySelect ? propertySelect.value : '';
+        var confirmMsg = propertyName
+            ? {{ _('Clear history for property %(property)s?')|tojson }}.replace('%(property)s', propertyName)
+            : {{ _('Clear all property history for this object?')|tojson }};
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+        objectToolRequest('clear_history', {property: propertyName})
+            .then(function(data) {
+                var message = data.message || '{{ _("History cleared") }}';
+                if (data.deleted_count !== undefined) {
+                    message += ' (' + data.deleted_count + ')';
+                }
+                showObjectToolsStatus(message, false);
+            })
+            .catch(function(error) {
+                showObjectToolsStatus(error.message, true);
+            });
+    }
+
+    function clearObjectLinks() {
+        if (!confirm({{ _('Clear all links for this object?')|tojson }})) {
+            return;
+        }
+        objectToolRequest('clear_links', {})
+            .then(function(data) {
+                var message = data.message || '{{ _("Links cleared") }}';
+                if (data.cleared_count !== undefined) {
+                    message += ' (' + data.cleared_count + ')';
+                }
+                showObjectToolsStatus(message, false);
+                setTimeout(function() { window.location.reload(); }, 1200);
+            })
+            .catch(function(error) {
+                showObjectToolsStatus(error.message, true);
+            });
+    }
+
+    function clearObjectSchedules() {
+        if (!confirm({{ _('Delete all schedules for this object?')|tojson }})) {
+            return;
+        }
+        objectToolRequest('clear_schedules', {})
+            .then(function(data) {
+                var message = data.message || '{{ _("Schedules cleared") }}';
+                if (data.deleted_count !== undefined) {
+                    message += ' (' + data.deleted_count + ')';
+                }
+                showObjectToolsStatus(message, false);
+                setTimeout(function() { window.location.reload(); }, 1200);
+            })
+            .catch(function(error) {
+                showObjectToolsStatus(error.message, true);
+            });
+    }
+
+    function cloneObjectTool() {
+        var nameInput = document.getElementById('cloneObjectName');
+        var copyDescription = document.getElementById('cloneCopyDescription');
+        var name = nameInput ? nameInput.value.trim() : '';
+        var confirmMsg = name
+            ? {{ _('Clone object as %(name)s?')|tojson }}.replace('%(name)s', name)
+            : {{ _('Clone object with auto-generated name?')|tojson }};
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+        objectToolRequest('clone', {
+            name: name,
+            copy_description: copyDescription ? copyDescription.checked : true
+        }).then(function(data) {
+            showObjectToolsStatus(data.message || '{{ _("Object cloned") }}', false);
+            if (data.object_id) {
+                setTimeout(function() {
+                    window.location.href = '?view=object&object=' + data.object_id;
+                }, 800);
+            }
+        }).catch(function(error) {
+            showObjectToolsStatus(error.message, true);
+        });
+    }
+
+    function exportObjectValues() {
+        objectToolRequest('export_values')
+            .then(function(data) {
+                var blob = data.blob;
+                var link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = 'values_{{ form.name.data }}.json';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(link.href);
+                showObjectToolsStatus('{{ _("Export values") }}', false);
+            })
+            .catch(function(error) {
+                showObjectToolsStatus(error.message, true);
+            });
     }
 
 </script>

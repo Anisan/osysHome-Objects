@@ -42,6 +42,35 @@ def getTemplatesParents(id, templates):
         return getTemplatesParents(cls.parent_id, templates)
     return templates
 
+def get_descendant_class_ids(class_id):
+    """Return class_id and all descendant (child) class IDs down the tree."""
+    root_id = int(class_id)
+    ids = [root_id]
+    queue = [root_id]
+    visited = {root_id}
+
+    while queue:
+        parent_id = queue.pop(0)
+        children = Class.query.filter(Class.parent_id == parent_id).all()
+        for child in children:
+            if child.id in visited:
+                continue
+            visited.add(child.id)
+            ids.append(child.id)
+            queue.append(child.id)
+
+    return ids
+
+
+def get_objects_for_class_tree(class_id):
+    """Objects assigned to this class or any descendant class."""
+    class_ids = get_descendant_class_ids(class_id)
+    query = Object.query.filter(Object.class_id.in_(class_ids))
+    if current_user.role not in ['admin', 'root']:
+        query = query.filter(Object.name.notlike(r'\_%', escape='\\'))
+    return query.order_by(Object.name).all()
+
+
 def get_class_hierarchy(class_id):
     """Return class chain from root to class_id inclusive: [{'id': ..., 'name': ...}, ...]."""
     if not class_id:

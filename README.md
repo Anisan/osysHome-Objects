@@ -23,6 +23,7 @@ The `Objects` module provides a full-featured object management system for the o
 - ✅ **Method Management**: Define and execute methods on objects and classes
 - ✅ **Scheduling**: Schedule object operations and method calls
 - ✅ **Permissions**: Manage access control for objects and classes
+- ✅ **Admin Tools**: Bulk operations and maintenance on the class/object **Tools** tab (create/delete objects, run methods, set properties, reload runtime, clear history, clone, export)
 - ✅ **Search Integration**: Full-text search across classes, objects, properties, methods, and values
 - ✅ **Widget Support**: Dashboard widget showing object statistics
 - ✅ **Template Rendering**: Customizable object templates
@@ -102,6 +103,30 @@ The module provides a comprehensive admin interface accessible through the main 
 - Manage access control
 - Configure user permissions
 - Set object-level permissions
+
+### Tools Tab (class and object pages)
+
+The **Tools** tab on the class and object detail pages groups maintenance and bulk actions into cards. Tabs switch without a page reload (Bootstrap), except when navigating from the separate Permissions page.
+
+**Important:** Class tools affect objects of this class **and all descendant classes** down the inheritance tree. Exception: **bulk create** always adds new objects only to the current class.
+
+**Class tools** (`view=class&class=<id>` → Tools tab):
+
+| Group | Action |
+|---|---|
+| Objects management | Bulk create objects (prefix, separator, index, count up to 100), bulk delete all class objects |
+| Bulk values and methods | Run a method on every object (results summary dialog), set a property value on all objects via WebSocket |
+| Maintenance | Reload all class objects in runtime from DB, clear property change history for all class objects |
+| Export | Export class JSON (optional objects and child classes) |
+
+**Object tools** (`view=object&object=<id>` → Tools tab):
+
+| Group | Action |
+|---|---|
+| Maintenance | Reload object in runtime, clear property history (one property or all), clear all `linked` fields, delete all schedules |
+| Copy and export | Clone object (optional name, copy description), export object JSON, export values JSON |
+
+Server API handlers: `class_tools.py`, `object_tools.py` (`view=class_tool`, `view=object_tool`). See [docs/objects.md](docs/objects.md) for request parameters.
 
 ## Advanced Validation
 
@@ -203,15 +228,19 @@ Module settings available in the admin panel:
 
 ## Reload Functionality
 
-The module supports reloading objects from storage:
+Two reload mechanisms exist:
 
-- **Reload Class**: `Objects?view=reload&type=class&id={class_id}`
-- **Reload Object**: `Objects?view=reload&type=object&id={object_id}`
+| Endpoint | Behavior |
+|---|---|
+| `Objects?view=reload&type=class&id={class_id}` | Removes cached runtime objects of the class (`remove_objects_by_class`) |
+| `Objects?view=reload&type=object&id={object_id}` | Removes a single object from runtime cache (`remove_object`) |
+| **Tools → Reload runtime** (`view=class_tool&op=reload` / `view=object_tool&op=reload`) | Reloads from DB into runtime. Class tool reloads this class and descendant classes (`reload_objects_by_class`); object tool reloads one object |
 
 ## Technical Details
 
-- **Database Models**: Class, Object, Property, Method, Value
+- **Database Models**: Class, Object, Property, Method, Value, History
 - **Storage**: Integrated with ObjectsStorage for runtime object management
+- **Tool routes**: `plugins/Objects/class_tools.py`, `plugins/Objects/object_tools.py`
 - **Permissions**: Role-based access control (admin/root see all, others see non-system items)
 - **Templates**: Jinja2 template support for object rendering
 
@@ -247,5 +276,7 @@ See the main osysHome project license
 
 ## Related Documentation
 
-- [VALIDATION_GUIDE.md](VALIDATION_GUIDE.md) - Detailed guide on advanced property validation
+- [docs/objects.md](docs/objects.md) - Full user guide (interface, tabs, tools API)
+- [docs/object-model.md](docs/object-model.md) - Object model, inheritance, runtime API
+- [VALIDATION_GUIDE.md](docs/VALIDATION_GUIDE.md) - Detailed guide on advanced property validation
 
