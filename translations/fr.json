@@ -80,7 +80,6 @@
   "False": "FAUX",
   "For bool use 1/0 or true/false. For JSON types use valid JSON.": "Pour bool, utilisez 1/0 ou vrai/faux. Pour les types JSON, utilisez un JSON valide.",
   "For enum type, provide JSON object with value-description pairs": "Pour le type enum, fournissez l'objet JSON avec des paires valeur-description",
-  "General": "Général",
   "History cleared": "Historique effacé",
   "Hue scale": "Échelle de teinte",
   "Import from file": "Importer à partir d'un fichier",

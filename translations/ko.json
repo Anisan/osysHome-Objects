@@ -80,7 +80,6 @@
   "False": "거짓",
   "For bool use 1/0 or true/false. For JSON types use valid JSON.": "bool의 경우 1/0 또는 true/false를 사용합니다. JSON 유형의 경우 유효한 JSON을 사용하세요.",
   "For enum type, provide JSON object with value-description pairs": "열거형 유형의 경우 값-설명 쌍이 포함된 JSON 개체를 제공하세요.",
-  "General": "일반적인",
   "History cleared": "기록이 삭제되었습니다.",
   "Hue scale": "색조 스케일",
   "Import from file": "파일에서 가져오기",

@@ -80,7 +80,6 @@
   "False": "間違い",
   "For bool use 1/0 or true/false. For JSON types use valid JSON.": "bool の場合は 1/0 または true/false を使用します。 JSON タイプの場合は、有効な JSON を使用してください。",
   "For enum type, provide JSON object with value-description pairs": "列挙型の場合は、値と説明のペアを含む JSON オブジェクトを提供します",
-  "General": "一般的な",
   "History cleared": "履歴がクリアされました",
   "Hue scale": "色相スケール",
   "Import from file": "ファイルからインポート",

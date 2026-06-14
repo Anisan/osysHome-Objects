@@ -80,7 +80,6 @@
   "False": "Брехня",
   "For bool use 1/0 or true/false. For JSON types use valid JSON.": "Для bool використовуйте 1/0 або true/false. Для JSON-типов — коректний JSON.",
   "For enum type, provide JSON object with value-description pairs": "Для типу enum вкажіть об'єкт JSON з парами значення-опис",
-  "General": "Загальне",
   "History cleared": "Історія очищена",
   "Hue scale": "Шкала відтінок",
   "Import from file": "Імпорт",

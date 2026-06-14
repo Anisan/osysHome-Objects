@@ -4,7 +4,7 @@ from wtforms import StringField, SubmitField, TextAreaField, RadioField, Boolean
 from wtforms.validators import DataRequired, ValidationError
 from sqlalchemy import delete
 
-from app.core.models.Clasess import Class, Object, Method
+from app.core.models.Clasess import Class, Object, Method, Property
 from app.core.lib.common import getJob, addCronJob, clearScheduledJob
 from app.database import db
 from app.core.main.ObjectsStorage import objects_storage
@@ -60,6 +60,9 @@ def routeMethod(request):
         class_owner = Class.get_by_id(class_id)
 
     if op == 'delete':
+        db.session.query(Property).filter(Property.method_id == id).update(
+            {Property.method_id: None}, synchronize_session='fetch',
+        )
         sql = delete(Method).where(Method.id == id)
         db.session.execute(sql)
         db.session.commit()

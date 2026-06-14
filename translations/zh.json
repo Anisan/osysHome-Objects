@@ -80,7 +80,6 @@
   "False": "错误的",
   "For bool use 1/0 or true/false. For JSON types use valid JSON.": "对于布尔值，使用 1/0 或 true/false。对于 JSON 类型，请使用有效的 JSON。",
   "For enum type, provide JSON object with value-description pairs": "对于枚举类型，提供带有值-描述对的 JSON 对象",
-  "General": "一般的",
   "History cleared": "历史记录已清除",
   "Hue scale": "色相比例",
   "Import from file": "从文件导入",
