@@ -64,9 +64,14 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
     
     om = objects_storage.getObjectByName(item.name)
 
+    values_by_name = {}
+    for value in Value.query.filter(Value.object_id == object_id).all():
+        if value.name not in values_by_name:
+            values_by_name[value.name] = value
+
     for property in properties:
         property['linked'] = []
-        value = Value.query.filter(Value.object_id == object_id, Value.name == property['name']).one_or_none()
+        value = values_by_name.get(property['name'])
         if value:
             # Если в БД явно лежит None, не превращаем его в строку "None",
             # чтобы UI мог подставить default_value из params.
