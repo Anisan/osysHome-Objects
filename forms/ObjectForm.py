@@ -5,15 +5,16 @@ from flask_wtf import FlaskForm
 from flask_login import current_user
 from wtforms import StringField, SubmitField, SelectField, TextAreaField, ValidationError
 from wtforms.validators import DataRequired
-from sqlalchemy import delete
 
 from app.database import db, row2dict, convert_utc_to_local
 from app.core.lib.common import getJobs
 from app.core.utils import CustomJSONEncoder
-from app.core.models.Clasess import Class, Object, Property, Method, Value, History
+from app.core.models.Clasess import Class, Object, Property, Method, Value
 from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents, get_class_hierarchy, checkPermission, getClassId, getObjectId
 from plugins.Objects.tree_cache import invalidate_objects_tree_cache
+from app.database import db
+from app.core.lib.object_db import delete_object_from_db
 
 
 # Определение класса формы
@@ -140,7 +141,7 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
         jobs = getJobs(job_name)
         if jobs:
             method['jobs'] = jobs
-        if method['name'] in om.methods and not method['redefined']:
+        if om and method['name'] in om.methods and not method['redefined']:
             mm = om.methods[method['name']]
             method['source'] = mm.source if mm.source else ''
             method['executed'] = convert_utc_to_local(mm.executed) if mm.executed else ''
@@ -283,24 +284,13 @@ def routeObject(request, config):
         return redirect(f"Objects?view=object&object={new_obj.id}")
     
     if op == 'delete':
-        # TODO delete linked
-        values = db.session.query(Value.id).filter(Value.object_id == id).all()
-        value_ids = [v[0] for v in values]
-        if value_ids:
-            db.session.execute(delete(History).where(History.value_id.in_(value_ids)))
-        db.session.execute(delete(Value).where(Value.object_id == id))
-        sql = delete(Property).where(Property.object_id == id)
-        db.session.execute(sql)
-        sql = delete(Method).where(Method.object_id == id)
-        db.session.execute(sql)
-        cls = Object.get_by_id(id)
-        name = cls.name
-        sql = delete(Object).where(Object.id == id)
-        db.session.execute(sql)
+        obj = Object.query.get_or_404(id)
+        name = delete_object_from_db(id)
         db.session.commit()
         invalidate_objects_tree_cache()
-        objects_storage.changeObject("delete",name, None, None, None)
-        objects_storage.remove_object(name)
+        if name:
+            objects_storage.changeObject("delete", name, None, None, None)
+            objects_storage.remove_object(name)
         return redirect("Objects")
     saved = False
     properties = []
@@ -367,10 +357,17 @@ def routeObject(request, config):
     cls = None
     schedules = []
     template = ''
+    obj_dict = None
     if id:
         cls = objects_storage.getObjectByName(item.name)
         schedules = getJobs(item.name + r"\_%")  # noqa
-        template = cls.render()
+        if cls:
+            try:
+                template = cls.render()
+                obj_dict = cls.to_dict()
+            except Exception:
+                template = ''
+                obj_dict = None
 
     content = {
         'id': id,
@@ -381,7 +378,7 @@ def routeObject(request, config):
         'schedules': schedules,
         'template': template,
         'tab': tab,
-        'obj': cls.to_dict() if cls else None,
+        'obj': obj_dict,
         'saved': saved,
         'show_id': config.get("show_id", False),
         'class_hierarchy': get_class_hierarchy(class_owner.id if class_owner else None),

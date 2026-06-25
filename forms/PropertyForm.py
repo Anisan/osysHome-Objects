@@ -7,7 +7,8 @@ from flask import redirect, render_template, abort
 from app.database import db, row2dict
 from app.core.models.Clasess import Class, Object, Property, Value, Method, History
 from app.core.main.ObjectsStorage import objects_storage
-from plugins.Objects.forms.utils import no_spaces_or_dots, no_reserved, getMethodsParents, get_class_hierarchy, checkPermission, getObjectId, getClassId
+from plugins.Objects.forms.utils import no_spaces_or_dots, getMethodsParents, getPropertiesParents, get_class_hierarchy, checkPermission, getObjectId, getClassId
+from app.core.lib.object_db import migrate_values_for_property_type_change
 
 
 def _get_class_chain_ids(class_id):
@@ -160,8 +161,12 @@ def routeProperty(request):
     form.method_id.choices = [('','')] + [(method['id'], method['name']) for method in methods]
     form.type.choices = [('',''),('bool','Boolean'),('int','Integer'),('float','Float'),('str','String'),('datetime','Datetime'),('dict','Dictionary'),('list','List'),('enum','Enum'),('color','Color')]
     if form.validate_on_submit():
+        old_type = None
+        property_name = form.name.data
         if id:
             if op == "redefine":
+                old_type = item.type
+                property_name = item.name
                 prop = Property()
                 prop.class_id = class_id
                 prop.object_id = object_id
@@ -170,16 +175,15 @@ def routeProperty(request):
                 prop.method_id = int(form.method_id.data) if form.method_id.data else None
                 prop.history = form.history.data
                 prop.type = form.type.data
-                # Handle params for enum type
                 prop.params = normalize_params_json(form.params.data)
                 db.session.add(prop)
-                db.session.commit()
-                id = prop.id
+                item = prop
             else:
+                old_type = item.type
+                property_name = item.name
                 old_name = item.name
                 form.populate_obj(item)  # Обновляем значения объекта данными из формы
                 item.method_id = int(form.method_id.data) if form.method_id.data else None
-                # Handle params for enum type
                 item.params = normalize_params_json(form.params.data)
                 if old_name != item.name and object_id:
                     db.session.query(Value).filter(Value.object_id == object_id, Value.name == old_name).update({'name': item.name})
@@ -190,10 +194,8 @@ def routeProperty(request):
                 if object_owner and old_name != item.name:
                     objects_storage.changeObject("rename", object_owner.name, old_name, None, item.name)
         else:
-            # Handle params for enum type
             params_data = normalize_params_json(form.params.data)
-            
-            new_item = Property(
+            item = Property(
                 name=form.name.data,
                 description=form.description.data,
                 method_id=int(form.method_id.data) if form.method_id.data else None,
@@ -202,15 +204,31 @@ def routeProperty(request):
                 params=params_data,
             )
             if class_id:
-                new_item.class_id = class_id
+                item.class_id = class_id
             if object_id:
-                new_item.object_id = object_id
-            db.session.add(new_item)
+                item.object_id = object_id
+            db.session.add(item)
+        db.session.flush()
+        if id is None:
+            id = item.id
+        new_type = form.type.data
+        if old_type and old_type != new_type:
+            migrate_values_for_property_type_change(
+                property_name,
+                old_type,
+                new_type,
+                object_id=object_id,
+                class_id=class_id if not object_id else None,
+            )
         db.session.commit()  # Сохраняем изменения в базе данных
 
         if object_id:
             url = "?view=object&object=" + str(object_id) + "&tab=properties"
-            objects_storage.reload_object(object_id)
+            try:
+                objects_storage.reload_object(object_id)
+            except Exception:
+                objects_storage.remove_object(object_owner.name)
+                objects_storage.reload_object(object_id)
         else:
             url = "?view=class&class=" + str(class_id) + "&tab=properties"
             objects_storage.reload_objects_by_class(class_id)

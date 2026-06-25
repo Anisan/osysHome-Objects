@@ -42,24 +42,7 @@ def getTemplatesParents(id, templates):
         return getTemplatesParents(cls.parent_id, templates)
     return templates
 
-def get_descendant_class_ids(class_id):
-    """Return class_id and all descendant (child) class IDs down the tree."""
-    root_id = int(class_id)
-    ids = [root_id]
-    queue = [root_id]
-    visited = {root_id}
-
-    while queue:
-        parent_id = queue.pop(0)
-        children = Class.query.filter(Class.parent_id == parent_id).all()
-        for child in children:
-            if child.id in visited:
-                continue
-            visited.add(child.id)
-            ids.append(child.id)
-            queue.append(child.id)
-
-    return ids
+from app.core.lib.object_db import get_descendant_class_ids
 
 
 def get_objects_for_class_tree(class_id):

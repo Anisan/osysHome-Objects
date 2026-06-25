@@ -141,23 +141,28 @@ class Objects(BasePlugin):
         for prop in props:
             if prop.class_id:
                 cls = Class.get_by_id(prop.class_id)
-                res.append({"url":f'Objects?view=property&class={prop.class_id}&property={prop.id}&op=edit', "title":f'{cls.name}.{prop.name} ({prop.description})', "tags":[{"name":"Property","color":"secondary"}]})
+                if cls:
+                    res.append({"url":f'Objects?view=property&class={prop.class_id}&property={prop.id}&op=edit', "title":f'{cls.name}.{prop.name} ({prop.description})', "tags":[{"name":"Property","color":"secondary"}]})
             if prop.object_id:
                 obj = Object.get_by_id(prop.object_id)
-                res.append({"url":f'Objects?view=property&object={prop.object_id}&property={prop.id}&op=edit', "title":f'{obj.name}.{prop.name} ({prop.description})', "tags":[{"name":"Property","color":"primary"}]})
+                if obj:
+                    res.append({"url":f'Objects?view=property&object={prop.object_id}&property={prop.id}&op=edit', "title":f'{obj.name}.{prop.name} ({prop.description})', "tags":[{"name":"Property","color":"primary"}]})
         methods = Method.query.filter(or_(Method.name.contains(query),Method.description.contains(query),Method.code.contains(query))).all()
         for method in methods:
             if method.class_id:
                 cls = Class.get_by_id(method.class_id)
-                res.append({"url":f'Objects?view=method&class={method.class_id}&method={method.id}&op=edit', "title":f'{cls.name}.{method.name} ({method.description})', "tags":[{"name":"Method","color":"secondary"}]})
+                if cls:
+                    res.append({"url":f'Objects?view=method&class={method.class_id}&method={method.id}&op=edit', "title":f'{cls.name}.{method.name} ({method.description})', "tags":[{"name":"Method","color":"secondary"}]})
             if method.object_id:
                 obj = Object.get_by_id(method.object_id)
-                res.append({"url":f'Objects?view=method&object={method.object_id}&method={method.id}&op=edit', "title":f'{obj.name}.{method.name} ({method.description})', "tags":[{"name":"Method","color":"primary"}]})
+                if obj:
+                    res.append({"url":f'Objects?view=method&object={method.object_id}&method={method.id}&op=edit', "title":f'{obj.name}.{method.name} ({method.description})', "tags":[{"name":"Method","color":"primary"}]})
 
         values = Value.query.filter(Value.value.contains(query)).all()
         for val in values:
             obj = Object.get_by_id(val.object_id)
-            res.append({"url":f'Objects?view=object&object={val.object_id}&tab=properties', "title":f'{obj.name}.{val.name} = {val.value}', "tags":[{"name":"Value","color":"success"}]})
+            if obj:
+                res.append({"url":f'Objects?view=object&object={val.object_id}&tab=properties', "title":f'{obj.name}.{val.name} = {val.value}', "tags":[{"name":"Value","color":"success"}]})
 
         return res
 

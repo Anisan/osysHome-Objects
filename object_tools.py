@@ -10,6 +10,7 @@ from app.core.main.ObjectsStorage import objects_storage
 from app.core.lib.common import clearScheduledJob, getJobs
 from plugins.Objects.forms.utils import checkPermission, getObjectId
 from plugins.Objects.tree_cache import invalidate_objects_tree_cache
+from app.core.lib.object_db import cleanup_orphan_records
 
 _NAME_RE = re.compile(r'^[^\s.]+$')
 
@@ -45,6 +46,15 @@ def routeObjectTools(req):
         return _clear_schedules(obj)
     if op == 'clone':
         return _clone_object(obj, data)
+    if op == 'cleanup_orphans':
+        stats = cleanup_orphan_records()
+        db.session.commit()
+        invalidate_objects_tree_cache()
+        return jsonify({
+            'success': True,
+            'message': 'Orphan records cleaned up',
+            **stats,
+        })
 
     return jsonify({'success': False, 'message': 'Unknown operation'}), 400
 

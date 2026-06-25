@@ -8,6 +8,7 @@ from app.core.models.Clasess import Class, Object, Value, History, Property, Met
 from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import checkPermission, getClassId, get_objects_for_class_tree
 from plugins.Objects.tree_cache import invalidate_objects_tree_cache
+from app.core.lib.object_db import delete_object_from_db, delete_objects_by_class
 
 _NAME_RE = re.compile(r'^[^\s.]+$')
 _MAX_BULK_CREATE = 100
@@ -15,21 +16,11 @@ _MAX_BULK_CREATE = 100
 
 def _delete_object(object_id: int) -> str:
     """Delete object from DB and runtime storage. Returns object name."""
-    values = db.session.query(Value.id).filter(Value.object_id == object_id).all()
-    value_ids = [v[0] for v in values]
-    if value_ids:
-        db.session.execute(delete(History).where(History.value_id.in_(value_ids)))
-    db.session.execute(delete(Value).where(Value.object_id == object_id))
-    db.session.execute(delete(Property).where(Property.object_id == object_id))
-    db.session.execute(delete(Method).where(Method.object_id == object_id))
-    obj = Object.get_by_id(object_id)
-    if not obj:
-        return ''
-    name = obj.name
-    db.session.execute(delete(Object).where(Object.id == object_id))
-    objects_storage.changeObject("delete", name, None, None, None)
-    objects_storage.remove_object(name)
-    return name
+    name = delete_object_from_db(object_id)
+    if name:
+        objects_storage.changeObject("delete", name, None, None, None)
+        objects_storage.remove_object(name)
+    return name or ''
 
 
 def _class_tree_objects(class_id: int):

@@ -11,6 +11,7 @@ from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents,
 from app.core.main.ObjectsStorage import objects_storage
 from app.core.lib.object import getObject
 from plugins.Objects.tree_cache import invalidate_objects_tree_cache
+from app.core.lib.object_db import delete_objects_by_class, cleanup_orphan_records
 
 # Определение класса формы
 class ClassForm(FlaskForm):
@@ -174,14 +175,15 @@ def routeClass(request, config):
         return render_template('objects_permissions.html', **content)
 
     if op == 'delete':
-        # todo remove objects
-        # todo remove classes
+        delete_objects_by_class(id)
         sql = delete(Property).where(Property.class_id == id)
         db.session.execute(sql)
         sql = delete(Method).where(Method.class_id == id)
         db.session.execute(sql)
         sql = delete(Class).where(Class.id == id)
         db.session.execute(sql)
+        db.session.commit()
+        cleanup_orphan_records()
         db.session.commit()
         invalidate_objects_tree_cache()
         objects_storage.remove_objects_by_class(id)
