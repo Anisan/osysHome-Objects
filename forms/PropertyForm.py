@@ -7,7 +7,7 @@ from flask import redirect, render_template, abort
 from app.database import db, row2dict
 from app.core.models.Clasess import Class, Object, Property, Value, Method, History
 from app.core.main.ObjectsStorage import objects_storage
-from plugins.Objects.forms.utils import no_spaces_or_dots, getMethodsParents, getPropertiesParents, get_class_hierarchy, checkPermission, getObjectId, getClassId
+from plugins.Objects.forms.utils import no_spaces_or_dots, no_reserved, getMethodsParents, getPropertiesParents, get_class_hierarchy, checkPermission, getObjectId, getClassId
 from app.core.lib.object_db import migrate_values_for_property_type_change
 
 
