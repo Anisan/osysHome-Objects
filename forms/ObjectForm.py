@@ -8,7 +8,7 @@ from wtforms.validators import DataRequired
 
 from app.database import db, row2dict, convert_utc_to_local
 from app.core.lib.common import getJobs
-from app.core.utils import CustomJSONEncoder
+from app.core.utilities.json_encoding import CustomJSONEncoder
 from app.core.models.Clasess import Class, Object, Property, Method, Value
 from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents, get_class_hierarchy, checkPermission, getClassId, getObjectId
