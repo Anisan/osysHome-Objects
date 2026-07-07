@@ -4,6 +4,14 @@ from app.core.models.Clasess import Class, Object,Property, Method
 from app.core.lib.object import getObject, getProperty
 from wtforms.validators import ValidationError
 
+def normalize_call_parent(value):
+    if value is None or value == '':
+        return -1
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
 def getPropertiesParents(id, properties):
     query = Property.query.filter(Property.class_id == id, Property.object_id.is_(None))
     if current_user.role not in ['admin','root']:
@@ -28,9 +36,10 @@ def getMethodsParents(id, methods):
 
     cls = Class.get_by_id(id)
     for item in meth:
-        item = row2dict(item)
-        item["class_name"] = cls.name if cls else None
-        methods.append(item)
+        if item.name not in [subitem['name'] for subitem in methods]:
+            item = row2dict(item)
+            item["class_name"] = cls.name if cls else None
+            methods.append(item)
     if cls and cls.parent_id:
         return getMethodsParents(cls.parent_id, methods)
     return methods
@@ -72,6 +81,100 @@ def get_class_hierarchy(class_id):
         current_id = cls.parent_id
 
     chain.reverse()
+    return chain
+
+
+def get_method_inheritance_chain(
+    method_name,
+    class_id,
+    object_id=None,
+    current_method_id=None,
+    is_redefine=False,
+    redefine_source_id=None,
+):
+    """Return method definitions from root class to current class/object."""
+    if not method_name or not class_id:
+        return []
+
+    chain = []
+    hierarchy = get_class_hierarchy(class_id)
+    for cls in hierarchy:
+        query = Method.query.filter(
+            Method.name == method_name,
+            Method.class_id == cls['id'],
+            Method.object_id.is_(None),
+        )
+        if current_user.role not in ['admin', 'root']:
+            query = query.filter(Method.name.notlike(r'\_%', escape='\\'))
+        method = query.first()
+        if method:
+            chain.append({
+                'id': method.id,
+                'name': method.name,
+                'code': method.code or '',
+                'class_id': cls['id'],
+                'class_name': cls['name'],
+                'object_id': None,
+                'owner': cls['name'],
+                'owner_type': 'class',
+                'call_parent': normalize_call_parent(method.call_parent),
+                'is_current': current_method_id is not None and method.id == current_method_id,
+                'is_source': is_redefine and redefine_source_id is not None and method.id == redefine_source_id,
+                'is_new': False,
+            })
+
+    if object_id:
+        query = Method.query.filter(
+            Method.name == method_name,
+            Method.object_id == object_id,
+        )
+        if current_user.role not in ['admin', 'root']:
+            query = query.filter(Method.name.notlike(r'\_%', escape='\\'))
+        method = query.first()
+        if method:
+            obj = Object.get_by_id(object_id)
+            chain.append({
+                'id': method.id,
+                'name': method.name,
+                'code': method.code or '',
+                'class_id': None,
+                'class_name': None,
+                'object_id': object_id,
+                'owner': obj.name if obj else '',
+                'owner_type': 'object',
+                'call_parent': normalize_call_parent(method.call_parent),
+                'is_current': current_method_id is not None and method.id == current_method_id,
+                'is_source': is_redefine and redefine_source_id is not None and method.id == redefine_source_id,
+                'is_new': False,
+            })
+
+    if is_redefine:
+        has_current_level = any(
+            item['object_id'] == object_id and item['owner_type'] == 'object'
+            for item in chain
+        ) if object_id else any(
+            item['class_id'] == class_id and item['owner_type'] == 'class'
+            for item in chain
+        )
+
+        if not has_current_level:
+            ctx_cls = Class.get_by_id(class_id)
+            obj = Object.get_by_id(object_id) if object_id else None
+            chain.append({
+                'id': None,
+                'name': method_name,
+                'code': '',
+                'class_id': class_id if not object_id else None,
+                'class_name': ctx_cls.name if ctx_cls and not object_id else None,
+                'object_id': object_id,
+                'owner': obj.name if obj else (ctx_cls.name if ctx_cls else ''),
+                'owner_type': 'object' if object_id else 'class',
+                'call_parent': None,
+                'is_current': True,
+                'is_source': False,
+                'is_new': True,
+            })
+
     return chain
 
 def no_spaces_or_dots(form, field):

@@ -74,6 +74,11 @@ def normalize_params_json(params_str):
     return None
 
 def routeProperty(request):
+    def _norm_method_id(value):
+        if value in (None, '', 'None', 'null'):
+            return ''
+        return str(value)
+
     class_id = request.args.get('class', None)
     class_id = getClassId(class_id)
     object_id = request.args.get('object', None)
@@ -158,6 +163,8 @@ def routeProperty(request):
         for method in obj_method:
             methods.append(row2dict(method))
 
+    method_names = {str(method['id']): method['name'] for method in methods if method.get('id') is not None}
+
     form.method_id.choices = [('','')] + [(method['id'], method['name']) for method in methods]
     form.type.choices = [('',''),('bool','Boolean'),('int','Integer'),('float','Float'),('str','String'),('datetime','Datetime'),('dict','Dictionary'),('list','List'),('enum','Enum'),('color','Color')]
     if form.validate_on_submit():
@@ -235,11 +242,62 @@ def routeProperty(request):
 
         return redirect(url)  # Перенаправляем на другую страницу после успешного редактирования
 
+    parent_property = None
+    if item if 'item' in locals() else None:
+        parent_source = None
+        if op == "redefine" and request.method == 'GET':
+            # При переопределении открыта карточка родительского свойства
+            parent_source = item
+        elif object_owner:
+            # Для свойства объекта ищем одноименное у класса/предков
+            class_props = getPropertiesParents(class_owner.id, [])
+            parent_source = next((p for p in class_props if p['name'] == item.name), None)
+        elif class_owner and class_owner.parent_id:
+            # Для свойства класса ищем одноименное у предков класса
+            class_props = getPropertiesParents(class_owner.parent_id, [])
+            parent_source = next((p for p in class_props if p['name'] == item.name), None)
+
+        if parent_source:
+            if isinstance(parent_source, dict):
+                parent_method_id = parent_source.get('method_id')
+                parent_params_raw = parent_source.get('params')
+                parent_params_str = parent_params_raw if isinstance(parent_params_raw, str) else (
+                    json.dumps(parent_params_raw, ensure_ascii=False) if parent_params_raw else ''
+                )
+                parent_property = {
+                    'name': parent_source.get('name'),
+                    'description': parent_source.get('description'),
+                    'type': parent_source.get('type'),
+                    'history': parent_source.get('history'),
+                    'class_name': parent_source.get('class_name'),
+                    'method_id': parent_method_id,
+                    'method_id_norm': _norm_method_id(parent_method_id),
+                    'method': method_names.get(str(parent_method_id), ''),
+                    'params_norm': normalize_params_json(parent_params_str) or '',
+                    'params_raw': parent_params_raw if isinstance(parent_params_raw, str) else (json.dumps(parent_params_raw, ensure_ascii=False, indent=2) if parent_params_raw else ''),
+                }
+            else:
+                parent_cls = Class.get_by_id(parent_source.class_id) if parent_source.class_id else None
+                parent_property = {
+                    'name': parent_source.name,
+                    'description': parent_source.description,
+                    'type': parent_source.type,
+                    'history': parent_source.history,
+                    'class_name': parent_cls.name if parent_cls else None,
+                    'method_id': parent_source.method_id,
+                    'method_id_norm': _norm_method_id(parent_source.method_id),
+                    'method': method_names.get(str(parent_source.method_id), ''),
+                    'params_norm': normalize_params_json(parent_source.params or '') or '',
+                    'params_raw': parent_source.params or '',
+                }
+
     content = {
         'id': id,
         'form':form,
         'class': class_owner,
         'object': object_owner,
+        'parent_property': parent_property,
+        'current_method_id_norm': _norm_method_id(form.method_id.data),
         'class_hierarchy': get_class_hierarchy(class_owner.id if class_owner else None),
     }
     return render_template('property.html', **content)

@@ -384,6 +384,11 @@
                                         {% else %}
                                             {{ _('Description is empty')}}
                                         {% endif %}
+                                        {% if property.overrides_parent %}
+                                            <div class="mt-1">
+                                                <span class="badge bg-info text-dark">{{ _('Overrides parent property') }}</span>
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -634,6 +639,11 @@
                         {% endif %}
                         <td>
                             <div class="fw-semibold">{{ method.name }}</div>
+                            {% if method.redefined %}
+                            <div class="mt-1">
+                              <span class="badge bg-info text-dark">{{ _('Overrides parent method') }}</span>
+                            </div>
+                            {% endif %}
                         </td>
                         <td>
                             <div class="small text-muted">
@@ -643,6 +653,17 @@
                                     {{ _('Description is empty')}}
                                 {% endif %}
                             </div>
+                            {% if method.redefined %}
+                            <div class="mt-1">
+                                <span class="badge bg-info text-dark" style="font-size:0.7rem;">
+                                    {{ _('Call parent') }}:
+                                    {% if method.call_parent == -1 %}{{ _('Before') }}
+                                    {% elif method.call_parent == 1 %}{{ _('After') }}
+                                    {% else %}{{ _('No') }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% endif %}
                         </td>
                         <td class="text-end">
                             <div class="btn-group btn-group-sm" role="group">
@@ -679,7 +700,9 @@
                         {% endif %}
                         <td>
                             <div class="fw-semibold">
-                                {{method.class_name}} → <b>{{ method.name }}</b>
+                                <a href="?view=class&class={{ method.class_id }}&tab=methods" class="link-secondary text-decoration-none">{{method.class_name}}</a> → <b>
+                                  <a href="?view=method&class={{ method.class_id }}&method={{ method.id }}&op=edit" class="text-decoration-none text-body">{{ method.name }}</a>
+                                </b>
                             </div>
                         </td>
                         <td>
@@ -692,20 +715,11 @@
                             </div>
                         </td>
                         <td class="text-end">
-                            {% set has_method = False %}
-                            {% for m in methods %}
-                                {% if m.name == method.name %}
-                                    {% set has_method = True %}
-                                {% endif %}
-                            {% endfor %}
-
-                            {% if not has_method %}
                             <a href="?view=method&class={{id}}&method={{method.id}}&op=redefine"
                                class="btn btn-outline-info btn-sm"
                                role="button">
                                 <i class="fas fa-redo me-1"></i>{{ _('Redefine')}}
                             </a>
-                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -1256,6 +1270,11 @@
         });
     }
 
+    function confirmIrreversibleClassTool(message) {
+      var warning = '{{ _("This action cannot be undone.") }}';
+      return confirm(message + '\n\n' + warning);
+    }
+
     function reloadClassRuntime() {
       if (!confirm({{ _('Reload all objects of this class in runtime?')|tojson }})) {
         return;
@@ -1324,7 +1343,7 @@
       }
       var confirmMsg = {{ _('Delete all %(count)s objects of this class permanently?')|tojson }}
         .replace('%(count)s', classObjectNames.length);
-      if (!confirm(confirmMsg)) {
+      if (!confirmIrreversibleClassTool(confirmMsg)) {
         return;
       }
       classToolRequest('bulk_delete', {})
@@ -1346,7 +1365,7 @@
       }
       var confirmMsg = {{ _('Clear history for property %(property)s on all class objects?')|tojson }}
         .replace('%(property)s', propertyName);
-      if (!confirm(confirmMsg)) {
+      if (!confirmIrreversibleClassTool(confirmMsg)) {
         return;
       }
       classToolRequest('clear_history', {property: propertyName})

@@ -31,6 +31,11 @@
     {{ _('Method saved successfully!')}}
 </div>
 {% endif %}
+<!-- Подключение стилей Prism -->
+<link rel="stylesheet" href="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.css">
+<!-- Подключение скриптов Prism -->
+<script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.js"></script>
+<script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism-python.min.js"></script>
 <div id="method-form">
     <div id="saving-alert" class="alert alert-info mt-3" style="display: none;">
         <i class="fas fa-spinner fa-spin me-2"></i>{{ _('Saving method...')}}
@@ -98,6 +103,58 @@
 </div>
 {%endif%}
 </div>
+
+{% set visible_chain = method_inheritance_chain | rejectattr('owner_type', 'equalto', 'object') | list %}
+{% set inherited_chain = visible_chain | rejectattr('is_current') | rejectattr('is_new') | list %}
+{% if inherited_chain %}
+<div class="mt-4">
+    <h6 class="text-muted text-uppercase small mb-3">{{ _('Method inheritance hierarchy') }}</h6>
+    {% for level in visible_chain
+         if not (not object and class and level.owner_type == 'class' and level.class_id == class.id) %}
+    <div class="border rounded p-3 mb-3{% if level.is_current %} border-primary{% elif level.is_new %} border-success{% elif level.is_source %} border-info{% endif %}">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+            <div class="fw-semibold">
+                {% if level.owner_type == 'class' %}
+                <a href="?view=class&class={{ level.class_id }}&tab=methods" class="link-secondary text-decoration-none">{{ level.owner }}</a>
+                {% else %}
+                <a href="?view=object&object={{ level.object_id }}&tab=methods" class="link-secondary text-decoration-none">{{ level.owner }}</a>
+                {% endif %}
+                .<b>{{ level.name }}</b>
+                {% if level.is_current and not level.is_new %}
+                <span class="badge bg-primary ms-1">{{ _('Current') }}</span>
+                {% endif %}
+                {% if level.is_new %}
+                <span class="badge bg-success ms-1">{{ _('New override') }}</span>
+                {% endif %}
+                {% if level.is_source %}
+                <span class="badge bg-info text-dark ms-1">{{ _('Source') }}</span>
+                {% endif %}
+            </div>
+            {% if level.call_parent is not none and not level.is_new %}
+            <span class="badge bg-secondary">
+                {{ _('Call parent') }}:
+                {% if level.call_parent == -1 %}{{ _('Before') }}
+                {% elif level.call_parent == 1 %}{{ _('After') }}
+                {% else %}{{ _('No') }}
+                {% endif %}
+            </span>
+            {% endif %}
+        </div>
+        {% if not (level.owner_type == 'object'
+              or level.is_new
+              or level.is_current
+              or level.is_source
+              or (not object and class and level.owner_type == 'class' and level.class_id == class.id)) %}
+        {% if level.code %}
+        <pre class="code-block border rounded p-3 mb-0" style="overflow-x: auto;"><code class="language-python">{{ level.code }}</code></pre>
+        {% else %}
+        <div class="small text-muted fst-italic">{{ _('Code is empty') }}</div>
+        {% endif %}
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 
 <script>
 function runCurrentMethod() {
@@ -261,5 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+{% include 'includes/code_block_styles.html' %}
 
 {% endblock %}

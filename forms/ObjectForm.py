@@ -11,7 +11,7 @@ from app.core.lib.common import getJobs
 from app.core.utilities.json_encoding import CustomJSONEncoder
 from app.core.models.Clasess import Class, Object, Property, Method, Value
 from app.core.main.ObjectsStorage import objects_storage
-from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents, get_class_hierarchy, checkPermission, getClassId, getObjectId
+from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents, get_class_hierarchy, checkPermission, getClassId, getObjectId, normalize_call_parent
 from plugins.Objects.tree_cache import invalidate_objects_tree_cache
 from app.database import db
 from app.core.lib.object_db import delete_object_from_db
@@ -53,15 +53,23 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
     # Загрузка properties
     parent_properties = []
     parent_properties = getPropertiesParents(item.class_id, parent_properties)
+    parent_properties_by_name = {prop['name']: prop for prop in parent_properties}
     query = Property.query.filter(Property.object_id == item.id)
     if current_user.role not in ['admin','root']:
         query = query.filter(Property.name.notlike(r'\_%', escape='\\'))
     object_properties = query.order_by(Property.name).all()
+    object_property_names = [subitem.name for subitem in object_properties]
+    overridden_property_names = {name for name in object_property_names if name in parent_properties_by_name}
     # исключить переопределенные
-    parent_properties = [prop for prop in parent_properties if prop['name'] not in [subitem.name for subitem in object_properties]]
+    parent_properties = [prop for prop in parent_properties if prop['name'] not in object_property_names]
     properties.extend(parent_properties)
     for c in object_properties:
-        properties.append(row2dict(c))
+        prop = row2dict(c)
+        prop['overrides_parent'] = c.name in overridden_property_names
+        if prop['overrides_parent']:
+            parent_prop = parent_properties_by_name.get(c.name, {})
+            prop['parent_class_name'] = parent_prop.get('class_name')
+        properties.append(prop)
     
     om = objects_storage.getObjectByName(item.name)
 
@@ -148,6 +156,16 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
             method['exec_params'] = json.dumps(mm.exec_params, cls=CustomJSONEncoder) if mm.exec_params else ''
             method['exec_result'] = mm.exec_result if mm.exec_result else ''
             method['exec_time'] = mm.exec_time
+
+    class_methods_by_name = {m['name']: m for m in methods if m.get('class_id')}
+    for method in methods:
+        parent_method = class_methods_by_name.get(method['name'])
+        if not method.get('class_id') and parent_method:
+            method['overrides_class'] = True
+            method['parent_method_id'] = parent_method['id']
+            method['parent_class_id'] = parent_method['class_id']
+            method['parent_class_name'] = parent_method.get('class_name')
+            method['call_parent'] = normalize_call_parent(method.get('call_parent'))
 
     # Обогащаем свойства метаданными и считаем порядок сортировки
     for idx, property in enumerate(properties):

@@ -8,7 +8,7 @@ from app.core.models.Clasess import Class, Object, Method, Property
 from app.core.lib.common import getJob, addCronJob, clearScheduledJob
 from app.database import db
 from app.core.main.ObjectsStorage import objects_storage
-from plugins.Objects.forms.utils import no_spaces_or_dots, get_class_hierarchy, checkPermission, getClassId, getObjectId
+from plugins.Objects.forms.utils import no_spaces_or_dots, get_class_hierarchy, checkPermission, getClassId, getObjectId, get_method_inheritance_chain
 
 
 # Определение класса формы
@@ -142,12 +142,29 @@ def routeMethod(request):
 
     if op == "redefine":
         form.code.data = ""
+
+    method_inheritance_chain = []
+    if class_owner:
+        current_method = Method.query.get(id) if id else None
+        method_name = form.name.data or (current_method.name if current_method else None)
+        if method_name:
+            is_redefine = op == "redefine" and request.method == 'GET'
+            method_inheritance_chain = get_method_inheritance_chain(
+                method_name,
+                class_owner.id,
+                object_id=object_owner.id if object_owner else None,
+                current_method_id=None if is_redefine else id,
+                is_redefine=is_redefine,
+                redefine_source_id=id if is_redefine else None,
+            )
+
     content = {
         'id': id,
         'form':form,
         'class': class_owner,
         'object': object_owner,
         'saved': saved,
+        'method_inheritance_chain': method_inheritance_chain,
         'class_hierarchy': get_class_hierarchy(class_owner.id if class_owner else None),
     }
     return render_template('method.html', **content)

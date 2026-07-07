@@ -7,7 +7,7 @@ from flask import redirect, render_template, abort
 from sqlalchemy import delete
 from app.core.models.Clasess import Class, Property, Method, Object
 from app.database import db, row2dict
-from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, getTemplatesParents, get_class_hierarchy, get_objects_for_class_tree, no_spaces_or_dots, ValidationError, checkPermission, getClassId
+from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, getTemplatesParents, get_class_hierarchy, get_objects_for_class_tree, no_spaces_or_dots, ValidationError, checkPermission, getClassId, normalize_call_parent
 from app.core.main.ObjectsStorage import objects_storage
 from app.core.lib.object import getObject
 from plugins.Objects.tree_cache import invalidate_objects_tree_cache
@@ -50,8 +50,10 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
     properties = query.order_by(Property.name).all()
     properties = [row2dict(prop) for prop in properties]
     parent_properties = []
+    parent_property_names = set()
     if item.parent_id:
         parent_props = getPropertiesParents(item.parent_id, parent_properties)
+        parent_property_names = {prop['name'] for prop in parent_props}
         # исключить переопределенные
         parent_properties = [prop for prop in parent_props if prop['name'] not in [subitem['name'] for subitem in properties]]
     
@@ -64,10 +66,23 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
     for method in methods:
         dict_methods[method['id']] = method['name']
     parent_methods = []
+    parent_methods_by_name = {}
     if item.parent_id:
-        parent_methods = getMethodsParents(item.parent_id, parent_methods)
+        parent_meths_all = getMethodsParents(item.parent_id, [])
+        parent_methods_by_name = {meth['name']: meth for meth in parent_meths_all}
+        # исключить переопределенные
+        parent_methods = [meth for meth in parent_meths_all if meth['name'] not in [subitem['name'] for subitem in methods]]
     for method in parent_methods:
         dict_methods[method['id']] = method['name']
+
+    for method in methods:
+        parent_method = parent_methods_by_name.get(method['name'])
+        method['redefined'] = parent_method is not None
+        if parent_method:
+            method['parent_method_id'] = parent_method['id']
+            method['parent_class_id'] = parent_method['class_id']
+            method['parent_class_name'] = parent_method.get('class_name')
+        method['call_parent'] = normalize_call_parent(method.get('call_parent'))
     
     def _safe_parse_params(raw_params):
         """
@@ -97,6 +112,7 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
     # Обогащаем свойства и родительские свойства метаданными (icon, color, sort_order, validation params)
     for idx, prop in enumerate(properties):
         prop['_idx'] = idx  # исходный порядок
+        prop['overrides_parent'] = prop['name'] in parent_property_names
         if prop['method_id']:
             if prop['method_id'] in dict_methods:
                 prop['method'] = dict_methods[prop['method_id']]

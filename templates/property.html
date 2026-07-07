@@ -71,22 +71,48 @@
             <div class="mb-3">
                 <label class="form-label">{{ _('Name') }}</label>
                 {{ form.name(class="form-control") }}
+                {% if parent_property %}
+                <div class="form-text text-muted d-none" id="hint-parent-name">
+                    <b>{{ _('Parent') }}:</b> {% if parent_property.class_name %}{{ parent_property.class_name }}.{% endif %}{{ parent_property.name }}
+                </div>
+                {% endif %}
             </div>
             <div class="mb-3">
                 <label class="form-label">{{ _('Description') }}</label>
                 {{ form.description(class="form-control") }}
+                {% if parent_property %}
+                <div class="form-text text-muted d-none" id="hint-parent-description">
+                    <b>{{ _('Parent') }}:</b>
+                    {% if parent_property.description %}{{ parent_property.description }}{% else %}{{ _('Description is empty') }}{% endif %}
+                </div>
+                {% endif %}
             </div>
             <div class="mb-3">
                 <label class="form-label">{{ _('Method') }}</label>
                 {{ form.method_id(class="form-control") }}
+                {% if parent_property %}
+                <div class="form-text text-muted d-none" id="hint-parent-method">
+                    <b>{{ _('Parent') }}:</b> {{ parent_property.method if parent_property.method else '-' }}
+                </div>
+                {% endif %}
             </div>
             <div class="mb-3">
                 <label class="form-label">{{ _('History (days)') }}</label>
                 {{ form.history(class="form-control") }}
+                {% if parent_property %}
+                <div class="form-text text-muted d-none" id="hint-parent-history">
+                    <b>{{ _('Parent') }}:</b> {{ parent_property.history if parent_property.history is not none else 0 }}
+                </div>
+                {% endif %}
             </div>
             <div class="mb-3">
                 <label class="form-label">{{ _('Type') }}</label>
                 {{ form.type(class="form-control", id="property-type") }}
+                {% if parent_property %}
+                <div class="form-text text-muted d-none" id="hint-parent-type">
+                    <b>{{ _('Parent') }}:</b> {{ parent_property.type if parent_property.type else '-' }}
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -123,6 +149,12 @@
         <!-- Параметры типа -->
         <div class="tab-pane fade" id="prop-tab-type" role="tabpanel" aria-labelledby="prop-tab-type-btn" tabindex="0">
             <p class="text-muted small mb-3" id="tab-type-hint">{{ _('Settings that depend on the selected property type') }}</p>
+            {% if parent_property and parent_property.params_raw %}
+            <div class="text-muted small mb-3 d-none" id="hint-parent-params">
+                <b>{{ _('Parent') }} {{ _('Parameters (JSON)') }}:</b>
+                <pre class="border rounded p-2 mt-2 mb-0" style="white-space: pre-wrap;"><code>{{ parent_property.params_raw }}</code></pre>
+            </div>
+            {% endif %}
             <p class="text-muted mb-0" id="tab-type-empty" style="display: none;">
                 <i class="fas fa-info-circle me-1"></i>{{ _('No type-specific parameters for this type') }}
             </p>
@@ -331,6 +363,60 @@ document.addEventListener('DOMContentLoaded', function() {
     const colorTempUnitField = document.getElementById('param-color-temp-unit');
     const hueScaleField = document.getElementById('param-hue-scale');
     const satScaleField = document.getElementById('param-sat-scale');
+    const hasParentHints = {{ 'true' if parent_property else 'false' }};
+    const parentHintData = {
+        name: {{ (parent_property.name if parent_property else '') | tojson }},
+        description: {{ (parent_property.description if parent_property else '') | tojson }},
+        method_id: {{ (parent_property.method_id_norm if parent_property else '') | tojson }},
+        history: {{ (parent_property.history if parent_property and parent_property.history is not none else 0) | tojson }},
+        type: {{ (parent_property.type if parent_property else '') | tojson }},
+        params_norm: {{ (parent_property.params_norm if parent_property else '') | tojson }}
+    };
+
+    function normalizeMethodId(value) {
+        if (value === null || value === undefined) return '';
+        const s = String(value).trim();
+        return (s === '' || s === 'None' || s === 'null') ? '' : s;
+    }
+
+    function normalizeParams(value) {
+        const raw = (value || '').trim();
+        if (!raw) return '';
+        try {
+            return JSON.stringify(JSON.parse(raw));
+        } catch (e) {
+            return raw;
+        }
+    }
+
+    function toggleHint(id, show) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle('d-none', !show);
+    }
+
+    function updateParentHints() {
+        if (!hasParentHints) return;
+
+        const nameInput = document.getElementById('name');
+        const descriptionInput = document.getElementById('description');
+        const methodInput = document.getElementById('method_id');
+        const historyInput = document.getElementById('history');
+
+        const curName = nameInput ? String(nameInput.value || '') : '';
+        const curDescription = descriptionInput ? String(descriptionInput.value || '') : '';
+        const curMethod = normalizeMethodId(methodInput ? methodInput.value : '');
+        const curHistory = historyInput ? parseInt(historyInput.value || '0', 10) || 0 : 0;
+        const curType = String(typeSelect.value || '');
+        const curParams = normalizeParams(paramsJsonField.value || '');
+
+        toggleHint('hint-parent-name', curName !== String(parentHintData.name || ''));
+        toggleHint('hint-parent-description', curDescription !== String(parentHintData.description || ''));
+        toggleHint('hint-parent-method', curMethod !== normalizeMethodId(parentHintData.method_id));
+        toggleHint('hint-parent-history', curHistory !== (parseInt(parentHintData.history || 0, 10) || 0));
+        toggleHint('hint-parent-type', curType !== String(parentHintData.type || ''));
+        toggleHint('hint-parent-params', !!document.getElementById('hint-parent-params') && curParams !== normalizeParams(parentHintData.params_norm || ''));
+    }
     
     function toggleValidationParams() {
         const type = typeSelect.value;
@@ -457,6 +543,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update hidden field
         paramsJsonField.value = Object.keys(params).length > 0 ? JSON.stringify(params) : '';
+        updateParentHints();
     }
     
     function loadParamsFromJson() {
@@ -522,11 +609,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial setup
     toggleValidationParams();
     loadParamsFromJson();
+    updateParentHints();
     
     // Listen for changes
     typeSelect.addEventListener('change', function() {
         toggleValidationParams();
         focusTypeTabIfNeeded(typeSelect.value);
+        updateParentHints();
     });
     
     // Update JSON on any field change
@@ -540,10 +629,20 @@ document.addEventListener('DOMContentLoaded', function() {
             field.addEventListener('input', buildParamsJson);
         }
     });
+
+    const basicFields = ['name', 'description', 'method_id', 'history'];
+    basicFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('change', updateParentHints);
+            field.addEventListener('input', updateParentHints);
+        }
+    });
     
     // Build JSON before form submit
     document.querySelector('form').addEventListener('submit', function(e) {
         buildParamsJson();
+        updateParentHints();
     });
 });
 </script>

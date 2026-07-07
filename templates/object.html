@@ -374,6 +374,11 @@
                                         {% else %}
                                             {{ _('Description is empty')}}
                                         {% endif %}
+                                        {% if property.overrides_parent %}
+                                            <div class="mt-1">
+                                                <span class="badge bg-info text-dark">{{ _('Overrides parent property') }}</span>
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -524,6 +529,7 @@
                         </td>
                     </tr>
                     {% endfor %}
+
                 </tbody>
             </table>
         </div>
@@ -544,7 +550,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for method in methods %}
+                    {% for method in methods if not method.class_id %}
                     <tr>
                         {% if show_id %}
                         <th scope="row" style="width:1%; white-space:nowrap;">
@@ -555,9 +561,25 @@
                             {% if method.class_id %}{{method.class_name}} -> <b>{% endif %}
                             {{ form.name.data }}.{{ method.name }}
                             {% if method.class_id %}</b>{% endif %}
+                            {% if method.overrides_class %}
+                            <div class="mt-1">
+                                <span class="badge bg-info text-dark">{{ _('Overrides parent method') }}</span>
+                            </div>
+                            {% endif %}
                         </td>
                         <td style="white-space: nowrap;">
                             {{ method.description }}
+                            {% if method.overrides_class %}
+                            <div class="mt-1">
+                                <span class="badge bg-info text-dark" style="font-size:0.7rem;">
+                                    {{ _('Call parent') }}:
+                                    {% if method.call_parent == -1 %}{{ _('Before') }}
+                                    {% elif method.call_parent == 1 %}{{ _('After') }}
+                                    {% else %}{{ _('No') }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% endif %}
                             {% if method.jobs%}
                                 {%for job in method.jobs%}
                                 <p style="color: gray;margin: 0px;">
@@ -617,6 +639,85 @@
                                 <a href="?view=schedule&object={{id}}&method={{method.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>{{ _('Add task')}}</a>
                                 <a href="#" class="btn btn-warning btn-sm" onClick="callMethodWithResult('{{form.name.data}}.{{method.name}}',)" role="button"><i class="fa-solid fa-gears me-2"></i>{{ _('Run')}}</a>
                             {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    {% set parent_methods = methods | selectattr('class_id') | rejectattr('redefined') | list %}
+                    {% if parent_methods %}
+                    <tr>
+                        <td colspan="{{ 4 + (1 if show_id else 0) }}" class="pt-3 pb-1">
+                            <span class="text-muted" style="font-size:0.8rem; border-top: 1px solid rgba(255,255,255,0.08); display:block; padding-top:0.35rem;">
+                                {{ _('Parent methods') }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    {% for method in parent_methods %}
+                    <tr>
+                        {% if show_id %}
+                        <th scope="row" style="width:1%; white-space:nowrap;">
+                            <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ method.id }}</span>
+                        </th>
+                        {% endif %}
+                        <td style="white-space: nowrap;">
+                            <div class="fw-semibold">
+                                <a href="?view=class&class={{ method.class_id }}&tab=methods" class="link-secondary text-decoration-none">{{method.class_name}}</a> → <b>
+                                    <a href="?view=method&class={{ method.class_id }}&method={{ method.id }}&op=edit" class="text-decoration-none text-body">{{ form.name.data }}.{{ method.name }}</a>
+                                </b>
+                            </div>
+                        </td>
+                        <td style="white-space: nowrap;">
+                            {{ method.description }}
+                            {% if method.jobs %}
+                                {% for job in method.jobs %}
+                                <p style="color: gray;margin: 0px;">
+                                    ↳ {% if job.active == False %}
+                                    <span class="badge bg-secondary text-decoration-line-through">{{ _('Runtime')}}: {{job.runtime}}
+                                    {% if job.crontab %}
+                                        ({{ _('Period')}}: {{job.crontab}})
+                                    {% endif %}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">{{ _('Runtime')}}: {{job.runtime}}
+                                    {% if job.crontab %}
+                                        ({{ _('Period')}}: {{job.crontab}})
+                                    {% endif %}
+                                    </span>
+                                    {% endif %}
+                                    {% if job.active != False %}
+                                    <button onclick="toggleScheduleActive({{ job.id }}, false, 'methods')" class="btn btn-tertiary btn-sm" title="{{ _('Disable')}}">
+                                        <i class="fas fa-pause"></i>
+                                    </button>
+                                    {% else %}
+                                    <button onclick="toggleScheduleActive({{ job.id }}, true, 'methods')" class="btn btn-tertiary btn-sm" title="{{ _('Enable')}}">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                    {% endif %}
+                                    <a href="?view=schedule&object={{id}}&tab=methods&schedule={{job.id}}&op=delete" onClick="return confirm('Delete task?')" class="btn btn-tertiary btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
+                                </p>
+                                {% endfor %}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>
+                                <span class="badge bg-secondary" id="method_executed:{{form.name.data}}.{{method.name}}">{{method.executed}}</span>
+                                <span class="badge bg-success" id="method_source:{{form.name.data}}.{{method.name}}">{{method.source}}</span>
+                            </div>
+                            <a class="btn btn-link p-0" data-bs-toggle="collapse" data-bs-target="#spoiler_info{{form.name.name}}{{method.name}}" aria-expanded="true" aria-controls="spoiler{{form.name.name}}{{method.name}}">
+                                Info
+                            </a>
+                            <div id="spoiler_info{{form.name.name}}{{method.name}}" class="collapse hide ms-3">
+                                <p style="color: gray;margin: 0px;">↳ Params: <span id="method_exec_params:{{form.name.data}}.{{method.name}}">{{method.exec_params}}</span></p>
+                                <p style="color: gray;margin: 0px;">↳ Result: <span id="method_exec_result:{{form.name.data}}.{{method.name}}">{{method.exec_result}}</span></p>
+                                <p style="color: gray;margin: 0px;">↳ Time executed: <span id="method_exec_time:{{form.name.data}}.{{method.name}}">{{method.exec_time}}</span> ms</p>
+                            </div>
+                        </td>
+                        <td style="white-space: nowrap;">
+                            <a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button"><i class="fas fa-redo me-2"></i>{{ _('Redefine')}}</a>
+                            <a href="?view=schedule&object={{id}}&method={{method.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>{{ _('Add task')}}</a>
+                            <a href="#" class="btn btn-warning btn-sm" onClick="callMethodWithResult('{{form.name.data}}.{{method.name}}',)" role="button"><i class="fa-solid fa-gears me-2"></i>{{ _('Run')}}</a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -2422,6 +2523,11 @@
             });
     }
 
+    function confirmIrreversibleObjectTool(message) {
+        var warning = '{{ _("This action cannot be undone.") }}';
+        return confirm(message + '\n\n' + warning);
+    }
+
     function reloadObjectRuntime() {
         if (!confirm({{ _('Reload this object in runtime?')|tojson }})) {
             return;
@@ -2441,7 +2547,7 @@
         var confirmMsg = propertyName
             ? {{ _('Clear history for property %(property)s?')|tojson }}.replace('%(property)s', propertyName)
             : {{ _('Clear all property history for this object?')|tojson }};
-        if (!confirm(confirmMsg)) {
+        if (!confirmIrreversibleObjectTool(confirmMsg)) {
             return;
         }
         objectToolRequest('clear_history', {property: propertyName})
@@ -2458,7 +2564,7 @@
     }
 
     function clearObjectLinks() {
-        if (!confirm({{ _('Clear all links for this object?')|tojson }})) {
+        if (!confirmIrreversibleObjectTool({{ _('Clear all links for this object?')|tojson }})) {
             return;
         }
         objectToolRequest('clear_links', {})
@@ -2476,7 +2582,7 @@
     }
 
     function clearObjectSchedules() {
-        if (!confirm({{ _('Delete all schedules for this object?')|tojson }})) {
+        if (!confirmIrreversibleObjectTool({{ _('Delete all schedules for this object?')|tojson }})) {
             return;
         }
         objectToolRequest('clear_schedules', {})
