@@ -150,9 +150,11 @@ def routeProperty(request):
     form.object_id = object_id
 
     object_owner = None
+    class_owner = None
     if object_id:
         object_owner = Object.get_by_id(object_id)
-        class_owner = Class.get_by_id(object_owner.class_id)
+        if object_owner and object_owner.class_id:
+            class_owner = Class.get_by_id(object_owner.class_id)
     else:
         class_owner = Class.get_by_id(class_id)
     methods = []
@@ -248,7 +250,7 @@ def routeProperty(request):
         if op == "redefine" and request.method == 'GET':
             # При переопределении открыта карточка родительского свойства
             parent_source = item
-        elif object_owner:
+        elif object_owner and class_owner:
             # Для свойства объекта ищем одноименное у класса/предков
             class_props = getPropertiesParents(class_owner.id, [])
             parent_source = next((p for p in class_props if p['name'] == item.name), None)
