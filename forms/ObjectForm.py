@@ -167,6 +167,28 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
             method['parent_class_name'] = parent_method.get('class_name')
             method['call_parent'] = normalize_call_parent(method.get('call_parent'))
 
+    for idx, method in enumerate(methods):
+        method['_idx'] = idx
+        params = {}
+        raw_params = method.get('params')
+        if raw_params:
+            try:
+                parsed = json.loads(raw_params) if isinstance(raw_params, str) else raw_params
+                params = parsed if isinstance(parsed, dict) else {}
+            except Exception:
+                params = {}
+        method['params'] = params
+        method['icon'] = params.get('icon', '')
+        method['color'] = params.get('color', '')
+        method['sort_order'] = params.get('sort_order')
+
+    methods.sort(
+        key=lambda m: (
+            m['sort_order'] if m.get('sort_order') is not None else 10**9,
+            m.get('_idx', 0),
+        )
+    )
+
     # Обогащаем свойства метаданными и считаем порядок сортировки
     for idx, property in enumerate(properties):
         property['_idx'] = idx  # исходный порядок
@@ -292,7 +314,8 @@ def routeObject(request, config):
                 description=method.description,
                 object_id=new_obj.id,
                 code=method.code,
-                call_parent=method.call_parent
+                call_parent=method.call_parent,
+                params=method.params,
             )
             db.session.add(new_method)
         

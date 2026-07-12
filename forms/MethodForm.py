@@ -1,6 +1,7 @@
 from flask import redirect, render_template, abort
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, RadioField, BooleanField
+from plugins.Objects.forms.PropertyForm import normalize_params_json
 from wtforms.validators import DataRequired, ValidationError
 from sqlalchemy import delete
 
@@ -17,6 +18,7 @@ class MethodForm(FlaskForm):
     description = StringField('Description')
     code = TextAreaField("Code", render_kw={"rows": 15})
     call_parent = RadioField("Call parent", choices=[('-1','Before'),('0','No'),('1','After')])
+    params = TextAreaField("Parameters (JSON)")
     periodic = BooleanField('Run periodic')
     crontab = StringField('Crontab')
     submit = SubmitField('Submit')
@@ -101,12 +103,14 @@ def routeMethod(request):
                 method.description = form.description.data
                 method.code = form.code.data
                 method.call_parent = form.call_parent.data
+                method.params = normalize_params_json(form.params.data)
                 db.session.add(method)
                 db.session.commit()
                 id = method.id
             else:
                 old_name = item.name
                 form.populate_obj(item)  # Обновляем значения объекта данными из формы
+                item.params = normalize_params_json(form.params.data)
                 if object_owner and old_name != item.name:
                     objects_storage.changeObject("rename", object_owner.name, None, old_name, item.name)
         else:
@@ -115,6 +119,7 @@ def routeMethod(request):
                 description=form.description.data,
                 code=form.code.data,
                 call_parent=form.call_parent.data,
+                params=normalize_params_json(form.params.data),
             )
             if class_id:
                 item.class_id = class_id

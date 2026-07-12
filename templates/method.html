@@ -1,6 +1,7 @@
 {% extends "objects_shell.html" %}
 {% from "macros/code_editor.html" import render_editor %}
 {% from "includes/objects_breadcrumb.html" import breadcrumb_method with context %}
+{% from "macros/icon_picker.html" import icon_picker_field, icon_picker_modal, icon_picker_assets %}
 
 {% block breadcrumb %}
 {{ breadcrumb_method(
@@ -31,6 +32,45 @@
     {{ _('Method saved successfully!')}}
 </div>
 {% endif %}
+<style>
+    .objects-method-page .nav-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    .objects-method-page .tab-content > .tab-pane:not(.show) {
+        display: none !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
+    }
+
+    .objects-method-page .tab-content > .tab-pane.active {
+        display: block;
+    }
+
+    #method-form {
+        margin-bottom: 0;
+    }
+
+    @media (max-width: 767.98px) {
+        .objects-method-page .nav-tabs {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            padding-bottom: 0.25rem;
+        }
+
+        .objects-method-page .nav-tabs .nav-item {
+            flex: 0 0 auto;
+        }
+    }
+</style>
 <!-- Подключение стилей Prism -->
 <link rel="stylesheet" href="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.css">
 <!-- Подключение скриптов Prism -->
@@ -46,10 +86,22 @@
     <div id="error-alert" class="alert alert-danger mt-3" style="display: none;">
         <strong>{{ _('Error saving method:')}}</strong> <span id="error-message"></span>
     </div>
-    <form id="form" method="POST" onsubmit="submitForm(event)">
+    <form id="form" method="POST" class="objects-method-page" onsubmit="submitForm(event)">
   <!-- Поля формы -->
   {{ form.hidden_tag() }}
   <input type="hidden" id="method" name="method" value="{{id}}">
+
+  <ul class="nav nav-tabs" id="methodFormTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+          <a class="nav-link tab-button active" id="meth-tab-general-btn" data-bs-toggle="tab" href="#meth-tab-general" role="tab" aria-controls="meth-tab-general" aria-selected="true">{{ _('General') }}</a>
+      </li>
+      <li class="nav-item" role="presentation">
+          <a class="nav-link tab-button" id="meth-tab-display-btn" data-bs-toggle="tab" href="#meth-tab-display" role="tab" aria-controls="meth-tab-display" aria-selected="false">{{ _('Display') }}</a>
+      </li>
+  </ul>
+
+  <div class="tab-content mt-3" id="methodFormTabContent">
+      <div class="tab-pane fade show active" id="meth-tab-general" role="tabpanel" aria-labelledby="meth-tab-general-btn" tabindex="0">
   <div class="mb-3">
       <label class="form-label">{{ _('Name') }}</label>
       {{ form.name(class="form-control") }}
@@ -77,12 +129,35 @@
         <label class="form-label">{{ _('Periodic') }}</label>
         {{ form.periodic(class="form-check-input", id="checkbox", onclick="toggleHiddenField()") }}
     </div>
-    <diw class="col-auto mb-3 d-none" id="hidden_field_wrapper">
+    <div class="col-auto mb-3 d-none" id="hidden_field_wrapper">
         <label class="form-label">{{ _('Cron') }}</label>
         {{ form.crontab(class="form-control") }}
     </div>
 </div>
 {%endif%}
+      </div>
+
+      <div class="tab-pane fade" id="meth-tab-display" role="tabpanel" aria-labelledby="meth-tab-display-btn" tabindex="0">
+          <p class="text-muted small mb-3">{{ _('UI settings for object cards and method lists') }}</p>
+          <div class="row">
+              <div class="col-md-6 col-lg-4">
+                  {{ icon_picker_field('param-icon', label=_('Icon'), wrapper_class='mb-3') }}
+              </div>
+              <div class="col-md-6 col-lg-3 mb-3">
+                  <label class="form-label">{{ _('Color') }}</label>
+                  <input type="color" class="form-control form-control-color w-100" id="param-color">
+              </div>
+              <div class="col-md-6 col-lg-3 mb-3">
+                  <label class="form-label">{{ _('Sort Order') }}</label>
+                  <input type="number" class="form-control" id="param-sort-order" placeholder="0">
+              </div>
+          </div>
+      </div>
+  </div>
+
+  {{ form.params(style="display: none;", id="params-json") }}
+
+  <div class="mt-3 d-flex flex-wrap gap-2">
  <!-- Кнопка отправки формы -->
   <button type="submit" id="submit-btn" class="btn btn-primary">
     <i id="submit-spinner" class="fas fa-spinner fa-spin me-2" style="display: none;"></i>
@@ -95,6 +170,7 @@
   {% else %}
   <a href="?view=class&class={{class.id}}&tab=methods" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
   {% endif %}
+  </div>
 </form>
 
 {% if object %}
@@ -103,6 +179,9 @@
 </div>
 {%endif%}
 </div>
+
+{{ icon_picker_modal() }}
+{{ icon_picker_assets() }}
 
 {% set visible_chain = method_inheritance_chain | rejectattr('owner_type', 'equalto', 'object') | list %}
 {% set inherited_chain = visible_chain | rejectattr('is_current') | rejectattr('is_new') | list %}
@@ -183,6 +262,8 @@ function toggleHiddenField() {
 
 async function submitForm(event) {
     event.preventDefault();
+
+    buildParamsJson();
 
     // Get form elements
     const form = event.target;
@@ -306,6 +387,45 @@ async function submitForm(event) {
 
 // Ensure the field visibility is correct on page load if the checkbox is checked
 document.addEventListener('DOMContentLoaded', function() {
+    const paramsJsonField = document.getElementById('params-json');
+    const iconField = document.getElementById('param-icon');
+    const colorField = document.getElementById('param-color');
+    const sortOrderField = document.getElementById('param-sort-order');
+
+    function buildParamsJson() {
+        const params = {};
+        if (iconField && iconField.value) params.icon = iconField.value;
+        if (colorField && colorField.value) params.color = colorField.value;
+        if (sortOrderField && sortOrderField.value) params.sort_order = parseInt(sortOrderField.value, 10);
+        if (paramsJsonField) {
+            paramsJsonField.value = Object.keys(params).length > 0 ? JSON.stringify(params) : '';
+        }
+    }
+
+    function loadParamsFromJson() {
+        if (!paramsJsonField || !paramsJsonField.value) return;
+        try {
+            const params = JSON.parse(paramsJsonField.value);
+            if (iconField && params.icon) iconField.value = params.icon;
+            if (colorField && params.color) colorField.value = params.color;
+            if (sortOrderField && params.sort_order !== undefined) sortOrderField.value = params.sort_order;
+        } catch (e) {
+            console.error('Error loading method params:', e);
+        }
+    }
+
+    window.buildParamsJson = buildParamsJson;
+    loadParamsFromJson();
+    if (window.IconPicker) {
+        IconPicker.register('param-icon', { onChange: buildParamsJson });
+    }
+    [iconField, colorField, sortOrderField].forEach(field => {
+        if (field) {
+            field.addEventListener('change', buildParamsJson);
+            field.addEventListener('input', buildParamsJson);
+        }
+    });
+
     toggleHiddenField();
     const nameField = document.getElementById('name');
     const preview = document.getElementById('method-name-preview');

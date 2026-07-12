@@ -631,21 +631,38 @@
                 </thead>
                 <tbody>
                     {% for method in methods %}
+                    {% set _color = method.color|lower if method.color else '' %}
+                    {% if _color in ['#000', '#000000', 'black'] %}
+                        {% set row_bg = '' %}
+                    {% else %}
+                        {% set row_bg = _color ~ '26' if _color else '' %}
+                    {% endif %}
                     <tr>
                         {% if show_id %}
-                        <td style="width:1%; white-space:nowrap;">
+                        <td style="width:1%; white-space:nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
                             <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ method.id }}</span>
                         </td>
                         {% endif %}
-                        <td>
-                            <div class="fw-semibold">{{ method.name }}</div>
-                            {% if method.redefined %}
-                            <div class="mt-1">
-                              <span class="badge bg-info text-dark">{{ _('Overrides parent method') }}</span>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            <div class="d-flex align-items-start">
+                                {% if method.icon %}
+                                    {% if ':' in method.icon %}
+                                        <iconify-icon icon="{{ method.icon }}" title="{{ _('Method icon') }}" class="p-2 me-2" style="font-size:1.25rem;"></iconify-icon>
+                                    {% else %}
+                                        <i class="{{ method.icon }} p-2 me-2" title="{{ _('Method icon') }}" style="font-size:1.25rem;"></i>
+                                    {% endif %}
+                                {% endif %}
+                                <div>
+                                    <div class="fw-semibold">{{ method.name }}</div>
+                                    {% if method.redefined %}
+                                    <div class="mt-1">
+                                      <span class="badge bg-info text-dark">{{ _('Overrides parent method') }}</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
                             </div>
-                            {% endif %}
                         </td>
-                        <td>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             <div class="small text-muted">
                                 {% if method.description %}
                                     {{ method.description }}
@@ -665,7 +682,7 @@
                             </div>
                             {% endif %}
                         </td>
-                        <td class="text-end">
+                        <td class="text-end"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             <div class="btn-group btn-group-sm" role="group">
                                 <a href="?view=method&class={{id}}&method={{method.id}}&op=edit"
                                    class="btn btn-outline-success"
@@ -692,20 +709,37 @@
                     </tr>
                     {% endif %}
                     {% for method in parent_methods %}
+                    {% set _color = method.color|lower if method.color else '' %}
+                    {% if _color in ['#000', '#000000', 'black'] %}
+                        {% set row_bg = '' %}
+                    {% else %}
+                        {% set row_bg = _color ~ '26' if _color else '' %}
+                    {% endif %}
                     <tr>
                         {% if show_id %}
-                        <td style="width:1%; white-space:nowrap;">
+                        <td style="width:1%; white-space:nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
                             <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ method.id }}</span>
                         </td>
                         {% endif %}
-                        <td>
-                            <div class="fw-semibold">
-                                <a href="?view=class&class={{ method.class_id }}&tab=methods" class="link-secondary text-decoration-none">{{method.class_name}}</a> → <b>
-                                  <a href="?view=method&class={{ method.class_id }}&method={{ method.id }}&op=edit" class="text-decoration-none text-body">{{ method.name }}</a>
-                                </b>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            <div class="d-flex align-items-start">
+                                {% if method.icon %}
+                                    {% if ':' in method.icon %}
+                                        <iconify-icon icon="{{ method.icon }}" title="{{ _('Method icon') }}" class="p-2 me-2" style="font-size:1.25rem;"></iconify-icon>
+                                    {% else %}
+                                        <i class="{{ method.icon }} p-2 me-2" title="{{ _('Method icon') }}" style="font-size:1.25rem;"></i>
+                                    {% endif %}
+                                {% endif %}
+                                <div>
+                                    <div class="fw-semibold">
+                                        <a href="?view=class&class={{ method.class_id }}&tab=methods" class="link-secondary text-decoration-none">{{method.class_name}}</a> → <b>
+                                          <a href="?view=method&class={{ method.class_id }}&method={{ method.id }}&op=edit" class="text-decoration-none text-body">{{ method.name }}</a>
+                                        </b>
+                                    </div>
+                                </div>
                             </div>
                         </td>
-                        <td>
+                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             <div class="small text-muted">
                                 {% if method.description %}
                                     {{ method.description }}
@@ -714,7 +748,7 @@
                                 {% endif %}
                             </div>
                         </td>
-                        <td class="text-end">
+                        <td class="text-end"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             <a href="?view=method&class={{id}}&method={{method.id}}&op=redefine"
                                class="btn btn-outline-info btn-sm"
                                role="button">

@@ -82,12 +82,14 @@ Objects?view=class&class={{ class_id }}{{ suffix }}
 {% macro breadcrumb_property(class_hierarchy=None, object_id=None, object_name=None, entity_id=None, entity_name=None, op='') %}
 {{ _render_crumb(_('Objects'), 'Objects') }}
 {% if class_hierarchy %}
-    {% if object_id and object_name %}
+    {% if object_id %}
     {{ _render_class_hierarchy(class_hierarchy, last_suffix='&tab=objects') }}
-    {{ _render_crumb(object_name, 'Objects?view=object&object=' ~ object_id ~ '&tab=properties') }}
     {% else %}
     {{ _render_class_hierarchy(class_hierarchy, last_suffix='&tab=properties') }}
     {% endif %}
+{% endif %}
+{% if object_id and object_name %}
+{{ _render_crumb(object_name, 'Objects?view=object&object=' ~ object_id ~ '&tab=properties') }}
 {% endif %}
 {{ _render_crumb(entity_action_label('property', entity_name, op, not entity_id), active=True) }}
 {% endmacro %}
@@ -96,12 +98,14 @@ Objects?view=class&class={{ class_id }}{{ suffix }}
 {% macro breadcrumb_method(class_hierarchy=None, object_id=None, object_name=None, entity_id=None, entity_name=None, op='') %}
 {{ _render_crumb(_('Objects'), 'Objects') }}
 {% if class_hierarchy %}
-    {% if object_id and object_name %}
+    {% if object_id %}
     {{ _render_class_hierarchy(class_hierarchy, last_suffix='&tab=objects') }}
-    {{ _render_crumb(object_name, 'Objects?view=object&object=' ~ object_id ~ '&tab=methods') }}
     {% else %}
     {{ _render_class_hierarchy(class_hierarchy, last_suffix='&tab=methods') }}
     {% endif %}
+{% endif %}
+{% if object_id and object_name %}
+{{ _render_crumb(object_name, 'Objects?view=object&object=' ~ object_id ~ '&tab=methods') }}
 {% endif %}
 {{ _render_crumb(entity_action_label('method', entity_name, op, not entity_id), active=True) }}
 {% endmacro %}

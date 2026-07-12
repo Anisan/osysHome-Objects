@@ -109,6 +109,35 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
         # На неожиданные типы (list/int/etc.) не полагаемся.
         return {}
 
+    for idx, method in enumerate(methods):
+        method['_idx'] = idx
+        params = _safe_parse_params(method.get('params'))
+        method['params'] = params
+        method['icon'] = params.get('icon', '')
+        method['color'] = params.get('color', '')
+        method['sort_order'] = params.get('sort_order')
+
+    for idx, method in enumerate(parent_methods):
+        method['_idx'] = idx
+        params = _safe_parse_params(method.get('params'))
+        method['params'] = params
+        method['icon'] = params.get('icon', '')
+        method['color'] = params.get('color', '')
+        method['sort_order'] = params.get('sort_order')
+
+    methods.sort(
+        key=lambda m: (
+            m['sort_order'] if m.get('sort_order') is not None else 10**9,
+            m.get('_idx', 0),
+        )
+    )
+    parent_methods.sort(
+        key=lambda m: (
+            m['sort_order'] if m.get('sort_order') is not None else 10**9,
+            m.get('_idx', 0),
+        )
+    )
+
     # Обогащаем свойства и родительские свойства метаданными (icon, color, sort_order, validation params)
     for idx, prop in enumerate(properties):
         prop['_idx'] = idx  # исходный порядок

@@ -1,5 +1,6 @@
 {% extends "objects_shell.html" %}
 {% from "includes/objects_breadcrumb.html" import breadcrumb_property with context %}
+{% from "macros/icon_picker.html" import icon_picker_field, icon_picker_modal, icon_picker_assets %}
 
 {% block breadcrumb %}
 {{ breadcrumb_property(
@@ -45,6 +46,7 @@
             flex: 0 0 auto;
         }
     }
+
 </style>
 
 <form method="POST" class="objects-property-page">
@@ -120,10 +122,8 @@
         <div class="tab-pane fade" id="prop-tab-display" role="tabpanel" aria-labelledby="prop-tab-display-btn" tabindex="0">
             <p class="text-muted small mb-3">{{ _('UI settings for object cards and property lists') }}</p>
             <div class="row">
-                <div class="col-md-6 col-lg-3 mb-3">
-                    <label class="form-label">{{ _('Icon') }}</label>
-                    <input type="text" class="form-control" id="param-icon" placeholder="fas fa-icon">
-                    <small class="form-text text-muted">FontAwesome or Iconify icon class</small>
+                <div class="col-md-6 col-lg-4">
+                    {{ icon_picker_field('param-icon', label=_('Icon'), wrapper_class='mb-3') }}
                 </div>
                 <div class="col-md-6 col-lg-3 mb-3">
                     <label class="form-label">{{ _('Color') }}</label>
@@ -326,6 +326,9 @@
         {% endif %}
     </div>
 </form>
+
+{{ icon_picker_modal() }}
+{{ icon_picker_assets() }}
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -609,6 +612,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial setup
     toggleValidationParams();
     loadParamsFromJson();
+    if (window.IconPicker) {
+        IconPicker.register('param-icon', { onChange: buildParamsJson });
+    }
     updateParentHints();
     
     // Listen for changes
