@@ -11,10 +11,8 @@ from plugins.Objects.forms.MethodForm import routeMethod
 from plugins.Objects.forms.ScheduleForm import routeSchedule
 from plugins.Objects.forms.SettingForms import SettingsForm
 from app.core.lib.object import getObject
-from plugins.Objects.tree_cache import (
-    get_objects_tree_payload,
-    attach_object_templates,
-)
+from app.core.lib.object_tree import get_objects_tree_payload
+from plugins.Objects.object_templates import attach_object_templates
 from plugins.Objects.class_tools import routeClassTools
 from plugins.Objects.object_tools import routeObjectTools
 

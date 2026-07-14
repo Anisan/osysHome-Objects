@@ -9,7 +9,7 @@ from app.core.models.Clasess import Class, Object, Property, Method, Value, Hist
 from app.core.main.ObjectsStorage import objects_storage
 from app.core.lib.common import clearScheduledJob, getJobs
 from plugins.Objects.forms.utils import checkPermission, getObjectId
-from plugins.Objects.tree_cache import invalidate_objects_tree_cache
+from app.core.lib.object_tree import invalidate_objects_tree_cache
 from app.core.lib.object_db import cleanup_orphan_records
 
 _NAME_RE = re.compile(r'^[^\s.]+$')

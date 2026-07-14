@@ -10,7 +10,7 @@ from app.database import db, row2dict
 from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, getTemplatesParents, get_class_hierarchy, get_objects_for_class_tree, no_spaces_or_dots, ValidationError, checkPermission, getClassId, normalize_call_parent
 from app.core.main.ObjectsStorage import objects_storage
 from app.core.lib.object import getObject
-from plugins.Objects.tree_cache import invalidate_objects_tree_cache
+from app.core.lib.object_tree import invalidate_objects_tree_cache
 from app.core.lib.object_db import delete_objects_by_class, cleanup_orphan_records
 
 # Определение класса формы

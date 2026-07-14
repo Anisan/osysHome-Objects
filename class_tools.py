@@ -7,7 +7,7 @@ from app.database import db
 from app.core.models.Clasess import Class, Object, Value, History, Property, Method
 from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import checkPermission, getClassId, get_objects_for_class_tree
-from plugins.Objects.tree_cache import invalidate_objects_tree_cache
+from app.core.lib.object_tree import invalidate_objects_tree_cache
 from app.core.lib.object_db import delete_object_from_db, delete_objects_by_class
 
 _NAME_RE = re.compile(r'^[^\s.]+$')

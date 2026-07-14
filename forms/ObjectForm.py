@@ -12,7 +12,7 @@ from app.core.utilities.json_encoding import CustomJSONEncoder
 from app.core.models.Clasess import Class, Object, Property, Method, Value
 from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents, getMethodsParents, get_class_hierarchy, checkPermission, getClassId, getObjectId, normalize_call_parent
-from plugins.Objects.tree_cache import invalidate_objects_tree_cache
+from app.core.lib.object_tree import invalidate_objects_tree_cache
 from app.database import db
 from app.core.lib.object_db import delete_object_from_db
 
