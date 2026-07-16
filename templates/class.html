@@ -771,7 +771,7 @@
             {% endfor %}
         </ul>
         {% else %}
-        <p class="px-3 ml-2 mt-2">{{ _('No objects')}}</p>
+        <p class="px-3 ml-2 mt-2" id="classObjectsEmptyHint">{{ _('No objects')}}</p>
         {% endif %}
         <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     </div>
@@ -855,14 +855,26 @@
                     <div class="card-body">
                         <p class="text-muted small mb-3">{{ _('Delete all objects of this class permanently.')}}</p>
                         {% if tools_objects %}
-                        <div class="form-text text-muted mb-2">{{ _('Objects')}}: {{ tools_objects|length }}</div>
+                        <div class="form-text text-muted mb-2" id="classToolsObjectsCount">{{ _('Objects')}}: {{ tools_objects|length }}</div>
                         {% endif %}
-                        <button type="button" class="btn btn-danger btn-sm" onclick="bulkDeleteObjects()" {% if not tools_objects %}disabled{% endif %}>
+                        <button type="button" class="btn btn-danger btn-sm" id="bulkDeleteObjectsBtn" onclick="bulkDeleteObjects()" {% if not tools_objects %}disabled{% endif %}>
                             <i class="fas fa-trash me-2"></i>{{ _('Delete all objects')}}
                         </button>
                         {% if not tools_objects %}
-                        <div class="form-text text-muted mt-2">{{ _('No objects in this class')}}</div>
+                        <div class="form-text text-muted mt-2" id="classToolsNoObjectsHint">{{ _('No objects in this class')}}</div>
                         {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6{% if objects or children_count %} d-none{% endif %}" id="deleteClassCard" data-children-count="{{ children_count|default(0) }}">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fas fa-folder-minus me-2 text-danger"></i>{{ _('Delete class')}}</div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">{{ _('Delete this class permanently. Available only when the class has no child classes and no objects.')}}</p>
+                        <button type="button" class="btn btn-danger btn-sm class-delete-action" data-class-id="{{ id }}" data-class-name="{{ form.name.data|e }}">
+                            <i class="fas fa-trash me-2"></i>{{ _('Delete class')}}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1193,21 +1205,23 @@
       var confirmMsg = {{ _('Run method %(method)s on %(count)s objects?')|tojson }}
         .replace('%(method)s', methodName)
         .replace('%(count)s', classObjectNames.length);
-      if (!confirm(confirmMsg)) {
-        return;
-      }
+      showConfirm(confirmMsg).then(function(confirmed) {
+        if (!confirmed) {
+          return;
+        }
 
-      setBulkRunMethodLoading(true);
-      classToolRequest('bulk_call_method', {method: methodName})
-        .then(function(data) {
-          showBulkMethodResults(data);
-        })
-        .catch(function(error) {
-          showClassToolsStatus(error.message, true);
-        })
-        .finally(function() {
-          setBulkRunMethodLoading(false);
-        });
+        setBulkRunMethodLoading(true);
+        classToolRequest('bulk_call_method', {method: methodName})
+          .then(function(data) {
+            showBulkMethodResults(data);
+          })
+          .catch(function(error) {
+            showClassToolsStatus(error.message, true);
+          })
+          .finally(function() {
+            setBulkRunMethodLoading(false);
+          });
+      });
     }
 
     function parseBulkPropertyValue(rawValue, propertyType) {
@@ -1260,15 +1274,17 @@
         .replace('%(count)s', classObjectNames.length)
         .replace('%(property)s', propertyName)
         .replace('%(value)s', parsedValue);
-      if (!confirm(confirmMsg)) {
-        return;
-      }
-      if (typeof setProperty !== 'function') {
-        alert('{{ _("WebSocket is not available") }}');
-        return;
-      }
-      classObjectNames.forEach(function(objectName) {
-        setProperty(objectName + '.' + propertyName, parsedValue);
+      showConfirm(confirmMsg).then(function(confirmed) {
+        if (!confirmed) {
+          return;
+        }
+        if (typeof setProperty !== 'function') {
+          alert('{{ _("WebSocket is not available") }}');
+          return;
+        }
+        classObjectNames.forEach(function(objectName) {
+          setProperty(objectName + '.' + propertyName, parsedValue);
+        });
       });
     }
 
@@ -1306,20 +1322,22 @@
 
     function confirmIrreversibleClassTool(message) {
       var warning = '{{ _("This action cannot be undone.") }}';
-      return confirm(message + '\n\n' + warning);
+      return showConfirm(message + '\n\n' + warning, { danger: true });
     }
 
     function reloadClassRuntime() {
-      if (!confirm({{ _('Reload all objects of this class in runtime?')|tojson }})) {
-        return;
-      }
-      classToolRequest('reload')
-        .then(function(data) {
-          showClassToolsStatus(data.message || '{{ _("Class reloaded in runtime") }}', false);
-        })
-        .catch(function(error) {
-          showClassToolsStatus(error.message, true);
-        });
+      showConfirm({{ _('Reload all objects of this class in runtime?')|tojson }}).then(function(confirmed) {
+        if (!confirmed) {
+          return;
+        }
+        classToolRequest('reload')
+          .then(function(data) {
+            showClassToolsStatus(data.message || '{{ _("Class reloaded in runtime") }}', false);
+          })
+          .catch(function(error) {
+            showClassToolsStatus(error.message, true);
+          });
+      });
     }
 
     function bulkCreateObjects() {
@@ -1343,30 +1361,32 @@
       var confirmMsg = {{ _('Create %(count)s objects with prefix %(prefix)s?')|tojson }}
         .replace('%(count)s', count)
         .replace('%(prefix)s', prefix.trim());
-      if (!confirm(confirmMsg)) {
-        return;
-      }
+      showConfirm(confirmMsg).then(function(confirmed) {
+        if (!confirmed) {
+          return;
+        }
 
-      classToolRequest('bulk_create', {
-        prefix: prefix.trim(),
-        separator: separator,
-        start: isNaN(start) ? 1 : start,
-        count: count,
-        description: description.trim()
-      }).then(function(data) {
-        var message = data.message || '';
-        if (data.created_count !== undefined) {
-          message += ' (' + data.created_count + ')';
-        }
-        if (data.skipped_count) {
-          message += '. {{ _("Skipped") }}: ' + data.skipped_count;
-        }
-        showClassToolsStatus(message, false);
-        if (data.created_count > 0) {
-          setTimeout(function() { window.location.href = '?view=class&class={{ id }}&tab=objects'; }, 1200);
-        }
-      }).catch(function(error) {
-        showClassToolsStatus(error.message, true);
+        classToolRequest('bulk_create', {
+          prefix: prefix.trim(),
+          separator: separator,
+          start: isNaN(start) ? 1 : start,
+          count: count,
+          description: description.trim()
+        }).then(function(data) {
+          var message = data.message || '';
+          if (data.created_count !== undefined) {
+            message += ' (' + data.created_count + ')';
+          }
+          if (data.skipped_count) {
+            message += '. {{ _("Skipped") }}: ' + data.skipped_count;
+          }
+          showClassToolsStatus(message, false);
+          if (data.created_count > 0) {
+            setTimeout(function() { window.location.href = '?view=class&class={{ id }}&tab=objects'; }, 1200);
+          }
+        }).catch(function(error) {
+          showClassToolsStatus(error.message, true);
+        });
       });
     }
 
@@ -1377,17 +1397,21 @@
       }
       var confirmMsg = {{ _('Delete all %(count)s objects of this class permanently?')|tojson }}
         .replace('%(count)s', classObjectNames.length);
-      if (!confirmIrreversibleClassTool(confirmMsg)) {
-        return;
-      }
-      classToolRequest('bulk_delete', {})
-        .then(function(data) {
-          showClassToolsStatus((data.message || '') + ' (' + (data.deleted_count || 0) + ')', false);
-          setTimeout(function() { window.location.reload(); }, 1200);
-        })
-        .catch(function(error) {
-          showClassToolsStatus(error.message, true);
-        });
+      confirmIrreversibleClassTool(confirmMsg).then(function(confirmed) {
+        if (!confirmed) {
+          return;
+        }
+        classToolRequest('bulk_delete', {})
+          .then(function(data) {
+            showClassToolsStatus((data.message || '') + ' (' + (data.deleted_count || 0) + ')', false);
+            if (typeof afterAllClassObjectsRemoved === 'function') {
+              afterAllClassObjectsRemoved();
+            }
+          })
+          .catch(function(error) {
+            showClassToolsStatus(error.message, true);
+          });
+      });
     }
 
     function clearPropertyHistory() {
@@ -1399,20 +1423,22 @@
       }
       var confirmMsg = {{ _('Clear history for property %(property)s on all class objects?')|tojson }}
         .replace('%(property)s', propertyName);
-      if (!confirmIrreversibleClassTool(confirmMsg)) {
-        return;
-      }
-      classToolRequest('clear_history', {property: propertyName})
-        .then(function(data) {
-          var message = data.message || '{{ _("History cleared") }}';
-          if (data.deleted_count !== undefined) {
-            message += ' (' + data.deleted_count + ')';
-          }
-          showClassToolsStatus(message, false);
-        })
-        .catch(function(error) {
-          showClassToolsStatus(error.message, true);
-        });
+      confirmIrreversibleClassTool(confirmMsg).then(function(confirmed) {
+        if (!confirmed) {
+          return;
+        }
+        classToolRequest('clear_history', {property: propertyName})
+          .then(function(data) {
+            var message = data.message || '{{ _("History cleared") }}';
+            if (data.deleted_count !== undefined) {
+              message += ' (' + data.deleted_count + ')';
+            }
+            showClassToolsStatus(message, false);
+          })
+          .catch(function(error) {
+            showClassToolsStatus(error.message, true);
+          });
+      });
     }
 
     function applyClassObjectsColumnsViewPreference() {

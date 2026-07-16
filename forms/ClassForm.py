@@ -297,11 +297,13 @@ def routeClass(request, config):
             # Перезагружаем данные после редактирования существующего класса
             properties, parent_properties, methods, parent_methods, objects, templates = _load_class_properties_methods_and_objects(item, id, config)
     tools_objects = []
+    children_count = 0
     if id:
         tools_objects = [
             {'id': obj.id, 'name': obj.name, 'description': obj.description}
             for obj in get_objects_for_class_tree(id)
         ]
+        children_count = Class.query.filter(Class.parent_id == id).count()
 
     content = {
         'id': id,
@@ -312,6 +314,7 @@ def routeClass(request, config):
         'parent_methods': parent_methods,
         'objects': objects,
         'tools_objects': tools_objects,
+        'children_count': children_count,
         'templates': templates,
         'tab': tab,
         'show_id': config.get("show_id", False),

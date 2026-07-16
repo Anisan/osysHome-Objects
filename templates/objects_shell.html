@@ -3,6 +3,25 @@
 {% block module %}
 {% block module_content %}
 {% endblock module_content %}
+<div class="modal fade" id="objectDeleteModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" style="--bs-modal-zindex: 1210;">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body text-center py-4 px-4">
+        <div id="objectDeleteModalSpinner">
+          <i class="fas fa-circle-notch fa-spin fa-3x text-primary mb-3" aria-hidden="true"></i>
+        </div>
+        <div id="objectDeleteModalErrorIcon" class="d-none">
+          <i class="fas fa-exclamation-circle fa-3x text-danger mb-3" aria-hidden="true"></i>
+        </div>
+        <h5 class="mb-2" id="objectDeleteModalTitle">{{ _('Deleting') }}</h5>
+        <p class="text-muted mb-0" id="objectDeleteModalMessage">{{ _('Please wait…') }}</p>
+      </div>
+      <div class="modal-footer d-none justify-content-center border-0 pt-0 pb-4" id="objectDeleteModalFooter">
+        <button type="button" class="btn btn-secondary" id="objectDeleteModalClose">{{ _('Close') }}</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- Модальное окно результата callMethod-->
 <div class="modal fade" id="resultModal">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -171,6 +190,500 @@
   if (copyButton) {
     copyButton.addEventListener('click', copyResultToClipboard);
     setCopyButtonPendingState();
+  }
+})();
+
+(function() {
+  var deleteModalEl = document.getElementById('objectDeleteModal');
+  var deleteModalInstance = null;
+  var deleteInProgress = false;
+  var pendingRestore = null;
+
+  var spinnerEl = deleteModalEl ? document.getElementById('objectDeleteModalSpinner') : null;
+  var errorIconEl = deleteModalEl ? document.getElementById('objectDeleteModalErrorIcon') : null;
+  var titleEl = deleteModalEl ? document.getElementById('objectDeleteModalTitle') : null;
+  var messageEl = deleteModalEl ? document.getElementById('objectDeleteModalMessage') : null;
+  var footerEl = deleteModalEl ? document.getElementById('objectDeleteModalFooter') : null;
+  var closeButtonEl = deleteModalEl ? document.getElementById('objectDeleteModalClose') : null;
+
+  var entityLabels = {
+    object: {
+      deletingTitle: {{ _('Deleting object')|tojson }},
+      deletingMessageTemplate: {{ _('Deleting object %(name)s…')|tojson }},
+      deletedMessage: {{ _('Object deleted')|tojson }},
+      deleteConfirmTemplate: {{ _('Delete object %(name)s?')|tojson }},
+      buildUrl: function(id) {
+        return '?view=object_tool&object=' + encodeURIComponent(id) + '&op=delete';
+      }
+    },
+    class: {
+      deletingTitle: {{ _('Deleting class')|tojson }},
+      deletingMessageTemplate: {{ _('Deleting class %(name)s…')|tojson }},
+      deletedMessage: {{ _('Class deleted')|tojson }},
+      deleteConfirmTemplate: {{ _('Delete class %(name)s?')|tojson }},
+      buildUrl: function(id) {
+        return '?view=class_tool&class=' + encodeURIComponent(id) + '&op=delete';
+      }
+    }
+  };
+
+  var waitMessage = {{ _('Please wait…')|tojson }};
+  var undoWarning = {{ _('This action cannot be undone.')|tojson }};
+  var errorFallback = {{ _('An error occurred while saving')|tojson }};
+
+  function getDeleteModalInstance() {
+    if (!deleteModalEl || typeof bootstrap === 'undefined') {
+      return null;
+    }
+    if (!deleteModalInstance) {
+      deleteModalInstance = bootstrap.Modal.getOrCreateInstance(deleteModalEl, {
+        backdrop: 'static',
+        keyboard: false
+      });
+    }
+    return deleteModalInstance;
+  }
+
+  function setDeleteModalLoadingState(entityType, entityName) {
+    var labels = entityLabels[entityType] || entityLabels.object;
+    if (spinnerEl) {
+      spinnerEl.classList.remove('d-none');
+    }
+    if (errorIconEl) {
+      errorIconEl.classList.add('d-none');
+    }
+    if (titleEl) {
+      titleEl.textContent = labels.deletingTitle;
+    }
+    if (messageEl) {
+      messageEl.textContent = entityName
+        ? labels.deletingMessageTemplate.replace('%(name)s', entityName)
+        : waitMessage;
+    }
+    if (footerEl) {
+      footerEl.classList.add('d-none');
+    }
+  }
+
+  function setDeleteModalErrorState(errorMessage) {
+    if (spinnerEl) {
+      spinnerEl.classList.add('d-none');
+    }
+    if (errorIconEl) {
+      errorIconEl.classList.remove('d-none');
+    }
+    if (titleEl) {
+      titleEl.textContent = errorFallback;
+    }
+    if (messageEl) {
+      messageEl.textContent = errorMessage || errorFallback;
+    }
+    if (footerEl) {
+      footerEl.classList.remove('d-none');
+    }
+  }
+
+  function showDeleteModal(entityType, entityName) {
+    setDeleteModalLoadingState(entityType, entityName);
+    var modal = getDeleteModalInstance();
+    if (modal) {
+      modal.show();
+    }
+  }
+
+  function hideDeleteModal() {
+    var modal = getDeleteModalInstance();
+    if (modal) {
+      modal.hide();
+    }
+  }
+
+  function decrementBadgeCount(badgeEl) {
+    if (!badgeEl) {
+      return;
+    }
+    var text = badgeEl.textContent.trim();
+    var labeledMatch = text.match(/^(.*?:\s*)(\d+)\s*$/);
+    if (labeledMatch) {
+      var nextCount = Math.max(0, parseInt(labeledMatch[2], 10) - 1);
+      badgeEl.textContent = labeledMatch[1] + nextCount;
+      return;
+    }
+    if (/^\d+$/.test(text)) {
+      badgeEl.textContent = String(Math.max(0, parseInt(text, 10) - 1));
+    }
+  }
+
+  function detachObjectItem(objectId) {
+    var item = document.querySelector('.object-item[data-object-id="' + objectId + '"]');
+    if (!item || !item.parentNode) {
+      return null;
+    }
+    return {
+      entityType: 'object',
+      item: item,
+      parent: item.parentNode,
+      nextSibling: item.nextSibling,
+      classCard: item.closest('.class-card'),
+      standaloneSection: item.closest('#standaloneObjectsSection')
+    };
+  }
+
+  function detachClassItem(classId) {
+    var item = document.querySelector('.class-card[data-class-id="' + classId + '"]');
+    if (!item || !item.parentNode) {
+      return null;
+    }
+    var accordion = document.getElementById('accordionExample');
+    var parentCollapse = item.parentElement ? item.parentElement.closest('.collapse[data-class-id]') : null;
+    var parentClassCard = parentCollapse ? parentCollapse.closest('.class-card') : null;
+    return {
+      entityType: 'class',
+      item: item,
+      parent: item.parentNode,
+      nextSibling: item.nextSibling,
+      parentClassCard: parentClassCard,
+      isRoot: !!(accordion && item.parentNode === accordion)
+    };
+  }
+
+  function restoreDetachedItem(restoreInfo) {
+    if (!restoreInfo || !restoreInfo.item || !restoreInfo.parent) {
+      return;
+    }
+    if (restoreInfo.nextSibling) {
+      restoreInfo.parent.insertBefore(restoreInfo.item, restoreInfo.nextSibling);
+    } else {
+      restoreInfo.parent.appendChild(restoreInfo.item);
+    }
+  }
+
+  function updateObjectCountsAfterDelete(restoreInfo) {
+    if (!restoreInfo) {
+      return;
+    }
+
+    var objectsLabel = {{ _('Objects')|tojson }};
+    var standaloneLabel = {{ _('Standalone objects')|tojson }};
+
+    document.querySelectorAll('.objects-stats .badge').forEach(function(badgeEl) {
+      var text = badgeEl.textContent.trim();
+      if (text.indexOf(objectsLabel + ':') === 0) {
+        decrementBadgeCount(badgeEl);
+      } else if (restoreInfo.standaloneSection && text.indexOf(standaloneLabel + ':') === 0) {
+        decrementBadgeCount(badgeEl);
+      }
+    });
+
+    if (restoreInfo.classCard) {
+      var countBadges = restoreInfo.classCard.querySelectorAll('.class-counts .badge');
+      if (countBadges.length >= 2) {
+        decrementBadgeCount(countBadges[1]);
+      }
+      var collapseEl = restoreInfo.classCard.querySelector('.collapse[data-class-id]');
+      if (collapseEl) {
+        var objectsCount = parseInt(collapseEl.getAttribute('data-objects-count') || '0', 10);
+        collapseEl.setAttribute('data-objects-count', String(Math.max(0, objectsCount - 1)));
+      }
+      refreshClassDeleteMenu(restoreInfo.classCard);
+      return;
+    }
+
+    if (restoreInfo.standaloneSection) {
+      var standaloneBadge = restoreInfo.standaloneSection.querySelector('.badge');
+      decrementBadgeCount(standaloneBadge);
+    }
+
+    refreshClassPageDeleteOption();
+    var pageDeleteAction = document.querySelector('#deleteClassCard .class-delete-action');
+    if (pageDeleteAction) {
+      decrementClassCardObjectCount(pageDeleteAction.getAttribute('data-class-id'));
+    }
+  }
+
+  function refreshClassDeleteMenu(classCard) {
+    if (!classCard) {
+      return;
+    }
+
+    var collapseEl = classCard.querySelector('.collapse[data-class-id]');
+    var objectsCount = collapseEl ? parseInt(collapseEl.getAttribute('data-objects-count') || '0', 10) : 0;
+    var childrenCount = collapseEl ? parseInt(collapseEl.getAttribute('data-children-count') || '0', 10) : 0;
+
+    if (collapseEl && collapseEl.getAttribute('data-tree-loaded') === '1') {
+      var branch = classCard.querySelector('.tree-branch-container');
+      if (branch) {
+        var directObjects = branch.querySelectorAll(':scope > ul.objects-list > .object-item').length;
+        objectsCount = directObjects;
+        collapseEl.setAttribute('data-objects-count', String(objectsCount));
+      }
+    }
+
+    var countBadges = classCard.querySelectorAll('.class-counts .badge');
+    if (countBadges.length >= 2) {
+      countBadges[1].textContent = {{ _('Count objects')|tojson }} + ': ' + objectsCount;
+    }
+
+    var canDelete = objectsCount === 0 && childrenCount === 0;
+    var divider = classCard.querySelector('.class-delete-divider');
+    var menuItem = classCard.querySelector('.class-delete-menu-item');
+    if (divider) {
+      divider.classList.toggle('d-none', !canDelete);
+    }
+    if (menuItem) {
+      menuItem.classList.toggle('d-none', !canDelete);
+    }
+  }
+
+  function refreshClassDeleteMenuById(classId, options) {
+    if (!classId) {
+      return;
+    }
+    options = options || {};
+    document.querySelectorAll('.class-card[data-class-id="' + classId + '"]').forEach(function(classCard) {
+      var collapseEl = classCard.querySelector('.collapse[data-class-id]');
+      if (collapseEl && options.objectsCount !== undefined) {
+        collapseEl.setAttribute('data-objects-count', String(Math.max(0, options.objectsCount)));
+      }
+      refreshClassDeleteMenu(classCard);
+    });
+  }
+
+  function decrementClassCardObjectCount(classId) {
+    if (!classId) {
+      return;
+    }
+    document.querySelectorAll('.class-card[data-class-id="' + classId + '"]').forEach(function(classCard) {
+      var collapseEl = classCard.querySelector('.collapse[data-class-id]');
+      if (collapseEl) {
+        var objectsCount = parseInt(collapseEl.getAttribute('data-objects-count') || '0', 10);
+        collapseEl.setAttribute('data-objects-count', String(Math.max(0, objectsCount - 1)));
+      }
+      refreshClassDeleteMenu(classCard);
+    });
+  }
+
+  function refreshClassPageDeleteOption() {
+    var card = document.getElementById('deleteClassCard');
+    if (!card) {
+      return;
+    }
+    var childrenCount = parseInt(card.getAttribute('data-children-count') || '0', 10);
+    var hasObjects = document.querySelectorAll('#objects .object-item').length > 0;
+    card.classList.toggle('d-none', hasObjects || childrenCount > 0);
+  }
+
+  function afterAllClassObjectsRemoved() {
+    document.querySelectorAll('#objects .object-item').forEach(function(item) {
+      item.remove();
+    });
+    var objectsTab = document.getElementById('objects');
+    if (objectsTab && !objectsTab.querySelector('.object-item')) {
+      var emptyHint = objectsTab.querySelector('#classObjectsEmptyHint');
+      if (!emptyHint) {
+        emptyHint = document.createElement('p');
+        emptyHint.id = 'classObjectsEmptyHint';
+        emptyHint.className = 'px-3 ml-2 mt-2';
+        emptyHint.textContent = {{ _('No objects')|tojson }};
+        var objectsList = objectsTab.querySelector('.objects-list');
+        if (objectsList) {
+          objectsList.insertAdjacentElement('afterend', emptyHint);
+        } else {
+          objectsTab.insertBefore(emptyHint, objectsTab.querySelector('.btn-secondary'));
+        }
+      }
+      emptyHint.classList.remove('d-none');
+    }
+
+    if (typeof classObjectNames !== 'undefined') {
+      classObjectNames.length = 0;
+    }
+    var bulkDeleteBtn = document.getElementById('bulkDeleteObjectsBtn');
+    if (bulkDeleteBtn) {
+      bulkDeleteBtn.disabled = true;
+    }
+    var bulkRunBtn = document.getElementById('bulkRunMethodBtn');
+    if (bulkRunBtn) {
+      bulkRunBtn.disabled = true;
+    }
+    var countEl = document.getElementById('classToolsObjectsCount');
+    if (countEl) {
+      countEl.classList.add('d-none');
+    }
+    var noObjectsHint = document.getElementById('classToolsNoObjectsHint');
+    if (noObjectsHint) {
+      noObjectsHint.classList.remove('d-none');
+    }
+
+    refreshClassPageDeleteOption();
+    var deleteAction = document.querySelector('#deleteClassCard .class-delete-action');
+    if (deleteAction) {
+      refreshClassDeleteMenuById(deleteAction.getAttribute('data-class-id'), { objectsCount: 0 });
+    }
+  }
+  window.refreshClassDeleteMenu = refreshClassDeleteMenu;
+  window.refreshClassDeleteMenuById = refreshClassDeleteMenuById;
+  window.decrementClassCardObjectCount = decrementClassCardObjectCount;
+  window.refreshClassPageDeleteOption = refreshClassPageDeleteOption;
+  window.afterAllClassObjectsRemoved = afterAllClassObjectsRemoved;
+
+  function updateClassCountsAfterDelete(restoreInfo) {
+    if (!restoreInfo) {
+      return;
+    }
+
+    var classesLabel = {{ _('Classes')|tojson }};
+    var rootClassesLabel = {{ _('Root classes')|tojson }};
+
+    document.querySelectorAll('.objects-stats .badge').forEach(function(badgeEl) {
+      var text = badgeEl.textContent.trim();
+      if (text.indexOf(classesLabel + ':') === 0) {
+        decrementBadgeCount(badgeEl);
+      } else if (restoreInfo.isRoot && text.indexOf(rootClassesLabel + ':') === 0) {
+        decrementBadgeCount(badgeEl);
+      }
+    });
+
+    if (restoreInfo.parentClassCard) {
+      var countBadges = restoreInfo.parentClassCard.querySelectorAll('.class-counts .badge');
+      if (countBadges.length >= 1) {
+        decrementBadgeCount(countBadges[0]);
+      }
+      var collapseEl = restoreInfo.parentClassCard.querySelector('.collapse[data-class-id]');
+      if (collapseEl) {
+        var childrenCount = parseInt(collapseEl.getAttribute('data-children-count') || '0', 10);
+        collapseEl.setAttribute('data-children-count', String(Math.max(0, childrenCount - 1)));
+      }
+    }
+  }
+
+  function requestDeleteConfirm(message, triggerEl) {
+    if (typeof window.closeOpenDropdowns === 'function' && triggerEl) {
+      window.closeOpenDropdowns(triggerEl);
+    }
+    if (typeof window.showConfirm === 'function') {
+      return window.showConfirm(message, { danger: true });
+    }
+    return Promise.resolve(window.nativeConfirm ? window.nativeConfirm(message) : window.confirm(message));
+  }
+
+  function deleteEntityFromList(entityType, entityId, entityName, triggerEl) {
+    if (deleteInProgress) {
+      return;
+    }
+
+    var labels = entityLabels[entityType];
+    if (!labels) {
+      return;
+    }
+
+    var confirmMessage = labels.deleteConfirmTemplate.replace('%(name)s', entityName)
+      + '\n\n' + undoWarning;
+    requestDeleteConfirm(confirmMessage, triggerEl).then(function(confirmed) {
+      if (!confirmed) {
+        return;
+      }
+
+      deleteInProgress = true;
+      if (entityType === 'class') {
+        pendingRestore = detachClassItem(entityId);
+      } else {
+        pendingRestore = detachObjectItem(entityId);
+      }
+      if (pendingRestore && pendingRestore.item) {
+        pendingRestore.item.remove();
+      }
+
+      showDeleteModal(entityType, entityName);
+
+      fetch(labels.buildUrl(entityId), {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: '{}'
+      })
+        .then(function(response) {
+          return response.json().then(function(data) {
+            if (!response.ok) {
+              throw new Error(data.message || errorFallback);
+            }
+            return data;
+          });
+        })
+        .then(function(data) {
+          if (entityType === 'class') {
+            updateClassCountsAfterDelete(pendingRestore);
+            if (!pendingRestore || !pendingRestore.item) {
+              if (document.getElementById('deleteClassCard')) {
+                window.setTimeout(function() {
+                  window.location.href = 'Objects';
+                }, 400);
+              }
+            }
+          } else {
+            updateObjectCountsAfterDelete(pendingRestore);
+          }
+          pendingRestore = null;
+          if (spinnerEl) {
+            spinnerEl.classList.add('d-none');
+          }
+          if (titleEl) {
+            titleEl.textContent = data.message || labels.deletedMessage;
+          }
+          if (messageEl) {
+            messageEl.textContent = '';
+          }
+          window.setTimeout(function() {
+            hideDeleteModal();
+            window.setTimeout(function() {
+              setDeleteModalLoadingState(entityType, '');
+            }, 300);
+          }, 400);
+        })
+        .catch(function(error) {
+          restoreDetachedItem(pendingRestore);
+          pendingRestore = null;
+          setDeleteModalErrorState(error.message || errorFallback);
+        })
+        .finally(function() {
+          deleteInProgress = false;
+        });
+    });
+  }
+
+  document.addEventListener('click', function(event) {
+    var classTrigger = event.target.closest('.class-delete-action');
+    if (classTrigger) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      var classId = classTrigger.getAttribute('data-class-id');
+      var className = classTrigger.getAttribute('data-class-name') || '';
+      if (classId) {
+        deleteEntityFromList('class', classId, className, classTrigger);
+      }
+      return;
+    }
+
+    var objectTrigger = event.target.closest('.object-delete-action');
+    if (objectTrigger) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      var objectId = objectTrigger.getAttribute('data-object-id');
+      var objectName = objectTrigger.getAttribute('data-object-name') || '';
+      if (objectId) {
+        deleteEntityFromList('object', objectId, objectName, objectTrigger);
+      }
+    }
+  }, true);
+
+  if (closeButtonEl) {
+    closeButtonEl.addEventListener('click', function() {
+      hideDeleteModal();
+      window.setTimeout(function() {
+        setDeleteModalLoadingState('object', '');
+      }, 300);
+    });
   }
 })();
 

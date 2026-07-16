@@ -2561,20 +2561,22 @@
 
     function confirmIrreversibleObjectTool(message) {
         var warning = '{{ _("This action cannot be undone.") }}';
-        return confirm(message + '\n\n' + warning);
+        return showConfirm(message + '\n\n' + warning, { danger: true });
     }
 
     function reloadObjectRuntime() {
-        if (!confirm({{ _('Reload this object in runtime?')|tojson }})) {
-            return;
-        }
-        objectToolRequest('reload')
-            .then(function(data) {
-                showObjectToolsStatus(data.message || '{{ _("Object reloaded in runtime") }}', false);
-            })
-            .catch(function(error) {
-                showObjectToolsStatus(error.message, true);
-            });
+        showConfirm({{ _('Reload this object in runtime?')|tojson }}).then(function(confirmed) {
+            if (!confirmed) {
+                return;
+            }
+            objectToolRequest('reload')
+                .then(function(data) {
+                    showObjectToolsStatus(data.message || '{{ _("Object reloaded in runtime") }}', false);
+                })
+                .catch(function(error) {
+                    showObjectToolsStatus(error.message, true);
+                });
+        });
     }
 
     function clearObjectHistory() {
@@ -2583,56 +2585,62 @@
         var confirmMsg = propertyName
             ? {{ _('Clear history for property %(property)s?')|tojson }}.replace('%(property)s', propertyName)
             : {{ _('Clear all property history for this object?')|tojson }};
-        if (!confirmIrreversibleObjectTool(confirmMsg)) {
-            return;
-        }
-        objectToolRequest('clear_history', {property: propertyName})
-            .then(function(data) {
-                var message = data.message || '{{ _("History cleared") }}';
-                if (data.deleted_count !== undefined) {
-                    message += ' (' + data.deleted_count + ')';
-                }
-                showObjectToolsStatus(message, false);
-            })
-            .catch(function(error) {
-                showObjectToolsStatus(error.message, true);
-            });
+        confirmIrreversibleObjectTool(confirmMsg).then(function(confirmed) {
+            if (!confirmed) {
+                return;
+            }
+            objectToolRequest('clear_history', {property: propertyName})
+                .then(function(data) {
+                    var message = data.message || '{{ _("History cleared") }}';
+                    if (data.deleted_count !== undefined) {
+                        message += ' (' + data.deleted_count + ')';
+                    }
+                    showObjectToolsStatus(message, false);
+                })
+                .catch(function(error) {
+                    showObjectToolsStatus(error.message, true);
+                });
+        });
     }
 
     function clearObjectLinks() {
-        if (!confirmIrreversibleObjectTool({{ _('Clear all links for this object?')|tojson }})) {
-            return;
-        }
-        objectToolRequest('clear_links', {})
-            .then(function(data) {
-                var message = data.message || '{{ _("Links cleared") }}';
-                if (data.cleared_count !== undefined) {
-                    message += ' (' + data.cleared_count + ')';
-                }
-                showObjectToolsStatus(message, false);
-                setTimeout(function() { window.location.reload(); }, 1200);
-            })
-            .catch(function(error) {
-                showObjectToolsStatus(error.message, true);
-            });
+        confirmIrreversibleObjectTool({{ _('Clear all links for this object?')|tojson }}).then(function(confirmed) {
+            if (!confirmed) {
+                return;
+            }
+            objectToolRequest('clear_links', {})
+                .then(function(data) {
+                    var message = data.message || '{{ _("Links cleared") }}';
+                    if (data.cleared_count !== undefined) {
+                        message += ' (' + data.cleared_count + ')';
+                    }
+                    showObjectToolsStatus(message, false);
+                    setTimeout(function() { window.location.reload(); }, 1200);
+                })
+                .catch(function(error) {
+                    showObjectToolsStatus(error.message, true);
+                });
+        });
     }
 
     function clearObjectSchedules() {
-        if (!confirmIrreversibleObjectTool({{ _('Delete all schedules for this object?')|tojson }})) {
-            return;
-        }
-        objectToolRequest('clear_schedules', {})
-            .then(function(data) {
-                var message = data.message || '{{ _("Schedules cleared") }}';
-                if (data.deleted_count !== undefined) {
-                    message += ' (' + data.deleted_count + ')';
-                }
-                showObjectToolsStatus(message, false);
-                setTimeout(function() { window.location.reload(); }, 1200);
-            })
-            .catch(function(error) {
-                showObjectToolsStatus(error.message, true);
-            });
+        confirmIrreversibleObjectTool({{ _('Delete all schedules for this object?')|tojson }}).then(function(confirmed) {
+            if (!confirmed) {
+                return;
+            }
+            objectToolRequest('clear_schedules', {})
+                .then(function(data) {
+                    var message = data.message || '{{ _("Schedules cleared") }}';
+                    if (data.deleted_count !== undefined) {
+                        message += ' (' + data.deleted_count + ')';
+                    }
+                    showObjectToolsStatus(message, false);
+                    setTimeout(function() { window.location.reload(); }, 1200);
+                })
+                .catch(function(error) {
+                    showObjectToolsStatus(error.message, true);
+                });
+        });
     }
 
     function cloneObjectTool() {
@@ -2642,21 +2650,23 @@
         var confirmMsg = name
             ? {{ _('Clone object as %(name)s?')|tojson }}.replace('%(name)s', name)
             : {{ _('Clone object with auto-generated name?')|tojson }};
-        if (!confirm(confirmMsg)) {
-            return;
-        }
-        objectToolRequest('clone', {
-            name: name,
-            copy_description: copyDescription ? copyDescription.checked : true
-        }).then(function(data) {
-            showObjectToolsStatus(data.message || '{{ _("Object cloned") }}', false);
-            if (data.object_id) {
-                setTimeout(function() {
-                    window.location.href = '?view=object&object=' + data.object_id;
-                }, 800);
+        showConfirm(confirmMsg).then(function(confirmed) {
+            if (!confirmed) {
+                return;
             }
-        }).catch(function(error) {
-            showObjectToolsStatus(error.message, true);
+            objectToolRequest('clone', {
+                name: name,
+                copy_description: copyDescription ? copyDescription.checked : true
+            }).then(function(data) {
+                showObjectToolsStatus(data.message || '{{ _("Object cloned") }}', false);
+                if (data.object_id) {
+                    setTimeout(function() {
+                        window.location.href = '?view=object&object=' + data.object_id;
+                    }, 800);
+                }
+            }).catch(function(error) {
+                showObjectToolsStatus(error.message, true);
+            });
         });
     }
 

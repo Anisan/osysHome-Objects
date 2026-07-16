@@ -1,4 +1,4 @@
-<div class="list-group-item-action d-flex justify-content-between align-items-start gap-2 py-2 ps-2 pe-2 object-item object-tree-card" data-search="{{ obj.name }} {{ obj.description }} {{ object_class_name|default('') }}">
+<div class="list-group-item-action d-flex justify-content-between align-items-start gap-2 py-2 ps-2 pe-2 object-item object-tree-card" data-object-id="{{ obj.id }}" data-search="{{ obj.name }} {{ obj.description }} {{ object_class_name|default('') }}">
     <div class="col d-flex align-items-start">
         <i class="fas fa-file text-info ms-1 mt-1 fs-5"></i>
         <div class="px-3 flex-grow-1">
@@ -42,7 +42,7 @@
                 <li><a class="dropdown-item" href="?view=object&object={{obj.id}}&tab=schedule"><i class="fa-solid fa-calendar-days me-2"></i>{{ _('Schedules')}}</a></li>
                 <li><a class="dropdown-item" href="?view=object&object={{obj.id}}&tab=permissions"><i class="fa-solid fa-shield me-2"></i>{{ _('Permissions')}}</a></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="?view=object&object={{obj.id}}&op=delete" onClick="return confirm('Delete object {{obj.name}}?')"><i class="feather icon-trash me-2"></i>{{ _('Delete')}}</a></li>
+                <li><button type="button" class="dropdown-item text-danger object-delete-action" data-object-id="{{ obj.id }}" data-object-name="{{ obj.name|e }}"><i class="feather icon-trash me-2"></i>{{ _('Delete')}}</button></li>
             </ul>
         </div>
     </div>

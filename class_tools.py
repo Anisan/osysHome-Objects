@@ -8,7 +8,7 @@ from app.core.models.Clasess import Class, Object, Value, History, Property, Met
 from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import checkPermission, getClassId, get_objects_for_class_tree
 from app.core.lib.object_tree import invalidate_objects_tree_cache
-from app.core.lib.object_db import delete_object_from_db, delete_objects_by_class
+from app.core.lib.object_db import delete_object_from_db, delete_objects_by_class, cleanup_orphan_records
 
 _NAME_RE = re.compile(r'^[^\s.]+$')
 _MAX_BULK_CREATE = 100
@@ -56,6 +56,8 @@ def routeClassTools(req):
         return _bulk_create(class_id, data)
     if op == 'bulk_delete':
         return _bulk_delete(class_id)
+    if op == 'delete':
+        return _delete_class(class_id)
     if op == 'clear_history':
         return _clear_history(class_id, data)
     if op == 'bulk_call_method':
@@ -114,6 +116,35 @@ def _bulk_create(class_id: int, data: dict):
         'skipped': skipped,
         'created_count': len(created),
         'skipped_count': len(skipped),
+    })
+
+
+def _delete_class(class_id: int):
+    cls = Class.query.get(class_id)
+    if not cls:
+        return jsonify({'success': False, 'message': 'Class not found'}), 404
+
+    children_count = Class.query.filter(Class.parent_id == class_id).count()
+    objects_count = Object.query.filter(Object.class_id == class_id).count()
+    if children_count or objects_count:
+        return jsonify({'success': False, 'message': 'Class is not empty'}), 400
+
+    class_name = cls.name
+    delete_objects_by_class(class_id)
+    db.session.execute(delete(Property).where(Property.class_id == class_id))
+    db.session.execute(delete(Method).where(Method.class_id == class_id))
+    db.session.execute(delete(Class).where(Class.id == class_id))
+    db.session.commit()
+    cleanup_orphan_records()
+    db.session.commit()
+    invalidate_objects_tree_cache()
+    objects_storage.remove_objects_by_class(class_id)
+
+    return jsonify({
+        'success': True,
+        'message': 'Class deleted',
+        'class_id': class_id,
+        'class_name': class_name,
     })
 
 

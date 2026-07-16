@@ -1,6 +1,6 @@
 {% set children_count = class.children_count|default(class.children|length if class.children is defined else 0) %}
 {% set objects_count = class.objects_count|default(class.objects|length if class.objects is defined else 0) %}
-<div class="card mb-1 ml-2 class-card object-tree-card shadow-sm" data-class-id="{{ class.id }}" data-search="{{ class.name }} {{ class.description }}">
+<div class="card mb-1 ml-2 class-card object-tree-card shadow-sm" data-class-id="{{ class.id }}" data-class-name="{{ class.name|e }}" data-search="{{ class.name }} {{ class.description }}">
   <div class="card-header d-flex justify-content-between align-items-start gap-2 py-2">
     <button
       type="button"
@@ -51,10 +51,10 @@
           <li><a class="dropdown-item" href="?view=class&class={{class.id}}&tab=objects"><i class="feather icon-grid me-2"></i>{{ _('Objects')}}</a></li>
           <li><a class="dropdown-item" href="?view=class&class={{class.id}}&tab=template"><i class="fa-solid fa-paintbrush me-2"></i>{{ _('Template')}}</a></li>
           <li><a class="dropdown-item" href="?view=class&class={{class.id}}&tab=permissions"><i class="fa-solid fa-shield me-2"></i>{{ _('Permissions')}}</a></li>
-          {% if not children_count and not objects_count %}
-          <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item text-danger" href="?view=class&class={{class.id}}&op=delete" onClick="return confirm('Delete class {{class.name}}?')"><i class="feather icon-trash me-2"></i>{{ _('Delete')}}</a></li>
-          {% endif %}
+          <li class="class-delete-divider{% if children_count or objects_count %} d-none{% endif %}"><hr class="dropdown-divider"></li>
+          <li class="class-delete-menu-item{% if children_count or objects_count %} d-none{% endif %}">
+            <button type="button" class="dropdown-item text-danger class-delete-action" data-class-id="{{ class.id }}" data-class-name="{{ class.name|e }}"><i class="feather icon-trash me-2"></i>{{ _('Delete')}}</button>
+          </li>
         </ul>
       </div>
     </div>

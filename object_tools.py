@@ -10,7 +10,7 @@ from app.core.main.ObjectsStorage import objects_storage
 from app.core.lib.common import clearScheduledJob, getJobs
 from plugins.Objects.forms.utils import checkPermission, getObjectId
 from app.core.lib.object_tree import invalidate_objects_tree_cache
-from app.core.lib.object_db import cleanup_orphan_records
+from app.core.lib.object_db import cleanup_orphan_records, delete_object_from_db
 
 _NAME_RE = re.compile(r'^[^\s.]+$')
 
@@ -46,6 +46,8 @@ def routeObjectTools(req):
         return _clear_schedules(obj)
     if op == 'clone':
         return _clone_object(obj, data)
+    if op == 'delete':
+        return _delete_object(obj)
     if op == 'cleanup_orphans':
         stats = cleanup_orphan_records()
         db.session.commit()
@@ -57,6 +59,21 @@ def routeObjectTools(req):
         })
 
     return jsonify({'success': False, 'message': 'Unknown operation'}), 400
+
+
+def _delete_object(obj: Object):
+    name = delete_object_from_db(obj.id)
+    db.session.commit()
+    invalidate_objects_tree_cache()
+    if name:
+        objects_storage.changeObject("delete", name, None, None, None)
+        objects_storage.remove_object(name)
+    return jsonify({
+        'success': True,
+        'message': 'Object deleted',
+        'object_id': obj.id,
+        'object_name': name,
+    })
 
 
 def _export_values(obj: Object):

@@ -1052,24 +1052,28 @@
         if (!this.hasEditCustomRules) return;
         const title = this.edit_label || this.edit_name;
         const msg = this.labels.resetConfirm.replace('{title}', title) + '\n\n' + this.labels.resetConfirmHint;
-        if (!confirm(msg)) return;
-        const def = { access_users: [], denied_users: [], access_roles: [], denied_roles: [] };
-        for (const key of Object.keys(this.edit_item)) {
-          this.$set(this.edit_item, key, { ...def });
-        }
+        showConfirm(msg, { danger: true }).then((confirmed) => {
+          if (!confirmed) return;
+          const def = { access_users: [], denied_users: [], access_roles: [], denied_roles: [] };
+          for (const key of Object.keys(this.edit_item)) {
+            this.$set(this.edit_item, key, { ...def });
+          }
+        });
       },
 
       resetSection(type, name) {
         const title = type === 'self' ? '{{ _("Self") }}' : (type + ':' + name);
         const msg = this.labels.resetConfirm.replace('{title}', title) + '\n\n' + this.labels.resetConfirmHint;
-        if (!confirm(msg)) return;
+        showConfirm(msg, { danger: true }).then((confirmed) => {
+          if (!confirmed) return;
 
-        if (type === 'self') {
-          this.$set(this.permissions, 'self', {});
-        } else if (this.permissions[type] && name in this.permissions[type]) {
-          this.$delete(this.permissions[type], name);
-        }
-        this.savePermissions();
+          if (type === 'self') {
+            this.$set(this.permissions, 'self', {});
+          } else if (this.permissions[type] && name in this.permissions[type]) {
+            this.$delete(this.permissions[type], name);
+          }
+          this.savePermissions();
+        });
       },
 
       removeEmptyValues(obj) {
