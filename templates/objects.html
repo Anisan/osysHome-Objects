@@ -89,6 +89,11 @@
     align-content: start;
   }
 
+  .objects-page .object-item.object-filter-hidden,
+  .objects-page.multi-column-view .objects-list > .object-item.object-filter-hidden {
+    display: none !important;
+  }
+
   .objects-page.multi-column-view .objects-list > .object-item > .col {
     min-width: 0 !important;
     width: auto !important;
@@ -718,13 +723,15 @@ function loadTreeBranch(collapseEl) {
   container.html(treeLoadingHtml);
   setBranchLoadingState(collapseEl, true);
 
-  var request = $.getJSON(treeBranchUrl + classId)
-    .done(function(response) {
-      var renderPromise = renderHtmlWithModuleScripts(container[0], response.html || treeEmptyHtml);
-      collapseEl.attr('data-tree-loaded', '1');
-      renderPromise.then(function() {
+  var branchPromise = $.getJSON(treeBranchUrl + classId)
+    .then(function(response) {
+      return renderHtmlWithModuleScripts(container[0], response.html || treeEmptyHtml).then(function() {
+        collapseEl.attr('data-tree-loaded', '1');
         applyStoredCollapseState(container[0]);
         persistCollapseState();
+        if (($('#objectFilter').val() || '').trim()) {
+          applyObjectsFilter(($('#objectFilter').val() || '').toLowerCase().trim());
+        }
       });
     })
     .fail(function() {
@@ -735,8 +742,8 @@ function loadTreeBranch(collapseEl) {
       delete branchLoadPromises[classId];
     });
 
-  branchLoadPromises[classId] = request;
-  return request;
+  branchLoadPromises[classId] = branchPromise;
+  return branchPromise;
 }
 
 function loadConfiguration() {
@@ -818,37 +825,32 @@ async function ensureFullTreeLoaded() {
   }
 }
 
-async function filterObjects() {
-  var query = $('#objectFilter').val().toLowerCase().trim();
+async function applyObjectsFilter(query) {
   var hasQuery = query !== '';
 
-  if (hasQuery) {
-    await ensureFullTreeLoaded();
-  }
-
   $('.object-item').each(function() {
-    var text = ($(this).data('search') || '').toLowerCase();
+    var text = ($(this).attr('data-search') || '').toLowerCase();
     var match = !hasQuery || text.indexOf(query) !== -1;
-    $(this).toggleClass('d-none', !match);
+    $(this).toggleClass('object-filter-hidden', !match);
   });
 
   $($('.class-card').get().reverse()).each(function() {
-    var classText = ($(this).data('search') || '').toLowerCase();
+    var classText = ($(this).attr('data-search') || '').toLowerCase();
     var classMatch = !hasQuery || classText.indexOf(query) !== -1;
-    var hasVisibleObjects = $(this).find('.object-item').not('.d-none').length > 0;
+    var hasVisibleObjects = $(this).find('.object-item').not('.object-filter-hidden').length > 0;
     var hasVisibleClasses = $(this).find('.class-card').not('.d-none').length > 0;
     var shouldShow = !hasQuery ? true : (classMatch || hasVisibleObjects || hasVisibleClasses);
     $(this).toggleClass('d-none', !shouldShow);
   });
 
   $('ul:has(.object-item)').each(function() {
-    var hasVisible = $(this).find('.object-item').not('.d-none').length > 0;
+    var hasVisible = $(this).find('.object-item').not('.object-filter-hidden').length > 0;
     $(this).toggleClass('d-none', hasQuery && !hasVisible);
   });
 
   var standaloneSection = $('#standaloneObjectsSection');
   if (standaloneSection.length) {
-    var hasVisibleStandalone = standaloneSection.find('.object-item').not('.d-none').length > 0;
+    var hasVisibleStandalone = standaloneSection.find('.object-item').not('.object-filter-hidden').length > 0;
     standaloneSection.toggleClass('d-none', hasQuery && !hasVisibleStandalone);
   }
 
@@ -865,7 +867,7 @@ async function filterObjects() {
       }
     };
 
-    $('.object-item').not('.d-none').each(function() {
+    $('.object-item').not('.object-filter-hidden').each(function() {
       var collapse = $(this).closest('.collapse');
       openCollapse(collapse);
     });
@@ -880,8 +882,19 @@ async function filterObjects() {
   updateSearchHighlights(query);
 
   var hasVisibleCards = $('.class-card').not('.d-none').length > 0;
-  var hasVisibleObjects = $('.object-item').not('.d-none').length > 0;
+  var hasVisibleObjects = $('.object-item').not('.object-filter-hidden').length > 0;
   $('#objectsEmptyState').toggleClass('d-none', !hasQuery || hasVisibleCards || hasVisibleObjects);
+}
+
+async function filterObjects() {
+  var query = $('#objectFilter').val().toLowerCase().trim();
+  var hasQuery = query !== '';
+
+  if (hasQuery) {
+    await ensureFullTreeLoaded();
+  }
+
+  await applyObjectsFilter(query);
 }
 
 function uploadFile() {

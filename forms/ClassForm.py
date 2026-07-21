@@ -197,27 +197,34 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
     
     return properties, parent_properties, methods, parent_methods, objects, templates
 
+
+def _load_child_classes(class_id):
+    query = Class.query.filter(Class.parent_id == class_id)
+    if current_user.role not in ['admin', 'root']:
+        query = query.filter(Class.name.notlike(r'\_%', escape='\\'))
+    children = query.order_by(Class.name).all()
+    child_classes = []
+    for child in children:
+        child_classes.append({
+            'id': child.id,
+            'name': child.name,
+            'description': child.description,
+            'children_count': Class.query.filter(Class.parent_id == child.id).count(),
+            'objects_count': Object.query.filter(Object.class_id == child.id).count(),
+        })
+    return child_classes
+
+
 def routeClass(request, config):
     id = request.args.get('class', None)
     id = getClassId(id)
+    parent_param = request.args.get('parent', None)
     tab = request.args.get('tab', '')
     op = request.args.get('op', '')
     item = None
 
     if not checkPermission(id):
         abort(403)  # Возвращаем ошибку "Forbidden" если доступ запрещен
-
-    if tab == 'permissions':
-        item = Class.query.get_or_404(id)
-        content = {
-            'id': id,
-            'type':'class',
-            'name': item.name,
-            'class_id': id,
-            'tab': tab,
-            'class_hierarchy': get_class_hierarchy(id),
-        }
-        return render_template('objects_permissions.html', **content)
 
     if op == 'delete':
         delete_objects_by_class(id)
@@ -255,6 +262,10 @@ def routeClass(request, config):
 
     # TODO exclude current class
     form.parent_id.choices = [('','')] + [(_class.id, _class.name) for _class in classes]
+    if not id and parent_param:
+        parent_class_id = getClassId(parent_param)
+        if parent_class_id and checkPermission(parent_class_id):
+            form.parent_id.data = str(parent_class_id)
     old_name = ""
     if id:
         old_name = item.name
@@ -298,12 +309,14 @@ def routeClass(request, config):
             properties, parent_properties, methods, parent_methods, objects, templates = _load_class_properties_methods_and_objects(item, id, config)
     tools_objects = []
     children_count = 0
+    child_classes = []
     if id:
         tools_objects = [
             {'id': obj.id, 'name': obj.name, 'description': obj.description}
             for obj in get_objects_for_class_tree(id)
         ]
-        children_count = Class.query.filter(Class.parent_id == id).count()
+        child_classes = _load_child_classes(id)
+        children_count = len(child_classes)
 
     content = {
         'id': id,
@@ -315,6 +328,7 @@ def routeClass(request, config):
         'objects': objects,
         'tools_objects': tools_objects,
         'children_count': children_count,
+        'child_classes': child_classes,
         'templates': templates,
         'tab': tab,
         'show_id': config.get("show_id", False),

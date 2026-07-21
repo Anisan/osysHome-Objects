@@ -51,7 +51,18 @@
       border-radius: 0.25rem;
     }
 
-    .class-objects-view.multi-column-view .objects-list {
+    .objects-page.compact-view .class-counts,
+    .objects-page.compact-view .object-class-name {
+      display: none !important;
+    }
+
+    .objects-page.compact-view .class-card .card-header,
+    .objects-page.compact-view .object-item {
+      padding-top: 0.45rem !important;
+      padding-bottom: 0.45rem !important;
+    }
+
+    .objects-page.multi-column-view .objects-list {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 0.75rem;
@@ -59,7 +70,7 @@
       align-items: start;
     }
 
-    .class-objects-view.multi-column-view .objects-list > .object-item {
+    .objects-page.multi-column-view .objects-list > .object-item {
       border: 1px solid rgba(var(--bs-secondary-rgb), 0.35);
       border-radius: 0.5rem;
       display: grid !important;
@@ -68,21 +79,21 @@
       align-content: start;
     }
 
-    .class-objects-view.multi-column-view .objects-list > .object-item > .col {
+    .objects-page.multi-column-view .objects-list > .object-item > .col {
       min-width: 0 !important;
       width: auto !important;
       grid-column: 1;
       grid-row: 1;
     }
 
-    .class-objects-view.multi-column-view .objects-list > .object-item > .object-actions {
+    .objects-page.multi-column-view .objects-list > .object-item > .object-actions {
       margin-left: 0;
       align-self: start;
       grid-column: 2;
       grid-row: 1;
     }
 
-    .class-objects-view.multi-column-view .objects-list > .object-item .object-preview {
+    .objects-page.multi-column-view .objects-list > .object-item .object-preview {
       grid-column: 1 / -1;
       grid-row: 2;
       width: 100%;
@@ -103,7 +114,7 @@
         white-space: normal !important;
       }
 
-      .class-objects-view.multi-column-view .objects-list {
+      .objects-page.multi-column-view .objects-list {
         grid-template-columns: 1fr;
       }
     }
@@ -187,30 +198,43 @@
         padding: 0.22rem 0.4rem;
       }
 
-      .class-objects-view .objects-list {
+      .objects-page .class-card .card-header {
+        flex-wrap: wrap;
+      }
+
+      .objects-page .class-card .card-header > button,
+      .objects-page .class-card .card-header > div {
+        width: 100%;
+      }
+
+      .objects-page .class-card .card-header > div {
+        justify-content: flex-end;
+      }
+
+      .objects-page .objects-list {
         padding-left: 0 !important;
         margin-right: 0 !important;
       }
 
-      .class-objects-view .object-item {
+      .objects-page .object-item {
         flex-wrap: wrap;
         align-items: stretch !important;
       }
 
-      .class-objects-view .object-item > .col,
-      .class-objects-view .object-item > .object-preview,
-      .class-objects-view .object-item > .object-actions {
+      .objects-page .object-item > .col,
+      .objects-page .object-item > .object-preview,
+      .objects-page .object-item > .object-actions {
         width: 100%;
         min-width: 0 !important;
         margin: 0 !important;
       }
 
-      .class-objects-view .object-item > .object-preview {
+      .objects-page .object-item > .object-preview {
         order: 2;
         margin-top: 0.6rem !important;
       }
 
-      .class-objects-view .object-item > .object-actions {
+      .objects-page .object-item > .object-actions {
         order: 3;
         justify-content: flex-end;
       }
@@ -271,7 +295,7 @@
         padding-bottom: 0.6rem !important;
       }
 
-      .class-objects-view .object-item {
+      .objects-page .object-item {
         padding-left: 0.65rem !important;
         padding-right: 0.65rem !important;
       }
@@ -297,11 +321,15 @@
         <a href="?view=method&class={{id}}" class="btn btn-warning btn-sm tab-add-action" title="{{ _('Add method')}}"><i class="fas fa-plus"></i></a>
     </li>
     <li class="nav-item tab-with-action">
+        <a class="nav-link tab-button{% if tab == 'classes'%} active{%endif%}" href="#classes" data-bs-toggle="tab" role="tab">{{ _('Classes')}}</a>
+        <a href="?view=class&parent={{id}}" class="btn btn-secondary btn-sm tab-add-action" title="{{ _('Add class')}}"><i class="fas fa-plus"></i></a>
+    </li>
+    <li class="nav-item tab-with-action">
         <a class="nav-link tab-button{% if tab == 'objects'%} active{%endif%}" href="#objects" data-bs-toggle="tab" role="tab">{{ _('Objects')}}</a>
         <a href="?view=object&class={{id}}" class="btn btn-primary btn-sm tab-add-action" title="{{ _('Add object')}}"><i class="fas fa-plus"></i></a>
     </li>
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}" href="#template_tab" data-bs-toggle="tab" role="tab">{{ _('Template')}}</a></li>
-    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'permissions'%} active{%endif%}" href="?view=class&class={{id}}&tab=permissions">{{ _('Permissions')}}</a></li>
+    <li class="nav-item"><a class="nav-link tab-button{% if tab == 'permissions'%} active{%endif%}" href="#permissions_tab" data-bs-toggle="tab" role="tab">{{ _('Permissions')}}</a></li>
     <li class="nav-item flex-grow-1"></li>
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'tools'%} active{%endif%}" id="tools-tab" href="#tools" data-bs-toggle="tab" role="tab" aria-controls="tools">{{ _('Tools')}}</a></li>
     {%endif%}
@@ -313,6 +341,7 @@
         <span class="badge bg-primary">{{ _('Properties')}}: {{ properties|length + parent_properties|length }}</span>
         <span class="badge bg-warning text-dark">{{ _('Methods')}}: {{ methods|length + parent_methods|length }}</span>
         <span class="badge bg-info text-dark">{{ _('Objects')}}: {{ objects|length }}</span>
+        <span class="badge bg-secondary text-light">{{ _('Classes')}}: {{ child_classes|length }}</span>
     </div>
 </div>
 {% endif %}
@@ -762,7 +791,19 @@
         </div>
         <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     </div>
-    <div class="tab-pane fade class-objects-view {% if tab == 'objects'%}show active{%endif%}" id="objects" role="tabpanel" aria-labelledby="objects-tab">
+    <div class="tab-pane fade objects-page {% if tab == 'classes'%}show active{%endif%}" id="classes" role="tabpanel" aria-labelledby="classes-tab">
+        {% if child_classes %}
+        <div class="accordion mt-2" id="classChildrenAccordion">
+            {% for class in child_classes %}
+            {% include 'class_template.html' %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="px-3 ml-2 mt-2">{{ _('No child classes')}}</p>
+        {% endif %}
+        <a href="Objects" class="btn btn-secondary mt-3"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
+    </div>
+    <div class="tab-pane fade objects-page {% if tab == 'objects'%}show active{%endif%}" id="objects" role="tabpanel" aria-labelledby="objects-tab">
         {%if objects %}
         <ul class="list-group list-group-flush ps-2 mb-0 me-2 objects-list">
             {% for obj in objects %}
@@ -801,6 +842,11 @@
                 {%endif%}
             </div>
         </form>
+    </div>
+    <div class="tab-pane fade {% if tab == 'permissions'%}show active{%endif%}" id="permissions_tab" role="tabpanel" aria-labelledby="permissions-tab">
+        {% with type='class', name=form.name.data %}
+        {% include 'includes/objects_permissions_panel.html' %}
+        {% endwith %}
     </div>
     <div class="tab-pane fade {% if tab == 'tools'%}show active{%endif%}" id="tools" role="tabpanel" aria-labelledby="tools-tab">
         <div id="classToolsStatus" class="alert d-none mb-3" role="alert"></div>
@@ -1065,11 +1111,22 @@
 </div>
 
   <script>
-  (function applyCompactViewClass() {
-    if (typeof Storage !== 'undefined' && (localStorage.getItem('objectsCompactView') === '1' || localStorage.getItem('objectsCompactView') === 'true')) {
-      document.body.classList.add('objects-compact-view');
+  function applyObjectsViewPreferences() {
+    var isCompact = false;
+    var isMultiColumn = false;
+    if (typeof Storage !== 'undefined') {
+      var compactRaw = localStorage.getItem('objectsCompactView');
+      isCompact = compactRaw === '1' || compactRaw === 'true';
+      isMultiColumn = localStorage.getItem('objectsMultiColumnView') === '1';
     }
-  })();
+    document.body.classList.toggle('objects-compact-view', isCompact);
+    document.querySelectorAll('#myTabContent .objects-page').forEach(function(el) {
+      el.classList.toggle('compact-view', isCompact);
+      el.classList.toggle('multi-column-view', isMultiColumn);
+    });
+  }
+  applyObjectsViewPreferences();
+  window.applyClassObjectsViewPreferences = applyObjectsViewPreferences;
 
     var classObjectNames = {{ tools_objects | map(attribute='name') | list | tojson }};
 
@@ -1442,16 +1499,7 @@
     }
 
     function applyClassObjectsColumnsViewPreference() {
-      var objectsTab = document.getElementById('objects');
-      if (!objectsTab) {
-        return;
-      }
-      var storageKey = 'objectsMultiColumnView';
-      var isMultiColumn = false;
-      if (typeof(Storage) !== "undefined") {
-        isMultiColumn = localStorage.getItem(storageKey) === '1';
-      }
-      objectsTab.classList.toggle('multi-column-view', isMultiColumn);
+      applyObjectsViewPreferences();
     }
 
     function activateSingleConfigTabPane(activePane) {
@@ -1489,7 +1537,9 @@
         'properties': 'properties',
         'methods': 'methods',
         'objects': 'objects',
+        'classes': 'classes',
         'template': 'template_tab',
+        'permissions': 'permissions_tab',
         'tools': 'tools'
       };
       if (urlTab !== null && paneIdByTab.hasOwnProperty(urlTab)) {
@@ -1506,6 +1556,15 @@
     document.addEventListener('DOMContentLoaded', function() {
       applyClassObjectsColumnsViewPreference();
       initConfigTabsVisibility();
+      var classesTabLink = document.querySelector('#configTabs [href="#classes"]');
+      if (classesTabLink) {
+        classesTabLink.addEventListener('shown.bs.tab', function() {
+          if (window.ObjectsTreeBranchLoader &&
+              typeof window.ObjectsTreeBranchLoader.restoreSavedOpenBranches === 'function') {
+            window.ObjectsTreeBranchLoader.restoreSavedOpenBranches();
+          }
+        });
+      }
       var copyBtn = document.getElementById('bulkMethodResultCopyBtn');
       if (copyBtn) {
         copyBtn.addEventListener('click', function() {
@@ -1519,6 +1578,15 @@
       }
     });
   </script>
+{% if id %}
+<script>
+  window.ObjectsTreeBranchConfig = {
+    storageKey: 'collapseClassPageClasses_{{ id }}',
+    scopeSelector: '#classes'
+  };
+</script>
+{% include 'includes/objects_tree_branch_loader.html' %}
+{% endif %}
 {% include 'includes/code_block_styles.html' %}
 
 {% endblock %}

@@ -117,6 +117,7 @@
   "Name prefix": "이름 접두사",
   "New object name": "새 개체 이름",
   "New override": "새로운 재정의",
+  "No child classes": "하위 클래스가 없습니다.",
   "No child classes or objects": "하위 클래스나 객체가 없습니다.",
   "No classes or objects yet": "아직 클래스나 객체가 없습니다.",
   "No matches found": "일치하는 항목이 없습니다.",

@@ -1,0 +1,270 @@
+<script>
+(function() {
+  if (window.ObjectsTreeBranchLoader) {
+    return;
+  }
+
+  function getConfig() {
+    return window.ObjectsTreeBranchConfig || {
+      storageKey: 'collapseClassPageClasses',
+      scopeSelector: '#classes'
+    };
+  }
+
+  function getScopeElement() {
+    var selector = getConfig().scopeSelector;
+    if (!selector) {
+      return $();
+    }
+    return $(selector);
+  }
+
+  var branchLoadPromises = {};
+  var treeBranchUrl = '?view=tree_children&class=';
+  var treeLoadingHtml = '<div class="text-muted small px-3 py-2"><i class="fas fa-circle-notch fa-spin me-2"></i>{{ _("Loading") }}</div>';
+  var treeLoadErrorHtml = '<div class="text-danger small px-3 py-2">{{ _("Failed to load branch") }}</div>';
+  var treeEmptyHtml = '<p class="px-3 ml-2 mt-2 text-muted">{{ _("No child classes or objects") }}</p>';
+
+  function updateCollapseTriggerState(collapseEl, isExpanded) {
+    var trigger = $(collapseEl).closest('.class-card').find('.class-toggle').first();
+    if (trigger.length) {
+      trigger.attr('aria-expanded', isExpanded ? 'true' : 'false');
+    }
+  }
+
+  function setBranchLoadingState(collapseEl, isLoading) {
+    var loader = $(collapseEl).closest('.class-card').find('[data-role="branch-loader"]').first();
+    if (!loader.length) {
+      return;
+    }
+    loader.toggleClass('d-none', !isLoading);
+  }
+
+  function persistCollapseState() {
+    if (typeof Storage === 'undefined') {
+      return;
+    }
+    var $scope = getScopeElement();
+    if (!$scope.length) {
+      return;
+    }
+    var collapseState = [];
+    $scope.find('.collapse[data-class-id]').each(function() {
+      collapseState.push({ id: $(this).attr('id'), collapsed: !$(this).hasClass('show') });
+    });
+    localStorage.setItem(getConfig().storageKey, JSON.stringify(collapseState));
+  }
+
+  function getSavedCollapseStateMap() {
+    if (typeof Storage === 'undefined') {
+      return {};
+    }
+    var rawState = localStorage.getItem(getConfig().storageKey);
+    if (!rawState) {
+      return {};
+    }
+    try {
+      var collapseState = JSON.parse(rawState);
+      var stateMap = {};
+      collapseState.forEach(function(item) {
+        stateMap[item.id] = item;
+      });
+      return stateMap;
+    } catch (error) {
+      console.warn('Failed to parse collapse state', error);
+      return {};
+    }
+  }
+
+  function applyStoredCollapseState(scope) {
+    var stateMap = getSavedCollapseStateMap();
+    var $root = scope ? $(scope) : getScopeElement();
+    $root.find('.collapse[data-class-id]').each(function() {
+      var savedState = stateMap[$(this).attr('id')];
+      if (savedState && savedState.collapsed === false && typeof bootstrap !== 'undefined') {
+        bootstrap.Collapse.getOrCreateInstance(this, { toggle: false }).show();
+      }
+    });
+  }
+
+  function renderHtmlWithModuleScripts(containerEl, html) {
+    if (!containerEl) {
+      return Promise.resolve();
+    }
+
+    var wrapper = document.createElement('div');
+    wrapper.innerHTML = html || '';
+
+    var scripts = Array.prototype.slice.call(wrapper.querySelectorAll('script'));
+    scripts.forEach(function(script) {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    });
+
+    containerEl.innerHTML = wrapper.innerHTML;
+
+    var sequence = Promise.resolve();
+    scripts.forEach(function(sourceScript) {
+      sequence = sequence.then(function() {
+        return new Promise(function(resolve) {
+          var runtimeScript = document.createElement('script');
+          Array.prototype.slice.call(sourceScript.attributes).forEach(function(attr) {
+            runtimeScript.setAttribute(attr.name, attr.value);
+          });
+          runtimeScript.text = sourceScript.text || sourceScript.textContent || '';
+          runtimeScript.addEventListener('load', function() { resolve(); }, { once: true });
+          runtimeScript.addEventListener('error', function() { resolve(); }, { once: true });
+          containerEl.appendChild(runtimeScript);
+          if (!runtimeScript.src) {
+            resolve();
+          }
+        });
+      });
+    });
+
+    return sequence;
+  }
+
+  function loadTreeBranch(collapseEl) {
+    collapseEl = $(collapseEl);
+    var classId = collapseEl.data('class-id');
+    if (!classId) {
+      return Promise.resolve();
+    }
+    if (collapseEl.attr('data-tree-loaded') === '1') {
+      return Promise.resolve();
+    }
+    if (branchLoadPromises[classId]) {
+      return branchLoadPromises[classId];
+    }
+
+    var container = collapseEl.children('.tree-branch-container');
+    var childrenCount = Number(collapseEl.attr('data-children-count') || 0);
+    var objectsCount = Number(collapseEl.attr('data-objects-count') || 0);
+
+    if (!childrenCount && !objectsCount) {
+      container.html(treeEmptyHtml);
+      collapseEl.attr('data-tree-loaded', '1');
+      updateCollapseTriggerState(collapseEl, collapseEl.hasClass('show'));
+      return Promise.resolve();
+    }
+
+    container.html(treeLoadingHtml);
+    setBranchLoadingState(collapseEl, true);
+
+    var request = $.getJSON(treeBranchUrl + classId)
+      .done(function(response) {
+        var renderPromise = renderHtmlWithModuleScripts(container[0], response.html || treeEmptyHtml);
+        collapseEl.attr('data-tree-loaded', '1');
+        renderPromise.then(function() {
+          if (typeof window.applyClassObjectsViewPreferences === 'function') {
+            window.applyClassObjectsViewPreferences();
+          }
+          applyStoredCollapseState(container[0]);
+          persistCollapseState();
+        });
+      })
+      .fail(function() {
+        container.html(treeLoadErrorHtml);
+      })
+      .always(function() {
+        setBranchLoadingState(collapseEl, false);
+        delete branchLoadPromises[classId];
+      });
+
+    branchLoadPromises[classId] = request;
+    return request;
+  }
+
+  async function restoreSavedOpenBranches() {
+    if (typeof Storage === 'undefined') {
+      return;
+    }
+    var $scope = getScopeElement();
+    if (!$scope.length) {
+      return;
+    }
+
+    var stateMap = getSavedCollapseStateMap();
+    var restored = {};
+    var guard = 0;
+
+    while (guard < 1000) {
+      var pendingLoads = [];
+      var foundNewBranch = false;
+
+      $scope.find('.collapse[data-class-id]').each(function() {
+        var collapseEl = $(this);
+        var collapseId = collapseEl.attr('id');
+        var savedState = stateMap[collapseId];
+
+        if (!savedState || savedState.collapsed !== false || restored[collapseId]) {
+          return;
+        }
+
+        restored[collapseId] = true;
+        foundNewBranch = true;
+
+        if (typeof bootstrap !== 'undefined') {
+          bootstrap.Collapse.getOrCreateInstance(this, { toggle: false }).show();
+        } else {
+          collapseEl.addClass('show');
+        }
+
+        pendingLoads.push(loadTreeBranch(this));
+      });
+
+      if (!foundNewBranch) {
+        break;
+      }
+
+      if (pendingLoads.length) {
+        await Promise.all(pendingLoads);
+      }
+
+      guard += 1;
+    }
+
+    persistCollapseState();
+  }
+
+  function bindCollapseHandlers() {
+    var $scope = getScopeElement();
+    if (!$scope.length) {
+      return;
+    }
+    $scope.off('show.bs.collapse', '.collapse[data-class-id]');
+    $scope.on('show.bs.collapse', '.collapse[data-class-id]', function() {
+      updateCollapseTriggerState(this, true);
+      loadTreeBranch(this);
+    });
+    $scope.off('shown.bs.collapse hidden.bs.collapse', '.collapse[data-class-id]');
+    $scope.on('shown.bs.collapse hidden.bs.collapse', '.collapse[data-class-id]', function() {
+      updateCollapseTriggerState(this, $(this).hasClass('show'));
+      persistCollapseState();
+    });
+  }
+
+  window.ObjectsTreeBranchLoader = {
+    loadTreeBranch: loadTreeBranch,
+    bindCollapseHandlers: bindCollapseHandlers,
+    persistCollapseState: persistCollapseState,
+    applyStoredCollapseState: applyStoredCollapseState,
+    restoreSavedOpenBranches: restoreSavedOpenBranches
+  };
+
+  $(function() {
+    var $scope = getScopeElement();
+    if (!$scope.length) {
+      return;
+    }
+    var storageKey = getConfig().storageKey;
+    bindCollapseHandlers();
+    if (typeof Storage !== 'undefined' && !localStorage.getItem(storageKey)) {
+      persistCollapseState();
+    }
+    restoreSavedOpenBranches();
+  });
+})();
+</script>
