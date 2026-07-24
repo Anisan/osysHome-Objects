@@ -240,7 +240,8 @@
       }
     }
 
-    #myTabContent > .tab-pane:not(.show) {
+    /* Hide by .active (sync), not .show (fade-delayed) — see object.html */
+    #myTabContent > .tab-pane:not(.active) {
       display: none !important;
     }
 
@@ -1504,10 +1505,10 @@
 
     function activateSingleConfigTabPane(activePane) {
       var tabContent = document.getElementById('myTabContent');
-      if (!tabContent || !activePane) {
+      if (!tabContent || !activePane || !tabContent.contains(activePane)) {
         return;
       }
-      tabContent.querySelectorAll('.tab-pane').forEach(function(pane) {
+      tabContent.querySelectorAll(':scope > .tab-pane').forEach(function(pane) {
         var isActive = pane === activePane;
         pane.classList.toggle('show', isActive);
         pane.classList.toggle('active', isActive);
@@ -1522,11 +1523,12 @@
 
       document.querySelectorAll('#configTabs [data-bs-toggle="tab"]').forEach(function(tabLink) {
         tabLink.addEventListener('shown.bs.tab', function(event) {
-          var targetSelector = event.target.getAttribute('href');
+          var link = event.target.closest ? event.target.closest('[data-bs-toggle="tab"]') : event.target;
+          var targetSelector = (link && (link.getAttribute('data-bs-target') || link.getAttribute('href'))) || '';
           if (!targetSelector || targetSelector.charAt(0) !== '#') {
             return;
           }
-          var pane = document.querySelector(targetSelector);
+          var pane = tabContent.querySelector(targetSelector);
           activateSingleConfigTabPane(pane);
         });
       });
@@ -1546,7 +1548,7 @@
         var pane = document.getElementById(paneIdByTab[urlTab]);
         activateSingleConfigTabPane(pane);
       } else {
-        var visiblePane = tabContent.querySelector('.tab-pane.show');
+        var visiblePane = tabContent.querySelector(':scope > .tab-pane.active, :scope > .tab-pane.show');
         if (visiblePane) {
           activateSingleConfigTabPane(visiblePane);
         }

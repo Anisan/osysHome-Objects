@@ -39,7 +39,8 @@
         gap: 0.25rem;
     }
 
-    .objects-method-page .tab-content > .tab-pane:not(.show) {
+    /* Hide by .active (sync), not .show (fade-delayed) — see object.html */
+    .objects-method-page .tab-content > .tab-pane:not(.active) {
         display: none !important;
         height: 0 !important;
         overflow: hidden !important;

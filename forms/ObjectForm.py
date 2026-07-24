@@ -248,18 +248,6 @@ def routeObject(request, config):
     if not checkPermission(None, id):
         abort(403)  # Возвращаем ошибку "Forbidden" если доступ запрещен
 
-    if tab == 'permissions':
-        item = Object.query.get_or_404(id)
-        content = {
-            'id': id,
-            'type':'object',
-            'name': item.name,
-            'class_id': class_id,
-            'tab': tab,
-            'class_hierarchy': get_class_hierarchy(item.class_id),
-        }
-        return render_template('objects_permissions.html', **content)
-
     if op == 'clone':
         source_obj = Object.query.get_or_404(id)
         # Генерируем имя для клона
