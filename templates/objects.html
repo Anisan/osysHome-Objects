@@ -384,19 +384,38 @@
 
   {% if objects %}
   <section class="standalone-objects-section" id="standaloneObjectsSection">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-      <div>
-        <h5 class="mb-0">{{ _('Standalone objects') }}</h5>
-        <small class="text-muted">{{ _('Objects without a class') }}</small>
+    <div class="card object-tree-card shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-start gap-2 py-2">
+        <button
+          type="button"
+          class="btn btn-link text-decoration-none text-reset p-0 flex-grow-1 text-start"
+          id="standaloneObjectsToggle"
+          data-bs-toggle="collapse"
+          data-bs-target="#standaloneObjectsCollapse"
+          aria-expanded="true"
+          aria-controls="standaloneObjectsCollapse"
+        >
+          <div class="d-flex align-items-start">
+            <i class="fas fa-file text-info mt-1 me-1 fs-5"></i>
+            <div class="px-2">
+              <div class="fw-semibold">{{ _('Standalone objects') }}</div>
+              <small class="text-muted d-block">{{ _('Objects without a class') }}</small>
+            </div>
+          </div>
+        </button>
+        <span class="badge text-bg-secondary mt-1">{{ standalone_object_count }}</span>
       </div>
-      <span class="badge text-bg-secondary">{{ standalone_object_count }}</span>
+      <div class="collapse show" id="standaloneObjectsCollapse">
+        <div class="card-body px-2 py-2">
+          <ul class="list-group list-group-flush ps-2 mb-0 me-2 objects-list">
+            {% for obj in objects %}
+            {% set object_class_name = '' %}
+            {% include 'object_template.html' %}
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
     </div>
-    <ul class="list-group list-group-flush ps-2 mb-0 me-2 objects-list">
-      {% for obj in objects %}
-      {% set object_class_name = '' %}
-      {% include 'object_template.html' %}
-      {% endfor %}
-    </ul>
   </section>
   {% endif %}
 
@@ -754,6 +773,39 @@ function loadConfiguration() {
   }
   applyCompactViewPreference();
   applyMultiColumnViewPreference();
+  applyStandaloneObjectsCollapsePreference();
+}
+
+function updateStandaloneObjectsToggleState() {
+  var collapseEl = document.getElementById('standaloneObjectsCollapse');
+  var trigger = document.getElementById('standaloneObjectsToggle');
+  if (!collapseEl || !trigger) {
+    return;
+  }
+  trigger.setAttribute('aria-expanded', collapseEl.classList.contains('show') ? 'true' : 'false');
+}
+
+function applyStandaloneObjectsCollapsePreference() {
+  var collapseEl = document.getElementById('standaloneObjectsCollapse');
+  if (!collapseEl) {
+    return;
+  }
+  var isCollapsed = false;
+  if (typeof(Storage) !== "undefined") {
+    var raw = localStorage.getItem('standaloneObjectsCollapsed');
+    isCollapsed = raw === '1' || raw === 'true';
+  }
+  if (typeof bootstrap !== 'undefined') {
+    var instance = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+    if (isCollapsed) {
+      instance.hide();
+    } else {
+      instance.show();
+    }
+  } else {
+    collapseEl.classList.toggle('show', !isCollapsed);
+  }
+  updateStandaloneObjectsToggleState();
 }
 
 async function restoreSavedOpenBranches() {
@@ -898,42 +950,481 @@ async function filterObjects() {
 }
 
 function uploadFile() {
-            var formData = new FormData($('#uploadForm')[0]);
-            console.log(formData)
-            const baseUrl = '../api/import';
-            const params = [];
+  var fileInput = document.getElementById('file');
+  if (!fileInput || !fileInput.files || !fileInput.files.length) {
+    alert('{{ _("Select JSON File") }}');
+    return;
+  }
 
-            if (document.getElementById('add_class').checked) {
-              params.push('classes=1');
-            }
-            if (document.getElementById('add_objects').checked) {
-              params.push('objects=1');
-            }
-            if (document.getElementById('rewrite').checked) {
-              params.push('rewrite=1');
-            }
+  var file = fileInput.files[0];
+  var reader = new FileReader();
+  reader.onload = function() {
+    var data;
+    try {
+      data = JSON.parse(reader.result);
+    } catch (error) {
+      alert('{{ _("Invalid JSON format") }}');
+      return;
+    }
 
-            const fullUrl = params.length > 0
-              ? baseUrl + '?' + params.join('&')
-              : baseUrl;
-            $.ajax({
-                url: fullUrl,
-                type: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
-                success: function(response){
-                    success = response.success
-                    alert(response.message);
-                    if (success) {
-                      window.location.href = 'Objects';
-                    }
-                },
-                error: function(xhr, status, error) {
-                  console.error(xhr.responseText);
-                }
-            });
+    if (!data || !Array.isArray(data.classes)) {
+      alert('{{ _("Invalid JSON format") }}');
+      return;
+    }
+
+    var uploadModalEl = document.getElementById('uploadModal');
+    if (uploadModalEl && typeof bootstrap !== 'undefined') {
+      bootstrap.Modal.getOrCreateInstance(uploadModalEl).hide();
+    }
+
+    startImportWithProgress(data, file);
+  };
+  reader.onerror = function() {
+    alert('{{ _("Invalid JSON format") }}');
+  };
+  reader.readAsText(file);
+}
+
+function startImportWithProgress(data, file) {
+  var importLabels = {
+    importing: {{ _('Importing')|tojson }},
+    complete: {{ _('Import complete')|tojson }},
+    failed: {{ _('Import failed')|tojson }},
+    wait: {{ _('Please wait…')|tojson }},
+    standalone: {{ _('Standalone objects')|tojson }},
+    statusImported: {{ _('Imported')|tojson }},
+    statusUpdated: {{ _('Updated')|tojson }},
+    statusSkipped: {{ _('Skipped')|tojson }},
+    statusPending: {{ _('Pending')|tojson }},
+    statusProcessing: {{ _('Processing')|tojson }},
+    descriptionEmpty: {{ _('Description is empty')|tojson }},
+    propertiesLabel: {{ _('Properties')|tojson }},
+    methodsLabel: {{ _('Methods')|tojson }},
+    importingPropertyTemplate: {{ _('Importing property %(name)s…')|tojson }},
+    importingMethodTemplate: {{ _('Importing method %(name)s…')|tojson }}
+  };
+
+  var importNodeIdSeq = 0;
+
+  var modalEl = document.getElementById('importProgressModal');
+  var titleEl = document.getElementById('importProgressModalTitle');
+  var statusEl = document.getElementById('importProgressStatus');
+  var counterEl = document.getElementById('importProgressCounter');
+  var barEl = document.getElementById('importProgressBar');
+  var treeEl = document.getElementById('importProgressTree');
+  var closeBtn = document.getElementById('importProgressClose');
+  var reloadBtn = document.getElementById('importProgressReload');
+  var importModal = (modalEl && typeof bootstrap !== 'undefined')
+    ? bootstrap.Modal.getOrCreateInstance(modalEl, { backdrop: 'static', keyboard: false })
+    : null;
+
+  var totalItems = (data.classes || []).length + (data.objects || []).length
+    + (data.properties || []).length + (data.methods || []).length + (data.values || []).length;
+  var processedItems = 0;
+  var importSucceeded = false;
+
+  function resetModalState() {
+    if (titleEl) titleEl.textContent = {{ _('Import progress')|tojson }};
+    if (statusEl) statusEl.textContent = importLabels.wait;
+    if (counterEl) counterEl.textContent = '0 / ' + totalItems;
+    if (barEl) {
+      barEl.style.width = '0%';
+      barEl.setAttribute('aria-valuenow', '0');
+      barEl.className = 'progress-bar progress-bar-striped progress-bar-animated';
+    }
+    if (closeBtn) {
+      closeBtn.classList.add('d-none');
+      closeBtn.disabled = true;
+    }
+    if (reloadBtn) {
+      reloadBtn.classList.add('d-none');
+      reloadBtn.disabled = true;
+    }
+  }
+
+  function updateProgressBar() {
+    var percent = totalItems ? Math.round((processedItems / totalItems) * 100) : 100;
+    if (counterEl) counterEl.textContent = processedItems + ' / ' + totalItems;
+    if (barEl) {
+      barEl.style.width = percent + '%';
+      barEl.setAttribute('aria-valuenow', String(percent));
+    }
+  }
+
+  function statusIconHtml(status) {
+    if (status === 'processing') {
+      return '<i class="fas fa-circle-notch fa-spin text-primary"></i>';
+    }
+    if (status === 'imported') {
+      return '<i class="fas fa-check text-success"></i>';
+    }
+    if (status === 'updated') {
+      return '<i class="fas fa-check-double text-success"></i>';
+    }
+    if (status === 'skipped') {
+      return '<i class="fas fa-minus text-secondary"></i>';
+    }
+    if (status === 'error') {
+      return '<i class="fas fa-times text-danger"></i>';
+    }
+    return '<i class="far fa-circle text-secondary"></i>';
+  }
+
+  function statusTitle(status) {
+    if (status === 'imported') return importLabels.statusImported;
+    if (status === 'updated') return importLabels.statusUpdated;
+    if (status === 'skipped') return importLabels.statusSkipped;
+    if (status === 'processing') return importLabels.statusProcessing;
+    if (status === 'error') return importLabels.failed;
+    return importLabels.statusPending;
+  }
+
+  function findImportTreeItem(type, name, className) {
+    if (!treeEl) return null;
+    var selector = '[data-import-type="' + type + '"][data-import-name="' + CSS.escape(name) + '"]';
+    if (type === 'object' && className) {
+      selector += '[data-import-class="' + CSS.escape(className) + '"]';
+    }
+    return treeEl.querySelector(selector);
+  }
+
+  function setImportItemStatus(type, name, className, status) {
+    var item = findImportTreeItem(type, name, className);
+    if (!item) return;
+    var iconEl = item.querySelector('.import-status-icon-wrap');
+    if (iconEl) {
+      iconEl.innerHTML = statusIconHtml(status);
+      iconEl.setAttribute('title', statusTitle(status));
+    }
+    item.setAttribute('data-import-status', status);
+  }
+
+  function setImportEntityStats(type, name, className, properties, methods) {
+    var item = findImportTreeItem(type, name, className);
+    if (!item) return;
+    var statsEl = item.closest('.import-tree-entry');
+    if (!statsEl) {
+      statsEl = item;
+    }
+    var propsEl = statsEl.querySelector('[data-stat="properties"]');
+    var methodsEl = statsEl.querySelector('[data-stat="methods"]');
+    if (propsEl) propsEl.textContent = String(properties || 0);
+    if (methodsEl) methodsEl.textContent = String(methods || 0);
+  }
+
+  function renderImportStatsInline(properties, methods) {
+    return '<span class="import-entity-stats d-inline-flex flex-shrink-0 gap-1 ms-auto" data-import-stats>'
+      + '<span class="badge text-bg-secondary"><i class="feather icon-list me-1"></i>'
+      + escapeHtml(importLabels.propertiesLabel) + ': <span data-stat="properties">' + (properties || 0) + '</span></span>'
+      + '<span class="badge text-bg-secondary"><i class="fas fa-cog me-1"></i>'
+      + escapeHtml(importLabels.methodsLabel) + ': <span data-stat="methods">' + (methods || 0) + '</span></span>'
+      + '</span>';
+  }
+
+  function buildImportTree(importData) {
+    var classes = importData.classes || [];
+    var objects = importData.objects || [];
+    var classByName = {};
+    var roots = [];
+    var standalone = [];
+
+    classes.forEach(function(cls) {
+      classByName[cls.name] = {
+        name: cls.name,
+        description: cls.description || '',
+        children: [],
+        objects: []
+      };
+    });
+
+    objects.forEach(function(obj) {
+      var objNode = {
+        name: obj.name,
+        className: obj.class || ''
+      };
+      var clsName = obj.class;
+      if (clsName && classByName[clsName]) {
+        classByName[clsName].objects.push(objNode);
+      } else {
+        standalone.push(objNode);
+      }
+    });
+
+    classes.forEach(function(cls) {
+      var node = classByName[cls.name];
+      if (cls.parent && classByName[cls.parent]) {
+        classByName[cls.parent].children.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+
+    return { roots: roots, standalone: standalone };
+  }
+
+  function renderImportObjectRow(obj, className) {
+    var html = '<li class="list-group-item py-1 px-2 border-0 import-tree-entry">';
+    html += '<div class="d-flex align-items-center gap-2 min-w-0" data-import-type="object" data-import-name="' + escapeHtml(obj.name) + '" data-import-class="' + escapeHtml(className || '') + '" data-import-status="pending">';
+    html += '<span class="import-status-icon-wrap d-inline-flex align-items-center justify-content-center flex-shrink-0" title="' + escapeHtml(importLabels.statusPending) + '">' + statusIconHtml('pending') + '</span>';
+    html += '<i class="fas fa-file text-info flex-shrink-0"></i>';
+    html += '<span class="fw-medium text-truncate">' + escapeHtml(obj.name) + '</span>';
+    html += renderImportStatsInline(0, 0);
+    html += '</div></li>';
+    return html;
+  }
+
+  function renderImportTreeNode(node) {
+    var hasBranch = node.objects.length || node.children.length;
+    var nodeId = 'importBranch' + (++importNodeIdSeq);
+    var description = node.description || importLabels.descriptionEmpty;
+    var html = '<div class="card border import-tree-entry">';
+
+    html += '<div class="card-header py-1 px-2 bg-transparent">';
+    html += '<div class="d-flex align-items-center gap-2 min-w-0" data-import-type="class" data-import-name="' + escapeHtml(node.name) + '" data-import-status="pending">';
+    if (hasBranch) {
+      html += '<button type="button" class="btn btn-sm btn-outline-secondary border-0 px-1 py-0 flex-shrink-0 import-tree-toggle" data-bs-toggle="collapse" data-bs-target="#' + nodeId + '" aria-expanded="true" aria-controls="' + nodeId + '">';
+      html += '<i class="fas fa-chevron-down small import-tree-chevron"></i>';
+      html += '</button>';
+    } else {
+      html += '<span class="flex-shrink-0" style="width:1.75rem"></span>';
+    }
+    html += '<span class="import-status-icon-wrap d-inline-flex align-items-center justify-content-center flex-shrink-0" title="' + escapeHtml(importLabels.statusPending) + '">' + statusIconHtml('pending') + '</span>';
+    html += '<i class="fas fa-folder text-warning flex-shrink-0"></i>';
+    html += '<span class="fw-semibold text-truncate">' + escapeHtml(node.name) + '</span>';
+    html += '<span class="small text-muted text-truncate d-none d-md-inline">· ' + escapeHtml(description) + '</span>';
+    html += renderImportStatsInline(0, 0);
+    html += '</div></div>';
+
+    if (hasBranch) {
+      html += '<div class="collapse show" id="' + nodeId + '">';
+      html += '<div class="card-body pt-0 pb-2 px-3">';
+
+      if (node.objects.length) {
+        html += '<ul class="list-group list-group-flush">';
+        node.objects.forEach(function(obj) {
+          html += renderImportObjectRow(obj, node.name);
+        });
+        html += '</ul>';
+      }
+
+      if (node.children.length) {
+        html += '<div class="vstack gap-2 mt-2 ps-2 border-start">';
+        node.children.forEach(function(child) {
+          html += renderImportTreeNode(child);
+        });
+        html += '</div>';
+      }
+
+      html += '</div></div>';
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  function renderImportTree(importData) {
+    var tree = buildImportTree(importData);
+    var html = '<div class="accordion accordion-flush vstack gap-2" id="importTreeAccordion">';
+
+    tree.roots.forEach(function(node) {
+      html += renderImportTreeNode(node);
+    });
+
+    if (tree.standalone.length) {
+      html += '<div class="border-top pt-3 mt-1">';
+      html += '<div class="small text-uppercase text-muted mb-2">' + escapeHtml(importLabels.standalone) + '</div>';
+      html += '<ul class="list-group list-group-flush">';
+      tree.standalone.forEach(function(obj) {
+        html += renderImportObjectRow(obj, '');
+      });
+      html += '</ul></div>';
+    }
+
+    html += '</div>';
+
+    if (!tree.roots.length && !tree.standalone.length) {
+      html = '<p class="text-muted small mb-0">{{ _("No classes or objects yet") }}</p>';
+    }
+
+    return html;
+  }
+
+  function initImportTreeCollapse(treeContainer) {
+    if (!treeContainer) return;
+    treeContainer.addEventListener('shown.bs.collapse', function(event) {
+      var toggle = treeContainer.querySelector('[data-bs-target="#' + event.target.id + '"] .import-tree-chevron');
+      if (toggle) {
+        toggle.classList.remove('fa-chevron-right');
+        toggle.classList.add('fa-chevron-down');
+      }
+    });
+    treeContainer.addEventListener('hidden.bs.collapse', function(event) {
+      var toggle = treeContainer.querySelector('[data-bs-target="#' + event.target.id + '"] .import-tree-chevron');
+      if (toggle) {
+        toggle.classList.remove('fa-chevron-down');
+        toggle.classList.add('fa-chevron-right');
+      }
+    });
+  }
+
+  function finishImport(success, message) {
+    importSucceeded = success;
+    if (barEl) {
+      barEl.className = 'progress-bar' + (success ? ' bg-success' : ' bg-danger');
+      barEl.style.width = '100%';
+      barEl.setAttribute('aria-valuenow', '100');
+    }
+    if (titleEl) titleEl.textContent = success ? importLabels.complete : importLabels.failed;
+    if (statusEl) statusEl.textContent = message || (success ? importLabels.complete : importLabels.failed);
+    if (closeBtn) {
+      closeBtn.classList.remove('d-none');
+      closeBtn.disabled = false;
+    }
+    if (reloadBtn && success) {
+      reloadBtn.classList.remove('d-none');
+      reloadBtn.disabled = false;
+    }
+  }
+
+  function handleImportEvent(event) {
+    if (!event || !event.event) return;
+
+    if (event.event === 'start') {
+      totalItems = event.total || totalItems;
+      updateProgressBar();
+      if (statusEl) statusEl.textContent = importLabels.importing;
+      return;
+    }
+
+    if (event.event === 'item') {
+      setImportItemStatus(event.type, event.name, event.class || '', event.status || 'skipped');
+      if (event.status !== 'processing') {
+        processedItems += 1;
+        updateProgressBar();
+      }
+      return;
+    }
+
+    if (event.event === 'subitem') {
+      var subitemTemplate = event.subitem_type === 'method'
+        ? importLabels.importingMethodTemplate
+        : importLabels.importingPropertyTemplate;
+      if (statusEl && event.subitem_name) {
+        statusEl.textContent = subitemTemplate.replace('%(name)s', event.subitem_name);
+      }
+      processedItems += 1;
+      updateProgressBar();
+      return;
+    }
+
+    if (event.event === 'entity_stats') {
+      setImportEntityStats(event.type, event.name, event.class || '', event.properties, event.methods);
+      return;
+    }
+
+    if (event.event === 'progress') {
+      processedItems += 1;
+      updateProgressBar();
+      return;
+    }
+
+    if (event.event === 'done') {
+      finishImport(true, event.message || importLabels.complete);
+      return;
+    }
+
+    if (event.event === 'error') {
+      finishImport(false, event.message || importLabels.failed);
+    }
+  }
+
+  resetModalState();
+  if (treeEl) {
+    treeEl.innerHTML = renderImportTree(data);
+    initImportTreeCollapse(treeEl);
+  }
+  if (importModal) importModal.show();
+
+  var formData = new FormData();
+  formData.append('file', file);
+  var params = ['stream=1'];
+  if (document.getElementById('add_class').checked) params.push('classes=1');
+  if (document.getElementById('add_objects').checked) params.push('objects=1');
+  if (document.getElementById('rewrite').checked) params.push('rewrite=1');
+  var fullUrl = '../api/import?' + params.join('&');
+
+  fetch(fullUrl, {
+    method: 'POST',
+    body: formData,
+    credentials: 'same-origin'
+  }).then(function(response) {
+    if (!response.ok) {
+      return response.text().then(function(text) {
+        throw new Error(text || importLabels.failed);
+      });
+    }
+    if (!response.body || !response.body.getReader) {
+      return response.json().then(function(payload) {
+        if (payload.success) {
+          finishImport(true, payload.message || importLabels.complete);
+        } else {
+          finishImport(false, payload.message || importLabels.failed);
         }
+      });
+    }
+
+    var reader = response.body.getReader();
+    var decoder = new TextDecoder();
+    var buffer = '';
+
+    function readChunk() {
+      return reader.read().then(function(result) {
+        if (result.done) {
+          if (buffer.trim()) {
+            try {
+              handleImportEvent(JSON.parse(buffer.trim()));
+            } catch (error) {
+              console.error(error);
+            }
+          }
+          if (!importSucceeded && processedItems >= totalItems && totalItems > 0) {
+            finishImport(true, importLabels.complete);
+          }
+          return;
+        }
+
+        buffer += decoder.decode(result.value, { stream: true });
+        var lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        lines.forEach(function(line) {
+          if (!line.trim()) return;
+          try {
+            handleImportEvent(JSON.parse(line));
+          } catch (error) {
+            console.error(error);
+          }
+        });
+        return readChunk();
+      });
+    }
+
+    return readChunk();
+  }).catch(function(error) {
+    console.error(error);
+    finishImport(false, error.message || importLabels.failed);
+  });
+
+  if (closeBtn) {
+    closeBtn.onclick = function() {
+      if (importModal) importModal.hide();
+    };
+  }
+  if (reloadBtn) {
+    reloadBtn.onclick = function() {
+      window.location.reload();
+    };
+  }
+}
 
   // Call the function to load configuration after document is loaded
 $(document).ready(function() {
@@ -944,6 +1435,12 @@ $(document).ready(function() {
   $(document).on('shown.bs.collapse hidden.bs.collapse', '.collapse[data-class-id]', function() {
     updateCollapseTriggerState(this, $(this).hasClass('show'));
     persistCollapseState();
+  });
+  $(document).on('shown.bs.collapse hidden.bs.collapse', '#standaloneObjectsCollapse', function() {
+    updateStandaloneObjectsToggleState();
+    if (typeof(Storage) !== "undefined") {
+      localStorage.setItem('standaloneObjectsCollapsed', $(this).hasClass('show') ? '0' : '1');
+    }
   });
   loadConfiguration();
   restoreSavedOpenBranches().then(function() {
@@ -976,6 +1473,13 @@ $(document).ready(function() {
       }
       updateCollapseTriggerState(this, true);
     });
+    var standaloneCollapse = document.getElementById('standaloneObjectsCollapse');
+    if (standaloneCollapse && typeof bootstrap !== 'undefined') {
+      bootstrap.Collapse.getOrCreateInstance(standaloneCollapse, { toggle: false }).show();
+      if (typeof(Storage) !== "undefined") {
+        localStorage.setItem('standaloneObjectsCollapsed', '0');
+      }
+    }
     persistCollapseState();
   });
   $('#treeCollapseAllButton').on('click', function() {
@@ -987,6 +1491,13 @@ $(document).ready(function() {
       }
       updateCollapseTriggerState(this, false);
     });
+    var standaloneCollapse = document.getElementById('standaloneObjectsCollapse');
+    if (standaloneCollapse && typeof bootstrap !== 'undefined') {
+      bootstrap.Collapse.getOrCreateInstance(standaloneCollapse, { toggle: false }).hide();
+      if (typeof(Storage) !== "undefined") {
+        localStorage.setItem('standaloneObjectsCollapsed', '1');
+      }
+    }
     persistCollapseState();
   });
   $('#objectFilter').on('input', function() {

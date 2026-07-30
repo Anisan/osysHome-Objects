@@ -33,7 +33,7 @@
 
 {% block module_content %}
 <div class="row objects-object-page">
-<div class="col">
+<div class="col object-main-col">
 {% if form.errors %}
 <div class="alert alert-warning mt-3">
     <ul>
@@ -104,15 +104,61 @@
     vertical-align: top;
   }
 
+  .objects-object-page > .object-main-col {
+    min-width: 0;
+    flex: 1 1 0;
+  }
+
+  .objects-object-page > .object-preview-col {
+    flex: 0 0 20rem;
+    max-width: 20rem;
+    min-width: 18rem;
+  }
+
+  .objects-object-page > .object-preview-resizer {
+    flex: 0 0 12px;
+    width: 12px;
+    cursor: col-resize;
+    user-select: none;
+    touch-action: none;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    background: transparent;
+    position: relative;
+  }
+
+  .objects-object-page > .object-preview-resizer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    transform: translateX(-50%);
+    background: rgba(var(--bs-secondary-rgb), 0.4);
+    opacity: 0.35;
+    transition: opacity 0.12s ease;
+  }
+
+  .objects-object-page > .object-preview-resizer:hover::after,
+  .objects-object-page > .object-preview-resizer.dragging::after {
+    opacity: 0.85;
+  }
+
   @media (max-width: 991.98px) {
-    .objects-object-page > .col,
-    .objects-object-page > .col-2 {
+    .objects-object-page > .object-main-col,
+    .objects-object-page > .object-preview-col {
       flex: 0 0 100%;
       max-width: 100%;
+      min-width: 0;
     }
 
-    .objects-object-page > .col-2 {
+    .objects-object-page > .object-preview-col {
       margin-top: 1rem;
+    }
+
+    .objects-object-page > .object-preview-resizer {
+      display: none !important;
     }
 
     .objects-object-page .tab-content .table td:last-child,
@@ -1059,7 +1105,8 @@
 </div>
 </div>
 {%if template!=''%}
-<div class="col col-2">
+<div class="object-preview-resizer d-none d-lg-block" id="objectPreviewResizer" aria-hidden="true"></div>
+<div class="object-preview-col">
 <div class="card p-2" id="obj:{{form.name.data}}">
     {{template|safe}}
 </div>
@@ -2470,6 +2517,119 @@
     }
 
     $(document).ready(function () {
+        // Resizable right preview column (Template/Object preview).
+        (function initObjectPreviewResizer() {
+            var resizer = document.getElementById('objectPreviewResizer');
+            var row = document.querySelector('.objects-object-page');
+            var previewCol = row ? row.querySelector(':scope > .object-preview-col') : null;
+
+            if (!resizer || !row || !previewCol) {
+                return;
+            }
+
+            var storageKey = 'objectsPreviewWidth';
+            var DESKTOP_MIN_W = 992;
+            var isDesktop = function () {
+                return window.innerWidth >= DESKTOP_MIN_W;
+            };
+
+            function getPreviewLimitsPx() {
+                var containerWidth = row.getBoundingClientRect().width || window.innerWidth;
+                var cssMinWidthPx = parseFloat(window.getComputedStyle(previewCol).minWidth);
+                var minPx = isNaN(cssMinWidthPx) ? 260 : cssMinWidthPx;
+                return {
+                    min: minPx,
+                    max: Math.min(720, Math.floor(containerWidth * 0.6))
+                };
+            }
+
+            function applyPreviewWidthPx(widthPx) {
+                var limits = getPreviewLimitsPx();
+                var safe = Math.min(Math.max(widthPx, limits.min), limits.max);
+                previewCol.style.flex = '0 0 ' + safe + 'px';
+                previewCol.style.maxWidth = safe + 'px';
+            }
+
+            function loadPreviewWidth() {
+                if (!isDesktop()) {
+                    return;
+                }
+                var saved = null;
+                try {
+                    saved = localStorage.getItem(storageKey);
+                } catch (e) {}
+                var savedPx = saved ? parseInt(saved, 10) : NaN;
+                if (!savedPx || isNaN(savedPx)) {
+                    // Use CSS default as a baseline.
+                    applyPreviewWidthPx(previewCol.getBoundingClientRect().width || 320);
+                    return;
+                }
+                applyPreviewWidthPx(savedPx);
+            }
+
+            var isResizing = false;
+            var startX = 0;
+            var startWidthPx = 0;
+
+            function stopResizing() {
+                if (!isResizing) {
+                    return;
+                }
+                isResizing = false;
+                resizer.classList.remove('dragging');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+
+                try {
+                    localStorage.setItem(storageKey, parseInt(previewCol.getBoundingClientRect().width, 10));
+                } catch (e) {}
+
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+            }
+
+            function handleMouseMove(e) {
+                if (!isResizing) {
+                    return;
+                }
+                e.preventDefault();
+
+                // Handle is placed to the LEFT of preview column.
+                // Dragging left should increase the preview width.
+                var deltaX = e.clientX - startX;
+                var newWidth = startWidthPx - deltaX;
+                applyPreviewWidthPx(newWidth);
+            }
+
+            function handleMouseUp() {
+                stopResizing();
+            }
+
+            resizer.addEventListener('mousedown', function (e) {
+                if (!isDesktop()) {
+                    return;
+                }
+                e.preventDefault();
+                isResizing = true;
+                startX = e.clientX;
+                startWidthPx = previewCol.getBoundingClientRect().width;
+                resizer.classList.add('dragging');
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+
+                document.addEventListener('mousemove', handleMouseMove, { passive: false });
+                document.addEventListener('mouseup', handleMouseUp);
+            });
+
+            window.addEventListener('resize', function () {
+                if (isDesktop()) {
+                    loadPreviewWidth();
+                }
+            });
+
+            loadPreviewWidth();
+        })();
+
         window.setTimeout(function() {
             $(".alert").fadeTo(1000, 0).slideUp(1000, function(){
                 $(this).remove();
