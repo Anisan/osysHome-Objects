@@ -227,7 +227,7 @@ def routeClass(request, config):
         abort(403)  # Возвращаем ошибку "Forbidden" если доступ запрещен
 
     if op == 'delete':
-        delete_objects_by_class(id)
+        deleted_names = delete_objects_by_class(id)
         sql = delete(Property).where(Property.class_id == id)
         db.session.execute(sql)
         sql = delete(Method).where(Method.class_id == id)
@@ -238,6 +238,8 @@ def routeClass(request, config):
         cleanup_orphan_records()
         db.session.commit()
         invalidate_objects_tree_cache()
+        for deleted_name in deleted_names:
+            objects_storage.changeObject("delete", deleted_name, None, None, None)
         objects_storage.remove_objects_by_class(id)
         return redirect("Objects")
     if id:

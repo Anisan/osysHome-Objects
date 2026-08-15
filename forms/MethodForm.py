@@ -62,6 +62,8 @@ def routeMethod(request):
         class_owner = Class.get_by_id(class_id)
 
     if op == 'delete':
+        method_rec = Method.query.get(id) if id else None
+        method_name = method_rec.name if method_rec else None
         db.session.query(Property).filter(Property.method_id == id).update(
             {Property.method_id: None}, synchronize_session='fetch',
         )
@@ -71,9 +73,14 @@ def routeMethod(request):
 
         if object_id:
             url = "?view=object&object=" + str(object_id) + "&tab=methods"
+            if object_owner and method_name:
+                objects_storage.changeObject("delete", object_owner.name, None, method_name, None)
             objects_storage.reload_object(object_id)
         else:
             url = "?view=class&class=" + str(class_id) + "&tab=methods"
+            if method_name and class_id:
+                for obj in Object.query.filter(Object.class_id == class_id).all():
+                    objects_storage.changeObject("delete", obj.name, None, method_name, None)
             objects_storage.reload_objects_by_class(class_id)
         return redirect(url)
 

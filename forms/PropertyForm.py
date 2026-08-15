@@ -117,8 +117,11 @@ def routeProperty(request):
             db.session.commit()
         else:
             prop = Property.query.filter(Property.class_id == class_id, Property.id == id).one_or_none()
+            prop_name = prop.name if prop else None
+            obj_names = []
             if prop:
                 objs = db.session.query(Object).filter(Object.class_id == class_id).all()
+                obj_names = [obj.name for obj in objs]
                 for obj in objs:
                     values = db.session.query(Value).filter(Value.object_id == obj.id, Value.name == prop.name).all()
                     value_ids = [v.id for v in values]
@@ -135,6 +138,9 @@ def routeProperty(request):
             objects_storage.reload_object(object_id)
         else:
             url = "?view=class&class=" + str(class_id) + "&tab=properties"
+            if prop_name:
+                for obj_name in obj_names:
+                    objects_storage.changeObject("delete", obj_name, prop_name, None, None)
             objects_storage.reload_objects_by_class(class_id)
         return redirect(url)
 
@@ -196,10 +202,11 @@ def routeProperty(request):
                 item.params = normalize_params_json(form.params.data)
                 if old_name != item.name and object_id:
                     db.session.query(Value).filter(Value.object_id == object_id, Value.name == old_name).update({'name': item.name})
-                if old_name != item.name and class_id:
+                if old_name != item.name and class_id and not object_id:
                     objs = db.session.query(Object).filter(Object.class_id == class_id).all()
                     for obj in objs:
                         db.session.query(Value).filter(Value.object_id == obj.id, Value.name == old_name).update({'name': item.name})
+                        objects_storage.changeObject("rename", obj.name, old_name, None, item.name)
                 if object_owner and old_name != item.name:
                     objects_storage.changeObject("rename", object_owner.name, old_name, None, item.name)
         else:

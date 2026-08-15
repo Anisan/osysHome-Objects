@@ -15,6 +15,7 @@ from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents,
 from app.core.lib.object_tree import invalidate_objects_tree_cache
 from app.database import db
 from app.core.lib.object_db import delete_object_from_db
+from app.core.lib.object import renameObject
 
 
 # Определение класса формы
@@ -348,8 +349,16 @@ def routeObject(request, config):
         old_name = item.name
     if form.validate_on_submit():
         if id:
-            form.populate_obj(item)  # Обновляем значения объекта данными из формы
-            item.class_id = int(form.class_id.data) if form.class_id.data else None
+            new_name = (form.name.data or "").strip()
+            if old_name and new_name and old_name != new_name:
+                renameObject(old_name, new_name)
+                item = Object.query.filter(Object.name == new_name).one()
+                item.description = form.description.data
+                item.class_id = int(form.class_id.data) if form.class_id.data else None
+                item.template = form.template.data
+            else:
+                form.populate_obj(item)
+                item.class_id = int(form.class_id.data) if form.class_id.data else None
         else:
             item = Object(
                 name=form.name.data,
@@ -357,12 +366,8 @@ def routeObject(request, config):
             )
             item.class_id = int(form.class_id.data) if form.class_id.data else None
             db.session.add(item)
-        db.session.commit()  # Сохраняем изменения в базе данных
+        db.session.commit()
         invalidate_objects_tree_cache()
-        # update object to storage
-        if old_name != item.name:
-            objects_storage.changeObject("rename", old_name, None, None, item.name)
-            objects_storage.remove_object(old_name)
         objects_storage.reload_object(item.id)
 
         saved = True

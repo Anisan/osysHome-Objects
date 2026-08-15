@@ -130,7 +130,7 @@ def _delete_class(class_id: int):
         return jsonify({'success': False, 'message': 'Class is not empty'}), 400
 
     class_name = cls.name
-    delete_objects_by_class(class_id)
+    deleted_names = delete_objects_by_class(class_id)
     db.session.execute(delete(Property).where(Property.class_id == class_id))
     db.session.execute(delete(Method).where(Method.class_id == class_id))
     db.session.execute(delete(Class).where(Class.id == class_id))
@@ -138,6 +138,8 @@ def _delete_class(class_id: int):
     cleanup_orphan_records()
     db.session.commit()
     invalidate_objects_tree_cache()
+    for deleted_name in deleted_names:
+        objects_storage.changeObject("delete", deleted_name, None, None, None)
     objects_storage.remove_objects_by_class(class_id)
 
     return jsonify({
