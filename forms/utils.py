@@ -1,5 +1,5 @@
 from flask_login import current_user
-from app.database import row2dict
+from app.database import row2dict, parse_int_id
 from app.core.models.Clasess import Class, Object,Property, Method
 from app.core.lib.object import getObject, getProperty
 from wtforms.validators import ValidationError
@@ -247,21 +247,25 @@ def checkPermission(class_id: int = None, object_id: int = None, property_id: in
 
     return False
 
-def getClassId(id_or_name) -> str:
-    if isinstance(id_or_name, str):
-        if id_or_name.isdigit():
-            return id_or_name
-        cls = Class.query.where(Class.name == id_or_name).one_or_none()
+def getClassId(id_or_name):
+    """Resolve class id or name to int (or None). Required for psycopg3 Integer binds."""
+    parsed = parse_int_id(id_or_name)
+    if parsed is not None:
+        return parsed
+    if isinstance(id_or_name, str) and id_or_name.strip():
+        cls = Class.query.where(Class.name == id_or_name.strip()).one_or_none()
         if cls:
-            return str(cls.id)
-    return id_or_name
+            return cls.id
+    return None
 
-def getObjectId(id_or_name) -> str:
-    if isinstance(id_or_name, str):
-        if id_or_name.isdigit():
-            return id_or_name
-        obj = Object.query.where(Object.name == id_or_name).one_or_none()
+def getObjectId(id_or_name):
+    """Resolve object id or name to int (or None). Required for psycopg3 Integer binds."""
+    parsed = parse_int_id(id_or_name)
+    if parsed is not None:
+        return parsed
+    if isinstance(id_or_name, str) and id_or_name.strip():
+        obj = Object.query.where(Object.name == id_or_name.strip()).one_or_none()
         if obj:
-            return str(obj.id)
-    return id_or_name
+            return obj.id
+    return None
 

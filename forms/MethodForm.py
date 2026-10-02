@@ -10,6 +10,7 @@ from app.core.lib.common import getJob, addCronJob, clearScheduledJob
 from app.database import db
 from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import no_spaces_or_dots, get_class_hierarchy, checkPermission, getClassId, getObjectId, get_method_inheritance_chain
+from app.database import parse_int_id
 
 
 # Определение класса формы
@@ -36,18 +37,11 @@ class MethodForm(FlaskForm):
                 raise ValidationError('Name already registered. Please choose a different one.')
 
 def routeMethod(request):
-    id = request.args.get('method', None)
+    id = parse_int_id(request.args.get('method', None))
     if id is None:
-        id = request.form.get('method',None)
-        if id is not None:
-            if id == 'None':
-                id = None
-            else:
-                id = int(id)
-    class_id = request.args.get('class', None)
-    class_id = getClassId(class_id)
-    object_id = request.args.get('object', None)
-    object_id = getObjectId(object_id)
+        id = parse_int_id(request.form.get('method', None))
+    class_id = getClassId(request.args.get('class', None))
+    object_id = getObjectId(request.args.get('object', None))
     op = request.args.get('op', '')
     saved = False
 

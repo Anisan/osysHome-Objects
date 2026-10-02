@@ -8,6 +8,7 @@ from app.database import db, row2dict
 from app.core.models.Clasess import Class, Object, Property, Value, Method, History
 from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import no_spaces_or_dots, no_reserved, getMethodsParents, getPropertiesParents, get_class_hierarchy, checkPermission, getObjectId, getClassId
+from app.database import parse_int_id
 from app.core.lib.object_db import migrate_values_for_property_type_change
 
 
@@ -79,11 +80,9 @@ def routeProperty(request):
             return ''
         return str(value)
 
-    class_id = request.args.get('class', None)
-    class_id = getClassId(class_id)
-    object_id = request.args.get('object', None)
-    object_id = getObjectId(object_id)
-    id = request.args.get('property', None)
+    class_id = getClassId(request.args.get('class', None))
+    object_id = getObjectId(request.args.get('object', None))
+    id = parse_int_id(request.args.get('property', None))
     op = request.args.get('op', '')
 
     if not checkPermission(class_id, object_id, None, id):

@@ -1,10 +1,10 @@
 
 import datetime
-from app.database import db, convert_utc_to_local, get_now_to_utc, convert_local_to_utc
+from app.database import db, convert_utc_to_local, get_now_to_utc, convert_local_to_utc, parse_int_id
 from sqlalchemy import delete
 from flask import redirect, render_template
 from app.core.models.Clasess import Object, Property, Method
-from plugins.Objects.forms.utils import get_class_hierarchy
+from plugins.Objects.forms.utils import get_class_hierarchy, getObjectId
 from app.core.models.Tasks import Task
 from app.core.lib.common import getJob
 from app.core.lib.crontab import nextStartCronJob
@@ -30,11 +30,11 @@ def addPrefix(name,num):
 
 def routeSchedule(request):
     op = request.args.get('op', '')
-    schedule_id = request.args.get('schedule', None)
-    object_id = request.args.get('object', None)
+    schedule_id = parse_int_id(request.args.get('schedule', None))
+    object_id = getObjectId(request.args.get('object', None))
     tab = request.args.get('tab', None)
-    property_id = request.args.get('property', None)
-    method_id = request.args.get('method', None)
+    property_id = parse_int_id(request.args.get('property', None))
+    method_id = parse_int_id(request.args.get('method', None))
 
     if op == 'delete':
         # Delete a route schedule
