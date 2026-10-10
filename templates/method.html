@@ -2,6 +2,7 @@
 {% from "macros/code_editor.html" import render_editor %}
 {% from "includes/objects_breadcrumb.html" import breadcrumb_method with context %}
 {% from "macros/icon_picker.html" import icon_picker_field, icon_picker_modal, icon_picker_assets %}
+{% from "macros/cron_builder.html" import cron_builder_field, cron_builder_modal, cron_builder_assets %}
 
 {% block breadcrumb %}
 {{ breadcrumb_method(
@@ -131,8 +132,13 @@
         {{ form.periodic(class="form-check-input", id="checkbox", onclick="toggleHiddenField()") }}
     </div>
     <div class="col-auto mb-3 d-none" id="hidden_field_wrapper">
-        <label class="form-label">{{ _('Cron') }}</label>
-        {{ form.crontab(class="form-control") }}
+        {{ cron_builder_field(
+            form.crontab.id,
+            label=_('Cron'),
+            value=form.crontab.data,
+            name=form.crontab.name,
+            wrapper_class='mb-0'
+        ) }}
     </div>
 </div>
 {%endif%}
@@ -183,6 +189,8 @@
 
 {{ icon_picker_modal() }}
 {{ icon_picker_assets() }}
+{{ cron_builder_modal() }}
+{{ cron_builder_assets() }}
 
 {% set visible_chain = method_inheritance_chain | rejectattr('owner_type', 'equalto', 'object') | list %}
 {% set inherited_chain = visible_chain | rejectattr('is_current') | rejectattr('is_new') | list %}
