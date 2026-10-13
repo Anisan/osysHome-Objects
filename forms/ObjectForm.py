@@ -341,9 +341,12 @@ def routeObject(request, config):
 
     else:
         form = ObjectForm()
-        if class_id:
-            form.class_id.data = class_id
+    # choices до data; SelectField сравнивает строки (как parent_id в ClassForm)
     form.class_id.choices = choices
+    if not id and class_id:
+        form.class_id.data = str(class_id)
+    elif id and class_id is not None:
+        form.class_id.data = str(class_id)
     old_name = ""
     if id:
         old_name = item.name
