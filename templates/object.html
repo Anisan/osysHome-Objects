@@ -24,13 +24,34 @@
 #e9ecef
 {%- endif -%}
 {%- endmacro %}
+{% macro render_property_type_icon(ptype) -%}
+{%- set t = (ptype or '')|lower -%}
+{%- set type_icons = {
+  'bool': 'mdi:toggle-switch',
+  'int': 'mdi:numeric',
+  'float': 'mdi:decimal',
+  'str': 'mdi:format-letter-case',
+  'datetime': 'mdi:clock-outline',
+  'dict': 'mdi:code-json',
+  'list': 'mdi:format-list-bulleted',
+  'enum': 'mdi:format-list-checks',
+  'color': 'mdi:palette'
+} -%}
+<iconify-icon icon="{{ type_icons.get(t, 'mdi:tag-outline') }}" width="1.05rem" height="1.05rem" aria-hidden="true"></iconify-icon>
+{%- endmacro %}
 {% from "macros/code_editor.html" import render_editor %}
 {% from "includes/objects_breadcrumb.html" import breadcrumb_object with context %}
 {% block breadcrumb %}
 {{ breadcrumb_object(class_hierarchy, id, form.name.data) }}
 {% endblock %}
 
-{% block title %} {{form.name.data}} {% endblock %} 
+{% block title %} {{form.name.data}} {% endblock %}
+
+{% block stylesheets %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('Objects.static', filename='choices/choices.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('Objects.static', filename='choices/choices-theme.css') }}">
+{% endblock %}
 
 {% block module_content %}
 <div class="row objects-object-page">
@@ -100,9 +121,139 @@
     vertical-align: middle;
   }
 
+  .objects-object-page .property-type-icon {
+    min-width: 2.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--bs-secondary-color, #6c757d);
+    opacity: 0.9;
+  }
+
+  .objects-object-page .property-type-icon iconify-icon {
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  .property-list-input {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
+    gap: 0.25rem;
+    height: calc(1.5em + 0.75rem + 2px);
+    min-height: calc(1.5em + 0.75rem + 2px);
+    overflow: auto;
+    resize: vertical;
+    cursor: default;
+  }
+
+  .property-list-input .badge {
+    font-weight: 500;
+    white-space: normal;
+    text-align: left;
+    max-width: 100%;
+    word-break: break-word;
+  }
+
+  /* Кнопка слева, справа столкой: дата и source */
+  .objects-object-page .meta-runtime {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    margin-top: 0.35rem;
+    min-width: 0;
+  }
+
+  .objects-object-page .meta-runtime-lines {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  /* Время изменения / выполнения — компактнее */
+  .objects-object-page [id^="prop_changed:"],
+  .objects-object-page [id^="method_executed:"] {
+    font-size: 0.68rem;
+    font-weight: 500;
+    padding: 0.15rem 0.35rem;
+  }
+
+  /* Source: иконка маршрута + mono-блок (не badge) */
+  .objects-object-page .source-trace {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .objects-object-page .source-trace:has(> .source-trace-text:empty) {
+    display: none;
+  }
+
+  .objects-object-page .source-trace-icon {
+    flex: 0 0 auto;
+    margin-top: 0.2rem;
+    font-size: 0.72rem;
+    color: var(--bs-secondary-color, #6c757d);
+    opacity: 0.75;
+  }
+
+  .objects-object-page .source-trace-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: var(--bs-body-color);
+    background: rgba(var(--bs-secondary-rgb), 0.12);
+    border-radius: 0.25rem;
+    padding: 0.12rem 0.4rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-align: left;
+  }
+
+  .property-list-input .property-list-empty {
+    color: var(--bs-secondary-color, #6c757d);
+    font-size: 0.875rem;
+  }
+
   .objects-object-page .tab-content .table td,
   .objects-object-page .tab-content .table th {
     vertical-align: top;
+  }
+
+  /* Методы: имя по содержимому, кнопки справа, статус — на оставшееся место */
+  .objects-object-page .methods-table {
+    width: 100%;
+  }
+
+  .objects-object-page .methods-table > thead > tr > th:nth-last-child(3),
+  .objects-object-page .methods-table > tbody > tr > td:nth-last-child(3) {
+    width: 1%;
+  }
+
+  .objects-object-page .methods-table > tbody > tr > td:nth-last-child(3) .fw-semibold {
+    white-space: nowrap;
+  }
+
+  .objects-object-page .methods-table > thead > tr > th:nth-last-child(2),
+  .objects-object-page .methods-table > tbody > tr > td:nth-last-child(2) {
+    width: 100%;
+  }
+
+  .objects-object-page .methods-table > thead > tr > th:last-child,
+  .objects-object-page .methods-table > tbody > tr > td:last-child {
+    width: 1%;
+    white-space: nowrap;
+    text-align: right;
   }
 
   .objects-object-page > .object-main-col {
@@ -383,7 +534,6 @@
                         {% endif %}
                         <th>{{ _('Name')}}</th>
                         <th>{{ _('Description')}}</th>
-                        <th>{{ _('Type')}}</th>
                         <th>{{ _('Value')}}</th>
                         <th></th>
                     </tr>
@@ -527,9 +677,6 @@
                                     {% endif %}
                                 </div>
                         </td>
-                        <td width="1%" nowrap{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            <span class="badge bg-secondary">{{ property.type }}</span>
-                        </td>
                         <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             <div class="input-group">
                                 <button
@@ -544,11 +691,18 @@
                                 >
                                     <i class="fas fa-edit mt-0"></i>
                                 </button>
+                                <span class="input-group-text property-type-icon" title="{{ property.type or _('Type') }}">
+                                    {{ render_property_type_icon(property.type) }}
+                                </span>
                                 {% if property.type == 'color' %}
                                 <span class="input-group-text py-1 px-2" id="prop_swatch:{{form.name.data}}.{{property.name}}" title="{{ property.color_preview or property.value }}">
                                     <span class="property-color-swatch" style="background-color: {{ property.color_preview or color_css(property.value) }};"></span>
                                 </span>
                                 {% endif %}
+                                {% if property.type == 'list' %}
+                                <div class="form-control property-list-input" id="prop_list:{{form.name.data}}.{{property.name}}" aria-readonly="true"></div>
+                                <textarea class="d-none" id="prop:{{form.name.data}}.{{property.name}}" rows="1" readonly>{{ property.value }}</textarea>
+                                {% else %}
                                 <textarea class="form-control" id="prop:{{form.name.data}}.{{property.name}}" rows="1" readonly>
                                     {% if property.type == 'enum' and property.params.get('enum_values') and property.value and property.value in property.params['enum_values'] %}
                                     {{ property.params['enum_values'][property.value] }} ({{ property.value }})
@@ -556,11 +710,20 @@
                                     {{ property.value }}
                                     {% endif %}
                                 </textarea>
+                                {% endif %}
                             </div>
-                            <p style="color: gray;margin: 0px;">
-                                <span class="badge bg-secondary" id="prop_changed:{{form.name.data}}.{{property.name}}">{{property.changed}}</span>
-                                <span class="badge bg-success" id="prop_source:{{form.name.data}}.{{property.name}}">{{property.source}}</span>
-                            </p>
+                            <div class="meta-runtime">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" title="{{ _('Memory history') }}" onclick='openMemoryHistoryModal({property: {{ property.name|tojson }}})'>
+                                    <i class="fas fa-memory"></i>
+                                </button>
+                                <div class="meta-runtime-lines">
+                                    <span class="badge bg-secondary" id="prop_changed:{{form.name.data}}.{{property.name}}">{{property.changed}}</span>
+                                    <span class="source-trace" title="{{ _('Source') }}">
+                                        <i class="fa-solid fa-route source-trace-icon" aria-hidden="true"></i>
+                                        <span class="source-trace-text font-monospace" id="prop_source:{{form.name.data}}.{{property.name}}">{{property.source}}</span>
+                                    </span>
+                                </div>
+                            </div>
                         </td>
                         <td width="1%" nowrap{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             {% if not property.class_id %}
@@ -570,11 +733,11 @@
                                    title="{{ _('Edit')}}">
                                     <i class="fas fa-pencil-alt"></i>
                                 </a>
-                                <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>{{ _('Add task')}}</a>
+                                <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button" title="{{ _('Add task')}}"><i class="fa-solid fa-calendar-days"></i></a>
                                 <a href="?view=property&object={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                             {%else%}
-                                <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>{{ _('Add task')}}</a>
-                                <a href="?view=property&object={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button"><i class="fas fa-redo me-2"></i>{{ _('Redefine')}}</a>
+                                <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button" title="{{ _('Add task')}}"><i class="fa-solid fa-calendar-days"></i></a>
+                                <a href="?view=property&object={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button" title="{{ _('Redefine')}}"><i class="fas fa-redo"></i></a>
                             {% endif %}
                         </td>
                     </tr>
@@ -593,10 +756,9 @@
                         {% if show_id %}
                         <th style="width:1%; white-space:nowrap;">ID</th>
                         {% endif %}
-                        <th>{{ _('Name')}}</th>
-                        <th>{{ _('Description')}}</th>
-                        <th>{{ _('Executed')}}</th>
-                        <th></th>
+                        <th style="width:1%;">{{ _('Name')}}</th>
+                        <th style="width:100%;">{{ _('Status')}}</th>
+                        <th style="width:1%; white-space:nowrap;"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -613,7 +775,7 @@
                             <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ method.id }}</span>
                         </th>
                         {% endif %}
-                        <td style="white-space: nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
+                        <td style="{% if row_bg %}background-color: {{ row_bg }};{% endif %}">
                             <div class="d-flex align-items-start">
                                 {% if method.icon %}
                                     {% if ':' in method.icon %}
@@ -624,31 +786,35 @@
                                 {% endif %}
                                 <div>
                                     <div class="fw-semibold">
-                                        {% if method.class_id %}{{method.class_name}} -> <b>{% endif %}
-                                        {{ form.name.data }}.{{ method.name }}
-                                        {% if method.class_id %}</b>{% endif %}
+                                        <a href="?view=method&object={{id}}&method={{method.id}}&op=edit" class="text-decoration-none text-body">
+                                            {% if method.class_id %}{{method.class_name}} -> <b>{% endif %}
+                                            {{ form.name.data }}.{{ method.name }}
+                                            {% if method.class_id %}</b>{% endif %}
+                                        </a>
                                     </div>
-                                    {% if method.overrides_class %}
-                                    <div class="mt-1">
-                                        <span class="badge bg-info text-dark">{{ _('Overrides parent method') }}</span>
+                                    <div class="small text-muted">
+                                        {% if method.description %}
+                                            {{method.description}}
+                                        {% else %}
+                                            {{ _('Description is empty')}}
+                                        {% endif %}
+                                        {% if method.overrides_class %}
+                                            <div class="mt-1">
+                                                <span class="badge bg-info text-dark">{{ _('Overrides parent method') }}</span>
+                                                <span class="badge bg-info text-dark" style="font-size:0.7rem;">
+                                                    {{ _('Call parent') }}:
+                                                    {% if method.call_parent == -1 %}{{ _('Before') }}
+                                                    {% elif method.call_parent == 1 %}{{ _('After') }}
+                                                    {% else %}{{ _('No') }}
+                                                    {% endif %}
+                                                </span>
+                                            </div>
+                                        {% endif %}
                                     </div>
-                                    {% endif %}
                                 </div>
                             </div>
                         </td>
-                        <td style="white-space: nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
-                            {{ method.description }}
-                            {% if method.overrides_class %}
-                            <div class="mt-1">
-                                <span class="badge bg-info text-dark" style="font-size:0.7rem;">
-                                    {{ _('Call parent') }}:
-                                    {% if method.call_parent == -1 %}{{ _('Before') }}
-                                    {% elif method.call_parent == 1 %}{{ _('After') }}
-                                    {% else %}{{ _('No') }}
-                                    {% endif %}
-                                </span>
-                            </div>
-                            {% endif %}
+                        <td style="{% if row_bg %}background-color: {{ row_bg }};{% endif %}">
                             {% if method.jobs%}
                                 {%for job in method.jobs%}
                                 <p style="color: gray;margin: 0px;">
@@ -678,35 +844,33 @@
                                 </p>
                                 {%endfor%}
                             {% endif%}
-                        </td>
-                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             {% if not method.redefined %}
-                            <div>
-                                <span class="badge bg-secondary" id="method_executed:{{form.name.data}}.{{method.name}}">{{method.executed}}</span>
-                                <span class="badge bg-success" id="method_source:{{form.name.data}}.{{method.name}}">{{method.source}}</span>
-                            </div>
-                            <a class="btn btn-link p-0" data-bs-toggle="collapse" data-bs-target="#spoiler_info{{form.name.name}}{{method.name}}" aria-expanded="true" aria-controls="spoiler{{form.name.name}}{{method.name}}">
-                                Info
-                            </a>
-                            <div id="spoiler_info{{form.name.name}}{{method.name}}" class="collapse hide ms-3">
-                                <p style="color: gray;margin: 0px;">↳ Params: <span id="method_exec_params:{{form.name.data}}.{{method.name}}">{{method.exec_params}}</span></p>
-                                <p style="color: gray;margin: 0px;">↳ Result: <span id="method_exec_result:{{form.name.data}}.{{method.name}}">{{method.exec_result}}</span></p>                
-                                <p style="color: gray;margin: 0px;">↳ Time executed: <span id="method_exec_time:{{form.name.data}}.{{method.name}}">{{method.exec_time}}</span> ms</p>                
+                            <div class="meta-runtime">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" title="{{ _('Memory history') }}" onclick='openMemoryHistoryModal({method: {{ method.name|tojson }}})'>
+                                    <i class="fas fa-memory"></i>
+                                </button>
+                                <div class="meta-runtime-lines">
+                                    <span class="badge bg-secondary" id="method_executed:{{form.name.data}}.{{method.name}}">{{method.executed}}</span>
+                                    <span class="source-trace" title="{{ _('Source') }}">
+                                        <i class="fa-solid fa-route source-trace-icon" aria-hidden="true"></i>
+                                        <span class="source-trace-text font-monospace" id="method_source:{{form.name.data}}.{{method.name}}">{{method.source}}</span>
+                                    </span>
+                                </div>
                             </div>
                             {%endif%}
                         </td>
-                        <td style="white-space: nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
+                        <td style="{% if row_bg %}background-color: {{ row_bg }};{% endif %}">
                             {% if method.class_id %}
                                 {% if not method.redefined %}
-                                <a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button"><i class="fas fa-redo me-2"></i>{{ _('Redefine')}}</a>
+                                <a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button" title="{{ _('Redefine')}}"><i class="fas fa-redo"></i></a>
                                 {%endif%}
                             {%else%}
                                 <a href="?view=method&object={{id}}&method={{method.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="{{ _('Edit')}}"><i class="fas fa-pencil-alt"></i></a>
                                 <a href="?view=method&object={{id}}&method={{method.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
                             {% endif %}
                             {% if not method.redefined %}
-                                <a href="?view=schedule&object={{id}}&method={{method.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>{{ _('Add task')}}</a>
-                                <a href="#" class="btn btn-warning btn-sm" onClick="callMethodWithResult('{{form.name.data}}.{{method.name}}',)" role="button"><i class="fa-solid fa-gears me-2"></i>{{ _('Run')}}</a>
+                                <a href="?view=schedule&object={{id}}&method={{method.id}}&op=add" class="btn btn-secondary btn-sm" role="button" title="{{ _('Add task')}}"><i class="fa-solid fa-calendar-days"></i></a>
+                                <a href="#" class="btn btn-warning btn-sm" onClick="callMethodWithResult('{{form.name.data}}.{{method.name}}',)" role="button" title="{{ _('Run')}}"><i class="fa-solid fa-gears"></i></a>
                             {% endif %}
                         </td>
                     </tr>
@@ -715,7 +879,7 @@
                     {% set parent_methods = methods | selectattr('class_id') | rejectattr('redefined') | list %}
                     {% if parent_methods %}
                     <tr>
-                        <td colspan="{{ 4 + (1 if show_id else 0) }}" class="pt-3 pb-1">
+                        <td colspan="{{ 3 + (1 if show_id else 0) }}" class="pt-3 pb-1">
                             <span class="text-muted" style="font-size:0.8rem; border-top: 1px solid rgba(255,255,255,0.08); display:block; padding-top:0.35rem;">
                                 {{ _('Parent methods') }}
                             </span>
@@ -736,7 +900,7 @@
                             <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ method.id }}</span>
                         </th>
                         {% endif %}
-                        <td style="white-space: nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
+                        <td style="{% if row_bg %}background-color: {{ row_bg }};{% endif %}">
                             <div class="d-flex align-items-start">
                                 {% if method.icon %}
                                     {% if ':' in method.icon %}
@@ -751,11 +915,17 @@
                                             <a href="?view=method&class={{ method.class_id }}&method={{ method.id }}&op=edit" class="text-decoration-none text-body">{{ form.name.data }}.{{ method.name }}</a>
                                         </b>
                                     </div>
+                                    <div class="small text-muted">
+                                        {% if method.description %}
+                                            {{method.description}}
+                                        {% else %}
+                                            {{ _('Description is empty')}}
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                         </td>
-                        <td style="white-space: nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
-                            {{ method.description }}
+                        <td style="{% if row_bg %}background-color: {{ row_bg }};{% endif %}">
                             {% if method.jobs %}
                                 {% for job in method.jobs %}
                                 <p style="color: gray;margin: 0px;">
@@ -785,25 +955,23 @@
                                 </p>
                                 {% endfor %}
                             {% endif %}
-                        </td>
-                        <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            <div>
-                                <span class="badge bg-secondary" id="method_executed:{{form.name.data}}.{{method.name}}">{{method.executed}}</span>
-                                <span class="badge bg-success" id="method_source:{{form.name.data}}.{{method.name}}">{{method.source}}</span>
-                            </div>
-                            <a class="btn btn-link p-0" data-bs-toggle="collapse" data-bs-target="#spoiler_info{{form.name.name}}{{method.name}}" aria-expanded="true" aria-controls="spoiler{{form.name.name}}{{method.name}}">
-                                Info
-                            </a>
-                            <div id="spoiler_info{{form.name.name}}{{method.name}}" class="collapse hide ms-3">
-                                <p style="color: gray;margin: 0px;">↳ Params: <span id="method_exec_params:{{form.name.data}}.{{method.name}}">{{method.exec_params}}</span></p>
-                                <p style="color: gray;margin: 0px;">↳ Result: <span id="method_exec_result:{{form.name.data}}.{{method.name}}">{{method.exec_result}}</span></p>
-                                <p style="color: gray;margin: 0px;">↳ Time executed: <span id="method_exec_time:{{form.name.data}}.{{method.name}}">{{method.exec_time}}</span> ms</p>
+                            <div class="meta-runtime">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" title="{{ _('Memory history') }}" onclick='openMemoryHistoryModal({method: {{ method.name|tojson }}})'>
+                                    <i class="fas fa-memory"></i>
+                                </button>
+                                <div class="meta-runtime-lines">
+                                    <span class="badge bg-secondary" id="method_executed:{{form.name.data}}.{{method.name}}">{{method.executed}}</span>
+                                    <span class="source-trace" title="{{ _('Source') }}">
+                                        <i class="fa-solid fa-route source-trace-icon" aria-hidden="true"></i>
+                                        <span class="source-trace-text font-monospace" id="method_source:{{form.name.data}}.{{method.name}}">{{method.source}}</span>
+                                    </span>
+                                </div>
                             </div>
                         </td>
-                        <td style="white-space: nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
-                            <a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button"><i class="fas fa-redo me-2"></i>{{ _('Redefine')}}</a>
-                            <a href="?view=schedule&object={{id}}&method={{method.id}}&op=add" class="btn btn-secondary btn-sm" role="button"><i class="fa-solid fa-calendar-days me-2"></i>{{ _('Add task')}}</a>
-                            <a href="#" class="btn btn-warning btn-sm" onClick="callMethodWithResult('{{form.name.data}}.{{method.name}}',)" role="button"><i class="fa-solid fa-gears me-2"></i>{{ _('Run')}}</a>
+                        <td style="{% if row_bg %}background-color: {{ row_bg }};{% endif %}">
+                            <a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button" title="{{ _('Redefine')}}"><i class="fas fa-redo"></i></a>
+                            <a href="?view=schedule&object={{id}}&method={{method.id}}&op=add" class="btn btn-secondary btn-sm" role="button" title="{{ _('Add task')}}"><i class="fa-solid fa-calendar-days"></i></a>
+                            <a href="#" class="btn btn-warning btn-sm" onClick="callMethodWithResult('{{form.name.data}}.{{method.name}}',)" role="button" title="{{ _('Run')}}"><i class="fa-solid fa-gears"></i></a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -865,7 +1033,10 @@
                     <span class="badge bg-primary">↳ {{prop.method}}</span>
                 {% endif %}
                 <span class="ms-1 badge bg-secondary" id="prop_changed:{{form.name.data}}.{{prop.name}}">{{prop.changed}}</span>
-                <span class="ms-0 badge bg-success" id="prop_source:{{form.name.data}}.{{prop.name}}">{{prop.source}}</span>
+                <span class="source-trace ms-0" title="{{ _('Source') }}">
+                    <i class="fa-solid fa-route source-trace-icon" aria-hidden="true"></i>
+                    <span class="source-trace-text font-monospace" id="prop_source:{{form.name.data}}.{{prop.name}}">{{prop.source}}</span>
+                </span>
                 <small>(r/w: {{prop.count_read}}/{{prop.count_write}})</small>
             </li>
             {% endfor %}    
@@ -880,7 +1051,10 @@
                 </a>
                 <p style="color: gray;margin: 0px;">
                     ↳ {{ _('Executed')}}: <span class="ms-0 badge bg-secondary" id="method_executed:{{form.name.data}}.{{method.name}}">{{method.executed}}</span>
-                    <span class="ms-0 badge bg-success" id="method_source:{{form.name.data}}.{{method.name}}">{{method.source}}</span>
+                    <span class="source-trace ms-0" title="{{ _('Source') }}">
+                        <i class="fa-solid fa-route source-trace-icon" aria-hidden="true"></i>
+                        <span class="source-trace-text font-monospace" id="method_source:{{form.name.data}}.{{method.name}}">{{method.source}}</span>
+                    </span>
                     <small> (ex: {{method.count_executed}})</small>
                 </p>
                 <p style="color: gray;margin: 0px;">↳ Params: <span id="method_exec_params:{{form.name.data}}.{{method.name}}">{{method.exec_params}}</span></p>
@@ -1182,6 +1356,12 @@
               <div class="form-text" id="hint-json">{{ _('Enter valid JSON format')}}</div>
             </div>
 
+            <!-- list choices editor (options_source) -->
+            <div id="editor-list-choices" class="property-editor" style="display: none;">
+              <select id="value-list-choices" multiple></select>
+              <div class="form-text" id="hint-list-choices">{{ _('Select one or more values')}}</div>
+            </div>
+
             <!-- color editor -->
             <div id="editor-color" class="property-editor" style="display: none;">
               <div class="row g-2">
@@ -1256,15 +1436,87 @@
 </div>
 
 {{ cron_builder_modal() }}
+
+<!-- Модальное окно истории конкретного свойства/метода в памяти -->
+<div class="modal fade" id="memoryHistoryModal" tabindex="-1" aria-labelledby="memoryHistoryModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered memory-history-modal-dialog">
+        <div class="modal-content memory-history-modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="memoryHistoryModalTitle">
+                    <i class="fas fa-memory me-2"></i>{{ _('Memory history')}}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="memory-history-toolbar card border shadow-sm mb-3">
+                    <div class="card-body py-2 px-3 d-flex flex-wrap gap-2 align-items-center">
+                        <div class="form-check form-switch memory-history-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="memoryHistoryAutoRefresh" checked>
+                            <label class="form-check-label" for="memoryHistoryAutoRefresh">{{ _('Auto refresh')}}</label>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="memoryHistoryRefreshBtn">
+                            <i class="fas fa-sync me-1"></i>{{ _('Refresh')}}
+                        </button>
+                        <span class="badge bg-secondary text-light" id="memoryHistoryCount">0</span>
+                        <span class="text-muted small ms-auto" id="memoryHistoryStatus"></span>
+                    </div>
+                </div>
+                <div class="table-responsive memory-history-table-wrap" id="memoryHistoryPropsWrap">
+                    <table class="table table-hover table-sm mb-0 memory-history-table">
+                        <thead>
+                            <tr>
+                                <th class="mh-col-fit" data-label="{{ _('Time') }}">{{ _('Time')}}</th>
+                                <th class="mh-col-fit" data-label="{{ _('Value') }}">{{ _('Value')}}</th>
+                                <th class="mh-col-fill" data-label="{{ _('Source') }}">{{ _('Source')}}</th>
+                                <th class="mh-col-fit" data-label="{{ _('Flags') }}">{{ _('Flags')}}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="memoryHistoryPropsBody">
+                            <tr class="memory-history-empty"><td colspan="4" class="text-muted text-center">{{ _('No data')}}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-responsive memory-history-table-wrap d-none" id="memoryHistoryMethodsWrap">
+                    <table class="table table-hover table-sm mb-0 memory-history-table">
+                        <thead>
+                            <tr>
+                                <th class="mh-col-fit" data-label="{{ _('Time') }}">{{ _('Time')}}</th>
+                                <th class="mh-col-source" data-label="{{ _('Source') }}">{{ _('Source')}}</th>
+                                <th class="mh-col-duration" data-label="{{ _('Duration') }}" title="{{ _('Duration') }}">ms</th>
+                                <th class="mh-col-fill" data-label="{{ _('Params') }}">{{ _('Params')}}</th>
+                                <th class="mh-col-fit" data-label="{{ _('Result') }}">{{ _('Result')}}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="memoryHistoryMethodsBody">
+                            <tr class="memory-history-empty"><td colspan="5" class="text-muted text-center">{{ _('No data')}}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i>{{ _('Close')}}</button>
+            </div>
+        </div>
+    </div>
+</div>
 {{ cron_builder_assets() }}
 
 <script>
+    var currentObjectName = {{ form.name.data|tojson }};
+
     // Информация о свойствах для форматирования enum значений при обновлении через WebSocket
     var propertiesInfo = {
         {% for property in properties %}
         "{{form.name.data}}.{{property.name}}": {
             type: "{{property.type}}",
             enum_values: {% if property.type == 'enum' and property.params.get('enum_values') %}{{ property.params['enum_values']|tojson }}{% else %}null{% endif %},
+            options_source: {{ property.params.get('options_source')|tojson if property.params.get('options_source') else 'null' }},
+            options_class: {{ property.params.get('options_class')|tojson if property.params.get('options_class') else 'null' }},
+            options_label: {{ property.params.get('options_label')|tojson if property.params.get('options_label') else 'null' }},
+            options_object: {{ property.params.get('options_object')|tojson if property.params.get('options_object') else 'null' }},
+            options_property: {{ property.params.get('options_property')|tojson if property.params.get('options_property') else 'null' }},
+            options: {{ property.params.get('options')|tojson if property.params.get('options') is not none else 'null' }},
+            optionsLabels: null,
             read_format: {% if property.type == 'color' and property.params.get('read_format') %}"{{ property.params.get('read_format') }}"{% else %}null{% endif %},
             write_format: {% if property.type == 'color' and property.params.get('write_format') %}"{{ property.params.get('write_format') }}"{% else %}null{% endif %}
         }{% if not loop.last %},{% endif %}
@@ -1277,14 +1529,199 @@
             return value;
         }
         var propInfo = propertiesInfo[propertyName];
-        if (propInfo && propInfo.type === 'enum' && propInfo.enum_values) {
-            // Преобразуем значение в строку для сравнения с ключами
+        if (propInfo && propInfo.type === 'enum') {
             var valueStr = String(value);
-            if (valueStr in propInfo.enum_values) {
+            if (propInfo.enum_values && valueStr in propInfo.enum_values) {
                 return propInfo.enum_values[valueStr] + ' (' + valueStr + ')';
+            }
+            if (propInfo.optionsLabels && valueStr in propInfo.optionsLabels) {
+                var label = propInfo.optionsLabels[valueStr];
+                if (label && label !== valueStr) {
+                    return label + ' (' + valueStr + ')';
+                }
             }
         }
         return value;
+    }
+
+    function setOptionsLabelsCache(propertyName, options) {
+        var propInfo = propertiesInfo[propertyName];
+        if (!propInfo) {
+            return;
+        }
+        propInfo.optionsLabels = {};
+        (options || []).forEach(function(opt) {
+            propInfo.optionsLabels[String(opt.value)] = String(opt.label != null ? opt.label : opt.value);
+        });
+    }
+
+    function normalizeStaticOptions(options) {
+        var result = [];
+        if (!options) {
+            return result;
+        }
+        if (!Array.isArray(options) && typeof options === 'object') {
+            Object.keys(options).forEach(function(key) {
+                result.push({ value: String(key), label: String(options[key]) });
+            });
+            return result;
+        }
+        if (!Array.isArray(options)) {
+            return result;
+        }
+        options.forEach(function(item) {
+            if (item && typeof item === 'object' && item.value !== undefined) {
+                result.push({
+                    value: String(item.value),
+                    label: String(item.label != null ? item.label : item.value)
+                });
+            } else {
+                result.push({ value: String(item), label: String(item) });
+            }
+        });
+        return result;
+    }
+
+    function labelFromObjectMeta(name, description, labelField) {
+        if (labelField === 'name') {
+            return name;
+        }
+        var desc = description ? String(description).trim() : '';
+        return desc || name;
+    }
+
+    function loadPropertyOptions(params) {
+        var source = params && params.options_source;
+        if (!source) {
+            return Promise.resolve([]);
+        }
+        var labelField = params.options_label || 'description';
+
+        if (source === 'static') {
+            var opts = params.options;
+            if ((!opts || (Array.isArray(opts) && opts.length === 0)) && params.enum_values) {
+                return Promise.resolve(normalizeStaticOptions(params.enum_values));
+            }
+            return Promise.resolve(normalizeStaticOptions(opts || []));
+        }
+
+        if (source === 'objects') {
+            return fetch('/api/object/list', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (!data.success || !data.result) {
+                        throw new Error(data.message || 'Empty result');
+                    }
+                    return Object.keys(data.result).sort().map(function(name) {
+                        return {
+                            value: name,
+                            label: labelFromObjectMeta(name, data.result[name], labelField)
+                        };
+                    });
+                });
+        }
+
+        if (source === 'class') {
+            var className = params.options_class || '';
+            if (!className) {
+                return Promise.resolve([]);
+            }
+            return fetch('/api/object/class/' + encodeURIComponent(className), {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (!data.success || !data.result) {
+                        throw new Error(data.message || 'Empty result');
+                    }
+                    return Object.keys(data.result).sort().map(function(name) {
+                        var item = data.result[name] || {};
+                        return {
+                            value: name,
+                            label: labelFromObjectMeta(name, item.description, labelField)
+                        };
+                    });
+                });
+        }
+
+        if (source === 'property') {
+            var propName = params.options_property || '';
+            if (!propName) {
+                return Promise.resolve([]);
+            }
+            var objName = (params.options_object || '').trim() || currentObjectName || '';
+            if (!objName) {
+                return Promise.resolve([]);
+            }
+            var url = '/api/property/get?object=' + encodeURIComponent(objName)
+                + '&property=' + encodeURIComponent(propName);
+            return fetch(url, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (!data.success) {
+                        throw new Error(data.msg || data.message || 'Empty result');
+                    }
+                    var raw = data.result;
+                    if (typeof raw === 'string') {
+                        var trimmed = raw.trim();
+                        if (!trimmed || trimmed === 'None' || trimmed === 'null') {
+                            return [];
+                        }
+                        try {
+                            raw = JSON.parse(trimmed);
+                        } catch (e) {
+                            // одна строка — один вариант
+                            return [{ value: trimmed, label: trimmed }];
+                        }
+                    }
+                    return normalizeStaticOptions(raw);
+                });
+        }
+
+        return Promise.resolve([]);
+    }
+
+    function fillSelectOptions(selectEl, options, includeEmpty) {
+        if (!selectEl) {
+            return;
+        }
+        selectEl.innerHTML = '';
+        if (includeEmpty) {
+            var empty = document.createElement('option');
+            empty.value = '';
+            empty.textContent = '{{ _("Select value")}}...';
+            selectEl.appendChild(empty);
+        }
+        (options || []).forEach(function(opt) {
+            var option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = (opt.label && opt.label !== opt.value)
+                ? (opt.label + ' (' + opt.value + ')')
+                : String(opt.value);
+            selectEl.appendChild(option);
+        });
     }
 
     function rgbToHsv(r, g, b) {
@@ -1654,6 +2091,70 @@
         }
     }
 
+    function escapeHtmlListBadge(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function parseListPropertyValue(value) {
+        if (value === null || value === undefined || value === '' || value === 'None' || value === 'null') {
+            return [];
+        }
+        if (Array.isArray(value)) {
+            return value;
+        }
+        if (typeof value === 'string') {
+            var trimmed = value.trim();
+            if (!trimmed) {
+                return [];
+            }
+            try {
+                var parsed = JSON.parse(trimmed);
+                return Array.isArray(parsed) ? parsed : [parsed];
+            } catch (e) {
+                return [trimmed];
+            }
+        }
+        return [value];
+    }
+
+    function formatListBadgeLabel(item) {
+        if (item === null || item === undefined) {
+            return 'null';
+        }
+        if (typeof item === 'object') {
+            try {
+                return JSON.stringify(item);
+            } catch (e) {
+                return String(item);
+            }
+        }
+        return String(item);
+    }
+
+    function updatePropertyListBadges(propertyName, value) {
+        var container = document.getElementById('prop_list:' + propertyName);
+        if (!container) {
+            return;
+        }
+        var items = parseListPropertyValue(value);
+        if (!items.length) {
+            container.innerHTML = '<span class="property-list-empty">—</span>';
+            return;
+        }
+        var propInfo = propertiesInfo[propertyName];
+        var labels = propInfo && propInfo.optionsLabels ? propInfo.optionsLabels : null;
+        container.innerHTML = items.map(function(item) {
+            var raw = formatListBadgeLabel(item);
+            var text = (labels && labels[String(item)] != null) ? labels[String(item)] : raw;
+            return '<span class="badge bg-secondary" title="' + escapeHtmlListBadge(raw) + '">' + escapeHtmlListBadge(text) + '</span>';
+        }).join('');
+    }
+
     function activateSingleConfigTabPane(activePane) {
         var tabContent = document.getElementById('myTabContent');
         if (!tabContent || !activePane || !tabContent.contains(activePane)) {
@@ -1760,10 +2261,14 @@
             if (propInfo && propInfo.type === 'color') {
                 updatePropertyColorSwatch(msg.property, msg.value);
             }
+            if (propInfo && propInfo.type === 'list') {
+                updatePropertyListBadges(msg.property, msg.value);
+            }
         });
 
         Object.keys(propertiesInfo).forEach(function(propertyName) {
-            if (propertiesInfo[propertyName].type !== 'color') {
+            var propType = propertiesInfo[propertyName].type;
+            if (propType !== 'color' && propType !== 'list') {
                 return;
             }
             var element = document.getElementById('prop:' + propertyName);
@@ -1771,16 +2276,121 @@
                 return;
             }
             var rawValue = element.tagName === 'TEXTAREA' ? element.value : element.textContent;
-            updatePropertyColorSwatch(propertyName, rawValue);
+            if (propType === 'color') {
+                updatePropertyColorSwatch(propertyName, rawValue);
+            } else if (propType === 'list') {
+                updatePropertyListBadges(propertyName, rawValue);
+            }
+        });
+
+        // Предзагрузка labels для list/enum с options_source
+        Object.keys(propertiesInfo).forEach(function(propertyName) {
+            var info = propertiesInfo[propertyName];
+            if (!info || !info.options_source) {
+                return;
+            }
+            if (info.type !== 'list' && info.type !== 'enum') {
+                return;
+            }
+            loadPropertyOptions({
+                options_source: info.options_source,
+                options_class: info.options_class,
+                options_label: info.options_label,
+                options_object: info.options_object,
+                options_property: info.options_property,
+                options: info.options,
+                enum_values: info.enum_values
+            }).then(function(options) {
+                setOptionsLabelsCache(propertyName, options);
+                var element = document.getElementById('prop:' + propertyName);
+                if (!element) {
+                    return;
+                }
+                var rawValue = element.tagName === 'TEXTAREA' ? element.value : element.textContent;
+                if (info.type === 'list') {
+                    updatePropertyListBadges(propertyName, rawValue);
+                } else if (info.type === 'enum') {
+                    var displayValue = formatEnumValue(propertyName, rawValue);
+                    if (element.tagName === 'TEXTAREA') {
+                        element.value = displayValue;
+                    } else {
+                        element.textContent = displayValue;
+                    }
+                }
+            }).catch(function(err) {
+                console.error('Failed to preload options for', propertyName, err);
+            });
         });
     })
 
     var nameProperty = ""
     var currentPropertyType = ""
     var currentPropertyParams = {}
+    var currentUseListChoices = false
+    var listChoicesInstance = null
+    var enumChoicesInstance = null
+
+    function destroyChoicesInstances() {
+        if (listChoicesInstance) {
+            try { listChoicesInstance.destroy(); } catch (e) {}
+            listChoicesInstance = null;
+        }
+        if (enumChoicesInstance) {
+            try { enumChoicesInstance.destroy(); } catch (e) {}
+            enumChoicesInstance = null;
+        }
+    }
+
+    function initListChoicesSelect(selectEl) {
+        if (!selectEl || !window.Choices) {
+            return;
+        }
+        if (listChoicesInstance) {
+            try { listChoicesInstance.destroy(); } catch (e) {}
+            listChoicesInstance = null;
+        }
+        listChoicesInstance = new window.Choices(selectEl, {
+            removeItemButton: true,
+            searchEnabled: true,
+            searchResultLimit: 1000,
+            shouldSort: false,
+            itemSelectText: '',
+            placeholder: true,
+            placeholderValue: '{{ _("Select values")}}...'
+        });
+    }
+
+    function initEnumChoicesSelect(selectEl) {
+        if (!selectEl || !window.Choices) {
+            return;
+        }
+        if (enumChoicesInstance) {
+            try { enumChoicesInstance.destroy(); } catch (e) {}
+            enumChoicesInstance = null;
+        }
+        enumChoicesInstance = new window.Choices(selectEl, {
+            searchEnabled: true,
+            searchResultLimit: 1000,
+            shouldSort: false,
+            itemSelectText: '',
+            allowHTML: false
+        });
+    }
+
+    function getActivePropertyEditorId() {
+        if (currentPropertyType === 'list' && currentUseListChoices) {
+            return 'editor-list-choices';
+        }
+        if (currentPropertyType === 'dict' || currentPropertyType === 'list' || currentPropertyType === 'json') {
+            return 'editor-json';
+        }
+        return 'editor-' + currentPropertyType;
+    }
     
     // Скрыть все редакторы
     function hideAllEditors() {
+        destroyChoicesInstances();
+        currentUseListChoices = false;
         document.querySelectorAll('.property-editor').forEach(function(editor) {
             if (editor) {
                 editor.style.display = 'none';
@@ -1834,10 +2444,32 @@
                 // Отправляем строку как есть — на бэке dateutil.parser её корректно разберёт.
                 return document.getElementById('value-datetime').value;
             case 'enum':
+                if (enumChoicesInstance) {
+                    var enumVal = enumChoicesInstance.getValue(true);
+                    return enumVal == null ? '' : String(enumVal);
+                }
                 return document.getElementById('value-enum').value;
             case 'json':
             case 'dict':
+                return document.getElementById('value-json').value;
             case 'list':
+                if (currentUseListChoices) {
+                    var selected = [];
+                    if (listChoicesInstance) {
+                        selected = listChoicesInstance.getValue(true);
+                        if (!Array.isArray(selected)) {
+                            selected = selected ? [selected] : [];
+                        }
+                    } else {
+                        var listSelect = document.getElementById('value-list-choices');
+                        if (listSelect) {
+                            selected = Array.prototype.map.call(listSelect.selectedOptions, function(opt) {
+                                return opt.value;
+                            });
+                        }
+                    }
+                    return JSON.stringify(selected);
+                }
                 return document.getElementById('value-json').value;
             case 'color':
                 var hexInput = document.getElementById('value-color-hex-text');
@@ -1905,15 +2537,56 @@
                 }
                 break;
             case 'enum':
-                document.getElementById('value-enum').value = value || '';
+                if (enumChoicesInstance) {
+                    var enumStr = value == null ? '' : String(value);
+                    try {
+                        enumChoicesInstance.setChoiceByValue(enumStr);
+                    } catch (e) {
+                        document.getElementById('value-enum').value = enumStr;
+                    }
+                } else {
+                    document.getElementById('value-enum').value = value || '';
+                }
                 break;
             case 'json':
             case 'dict':
-            case 'list':
                 try {
                     if (value && typeof value === 'string') {
-                        var parsed = JSON.parse(value);
-                        document.getElementById('value-json').value = JSON.stringify(parsed, null, 2);
+                        var parsedDict = JSON.parse(value);
+                        document.getElementById('value-json').value = JSON.stringify(parsedDict, null, 2);
+                    } else if (value && typeof value === 'object') {
+                        document.getElementById('value-json').value = JSON.stringify(value, null, 2);
+                    } else {
+                        document.getElementById('value-json').value = value || '';
+                    }
+                } catch(e) {
+                    document.getElementById('value-json').value = value || '';
+                }
+                break;
+            case 'list':
+                if (currentUseListChoices) {
+                    var listItems = parseListPropertyValue(value).map(function(item) {
+                        return String(item);
+                    });
+                    if (listChoicesInstance) {
+                        try {
+                            listChoicesInstance.removeActiveItems();
+                            listChoicesInstance.setChoiceByValue(listItems);
+                        } catch (e) {}
+                    } else {
+                        var listSelectSet = document.getElementById('value-list-choices');
+                        if (listSelectSet) {
+                            Array.prototype.forEach.call(listSelectSet.options, function(opt) {
+                                opt.selected = listItems.indexOf(opt.value) !== -1;
+                            });
+                        }
+                    }
+                    break;
+                }
+                try {
+                    if (value && typeof value === 'string') {
+                        var parsedList = JSON.parse(value);
+                        document.getElementById('value-json').value = JSON.stringify(parsedList, null, 2);
                     } else if (value && typeof value === 'object') {
                         document.getElementById('value-json').value = JSON.stringify(value, null, 2);
                     } else {
@@ -2036,6 +2709,53 @@
         hideAllEditors();
         currentPropertyType = type;
         currentPropertyParams = params || {};
+        currentUseListChoices = false;
+
+        // list/enum с options_source — Choices-редактор
+        if ((type === 'list' || type === 'enum') && params && params.options_source) {
+            var choicesEditorId = type === 'list' ? 'editor-list-choices' : 'editor-enum';
+            var choicesEditor = document.getElementById(choicesEditorId);
+            if (choicesEditor) {
+                choicesEditor.style.display = 'block';
+            }
+            if (type === 'list') {
+                currentUseListChoices = true;
+            }
+            var hintEl = document.getElementById(type === 'list' ? 'hint-list-choices' : 'hint-enum');
+            if (hintEl) {
+                hintEl.textContent = '{{ _("Loading options")}}...';
+            }
+            loadPropertyOptions(params)
+                .then(function(options) {
+                    if (nameProperty) {
+                        setOptionsLabelsCache(nameProperty, options);
+                    }
+                    if (type === 'list') {
+                        var listSelect = document.getElementById('value-list-choices');
+                        fillSelectOptions(listSelect, options, false);
+                        initListChoicesSelect(listSelect);
+                        if (hintEl) {
+                            hintEl.textContent = '{{ _("Select one or more values")}} (' + options.length + ')';
+                        }
+                    } else {
+                        var enumSelect = document.getElementById('value-enum');
+                        fillSelectOptions(enumSelect, options, true);
+                        initEnumChoicesSelect(enumSelect);
+                        if (hintEl) {
+                            hintEl.textContent = '{{ _("Options")}}: ' + options.length;
+                        }
+                    }
+                    setEditorValue(value);
+                })
+                .catch(function(err) {
+                    console.error('Error loading options:', err);
+                    if (hintEl) {
+                        hintEl.textContent = '{{ _("Failed to load options")}}';
+                    }
+                    showError('{{ _("Failed to load options")}}: ' + (err && err.message ? err.message : err));
+                });
+            return;
+        }
         
         var editorId = 'editor-' + type;
         var editor = document.getElementById(editorId);
@@ -2085,9 +2805,8 @@
             }
             
             if (type === 'str') {
-                var hint = document.getElementById('hint-str');
-                var hintText = [];
-                console.log(params)
+                var hintStr = document.getElementById('hint-str');
+                var hintTextStr = [];
                 // Проверяем наличие allowed_values
                 if (params.allowed_values && params.allowed_values.length > 0) {
                     // Показываем select вместо input
@@ -2106,20 +2825,20 @@
                         });
                     }
 
-                    hintText.push('{{ _("Allowed values")}}: ' + params.allowed_values.length);
+                    hintTextStr.push('{{ _("Allowed values")}}: ' + params.allowed_values.length);
                 } else {
                     // Показываем обычный input
-                    var textArea = document.getElementById('newValue');
-                    if (textArea) textArea.style.display = 'block';
-                    var strSelect = document.getElementById('value-str-select');
-                    if (strSelect) strSelect.style.display = 'none';
+                    var textAreaPlain = document.getElementById('newValue');
+                    if (textAreaPlain) textAreaPlain.style.display = 'block';
+                    var strSelectPlain = document.getElementById('value-str-select');
+                    if (strSelectPlain) strSelectPlain.style.display = 'none';
                 }
 
                 if (params.regexp) {
-                    hintText.push('{{ _("Pattern")}}: ' + params.regexp);
+                    hintTextStr.push('{{ _("Pattern")}}: ' + params.regexp);
                 }
 
-                if (hint) hint.textContent = hintText.join(' | ');
+                if (hintStr) hintStr.textContent = hintTextStr.join(' | ');
             }
             
             if (type === 'enum' && params.enum_values) {
@@ -2429,8 +3148,7 @@
             if (validationError) {
                 showError(validationError);
                 // Показать редактор (он и так виден, но на всякий случай)
-                var editorId = 'editor-' + (currentPropertyType === 'dict' || currentPropertyType === 'list' ? 'json' : currentPropertyType);
-                var editor = document.getElementById(editorId);
+                var editor = document.getElementById(getActivePropertyEditorId());
                 if (!editor) {
                     editor = document.getElementById('editor-default');
                 }
@@ -2473,8 +3191,7 @@
                 }
                 
                 // Показать редактор снова
-                var editorId = 'editor-' + (currentPropertyType === 'dict' || currentPropertyType === 'list' ? 'json' : currentPropertyType);
-                var editor = document.getElementById(editorId);
+                var editor = document.getElementById(getActivePropertyEditorId());
                 if (!editor) {
                     editor = document.getElementById('editor-default');
                 }
@@ -2526,6 +3243,8 @@
         nameProperty = "";
         currentPropertyType = "";
         currentPropertyParams = {};
+        currentUseListChoices = false;
+        destroyChoicesInstances();
         });
     }
 
@@ -2731,6 +3450,17 @@
     }
 
     var objectToolsBaseUrl = '?view=object_tool&object={{ id }}';
+    var memoryHistoryObjectName = {{ form.name.data|tojson }};
+    var memoryHistoryState = {
+        open: false,
+        loading: false,
+        pendingRefresh: false,
+        pollTimer: null,
+        lastData: null,
+        pollMs: 2000,
+        kind: null,      // 'property' | 'method'
+        target: null,    // имя свойства или метода
+    };
 
     function showObjectToolsStatus(message, isError) {
         var status = document.getElementById('objectToolsStatus');
@@ -2899,9 +3629,577 @@
             });
     }
 
+    function escapeHtmlMemoryHistory(text) {
+        if (text === null || text === undefined) {
+            return '';
+        }
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function formatMemoryHistoryCell(value) {
+        if (value === null || value === undefined || value === '') {
+            return '<span class="text-muted">—</span>';
+        }
+        if (typeof value === 'object') {
+            try {
+                value = JSON.stringify(value);
+            } catch (e) {
+                value = String(value);
+            }
+        }
+        var str = String(value);
+        if (str.length > 200) {
+            str = str.slice(0, 200) + '…';
+        }
+        return '<span class="mh-value font-monospace">' + escapeHtmlMemoryHistory(str) + '</span>';
+    }
+
+    function formatMemoryHistorySource(source) {
+        var text = (source === null || source === undefined) ? '' : String(source);
+        if (!text) {
+            return '<span class="text-muted">—</span>';
+        }
+        return '<span class="source-trace" title="' + escapeHtmlMemoryHistory('{{ _("Source") }}') + '">'
+            + '<i class="fa-solid fa-route source-trace-icon" aria-hidden="true"></i>'
+            + '<span class="source-trace-text font-monospace">' + escapeHtmlMemoryHistory(text) + '</span>'
+            + '</span>';
+    }
+
+    function formatMemoryHistoryTime(ts) {
+        var text = (ts === null || ts === undefined) ? '' : String(ts);
+        if (!text) {
+            return '<span class="text-muted">—</span>';
+        }
+        return '<span class="badge bg-secondary mh-time">' + escapeHtmlMemoryHistory(text) + '</span>';
+    }
+
+    function formatMemoryHistoryDuration(execTime) {
+        if (execTime === null || execTime === undefined || execTime === '') {
+            return '<span class="text-muted">—</span>';
+        }
+        var num = Number(execTime);
+        var label = Number.isFinite(num)
+            ? (String(Math.round(num)) + ' ms')
+            : (String(execTime) + ' ms');
+        return '<span class="badge bg-secondary mh-duration">' + escapeHtmlMemoryHistory(label) + '</span>';
+    }
+
+    function isMemoryHistoryAutoRefreshEnabled() {
+        var el = document.getElementById('memoryHistoryAutoRefresh');
+        return !!(el && el.checked);
+    }
+
+    function setMemoryHistoryStatus(text, isError) {
+        var el = document.getElementById('memoryHistoryStatus');
+        if (!el) {
+            return;
+        }
+        el.textContent = text || '';
+        el.className = 'text-muted small ms-auto' + (isError ? ' text-danger' : '');
+    }
+
+    function stopMemoryHistoryPolling() {
+        if (memoryHistoryState.pollTimer) {
+            clearInterval(memoryHistoryState.pollTimer);
+            memoryHistoryState.pollTimer = null;
+        }
+    }
+
+    function startMemoryHistoryPolling() {
+        stopMemoryHistoryPolling();
+        if (!memoryHistoryState.open || !isMemoryHistoryAutoRefreshEnabled()) {
+            return;
+        }
+        memoryHistoryState.pollTimer = setInterval(function() {
+            if (memoryHistoryState.open && isMemoryHistoryAutoRefreshEnabled()) {
+                loadMemoryHistory(true);
+            }
+        }, memoryHistoryState.pollMs);
+    }
+
+    function setMemoryHistoryViewMode(kind) {
+        var propsWrap = document.getElementById('memoryHistoryPropsWrap');
+        var methodsWrap = document.getElementById('memoryHistoryMethodsWrap');
+        if (propsWrap) {
+            propsWrap.classList.toggle('d-none', kind !== 'property');
+        }
+        if (methodsWrap) {
+            methodsWrap.classList.toggle('d-none', kind !== 'method');
+        }
+    }
+
+    function updateMemoryHistoryModalTitle() {
+        var titleEl = document.getElementById('memoryHistoryModalTitle');
+        if (!titleEl || !memoryHistoryState.target) {
+            return;
+        }
+        var base = '{{ _("Memory history") }}: ' + memoryHistoryObjectName + '.' + memoryHistoryState.target;
+        if (memoryHistoryState.kind === 'method') {
+            base += '()';
+        }
+        titleEl.innerHTML = '<i class="fas fa-memory me-2"></i>' + escapeHtmlMemoryHistory(base);
+    }
+
+    function renderMemoryHistoryTables(data) {
+        memoryHistoryState.lastData = data || {properties: {}, methods: {}};
+        var countEl = document.getElementById('memoryHistoryCount');
+        var propsBody = document.getElementById('memoryHistoryPropsBody');
+        var methodsBody = document.getElementById('memoryHistoryMethodsBody');
+        var rows = [];
+
+        if (memoryHistoryState.kind === 'property') {
+            var entries = ((data && data.properties) || {})[memoryHistoryState.target] || [];
+            entries.forEach(function(entry) {
+                rows.push({
+                    ts: entry.timestamp || entry.changed || '',
+                    value: entry.value,
+                    source: entry.source || '',
+                    history_only: entry.history_only,
+                });
+            });
+            rows.sort(function(a, b) {
+                return String(b.ts).localeCompare(String(a.ts));
+            });
+            if (propsBody) {
+                if (!rows.length) {
+                    propsBody.innerHTML = '<tr class="memory-history-empty"><td colspan="4" class="text-muted text-center">{{ _("No data")}}</td></tr>';
+                } else {
+                    propsBody.innerHTML = rows.map(function(row) {
+                        var flags = row.history_only
+                            ? '<span class="badge bg-warning text-dark">history_only</span>'
+                            : '<span class="text-muted">—</span>';
+                        return '<tr>'
+                            + '<td class="mh-col-fit text-nowrap" data-label="{{ _("Time") }}">' + formatMemoryHistoryTime(row.ts) + '</td>'
+                            + '<td class="mh-col-fit" data-label="{{ _("Value") }}">' + formatMemoryHistoryCell(row.value) + '</td>'
+                            + '<td class="mh-col-fill" data-label="{{ _("Source") }}">' + formatMemoryHistorySource(row.source) + '</td>'
+                            + '<td class="mh-col-fit text-nowrap" data-label="{{ _("Flags") }}">' + flags + '</td>'
+                            + '</tr>';
+                    }).join('');
+                }
+            }
+        } else if (memoryHistoryState.kind === 'method') {
+            var methodEntries = ((data && data.methods) || {})[memoryHistoryState.target] || [];
+            methodEntries.forEach(function(entry) {
+                rows.push({
+                    ts: entry.timestamp || '',
+                    source: entry.source || '',
+                    exec_time: entry.exec_time,
+                    args: entry.args,
+                    result: entry.result,
+                });
+            });
+            rows.sort(function(a, b) {
+                return String(b.ts).localeCompare(String(a.ts));
+            });
+            if (methodsBody) {
+                if (!rows.length) {
+                    methodsBody.innerHTML = '<tr class="memory-history-empty"><td colspan="5" class="text-muted text-center">{{ _("No data")}}</td></tr>';
+                } else {
+                    methodsBody.innerHTML = rows.map(function(row) {
+                        return '<tr>'
+                            + '<td class="mh-col-fit text-nowrap" data-label="{{ _("Time") }}">' + formatMemoryHistoryTime(row.ts) + '</td>'
+                            + '<td class="mh-col-source" data-label="{{ _("Source") }}">' + formatMemoryHistorySource(row.source) + '</td>'
+                            + '<td class="mh-col-duration text-nowrap" data-label="{{ _("Duration") }}">' + formatMemoryHistoryDuration(row.exec_time) + '</td>'
+                            + '<td class="mh-col-fill" data-label="{{ _("Params") }}">' + formatMemoryHistoryCell(row.args) + '</td>'
+                            + '<td class="mh-col-fit" data-label="{{ _("Result") }}">' + formatMemoryHistoryCell(row.result) + '</td>'
+                            + '</tr>';
+                    }).join('');
+                }
+            }
+        }
+
+        if (countEl) {
+            countEl.textContent = String(rows.length);
+        }
+    }
+
+    function loadMemoryHistory(silent) {
+        if (!memoryHistoryState.open || !memoryHistoryState.target || !memoryHistoryState.kind) {
+            return;
+        }
+        if (memoryHistoryState.loading) {
+            memoryHistoryState.pendingRefresh = true;
+            return;
+        }
+        memoryHistoryState.loading = true;
+        memoryHistoryState.pendingRefresh = false;
+        if (!silent) {
+            setMemoryHistoryStatus('{{ _("Loading")}}...');
+        }
+        var url = objectToolsBaseUrl + '&op=memory_history';
+        if (memoryHistoryState.kind === 'property') {
+            url += '&property=' + encodeURIComponent(memoryHistoryState.target);
+        } else {
+            url += '&method=' + encodeURIComponent(memoryHistoryState.target);
+        }
+        fetch(url, {
+            method: 'GET',
+            headers: {'Accept': 'application/json'},
+        })
+            .then(function(response) {
+                return response.json().then(function(data) {
+                    if (!response.ok) {
+                        throw new Error(data.message || '{{ _("An error occurred while saving") }}');
+                    }
+                    return data;
+                });
+            })
+            .then(function(data) {
+                renderMemoryHistoryTables(data);
+                setMemoryHistoryStatus('{{ _("Updated")}}: ' + new Date().toLocaleTimeString());
+            })
+            .catch(function(error) {
+                setMemoryHistoryStatus(error.message || '{{ _("Error")}}', true);
+            })
+            .finally(function() {
+                memoryHistoryState.loading = false;
+                if (memoryHistoryState.pendingRefresh && memoryHistoryState.open) {
+                    memoryHistoryState.pendingRefresh = false;
+                    loadMemoryHistory(true);
+                }
+            });
+    }
+
+    // Для вызова из inline onclick (глобальная область)
+    window.openMemoryHistoryModal = function openMemoryHistoryModal(options) {
+        var modalEl = document.getElementById('memoryHistoryModal');
+        if (!modalEl || typeof bootstrap === 'undefined') {
+            return;
+        }
+        options = options || {};
+        if (options.property) {
+            memoryHistoryState.kind = 'property';
+            memoryHistoryState.target = options.property;
+        } else if (options.method) {
+            memoryHistoryState.kind = 'method';
+            memoryHistoryState.target = options.method;
+        } else {
+            return;
+        }
+        setMemoryHistoryViewMode(memoryHistoryState.kind);
+        updateMemoryHistoryModalTitle();
+        memoryHistoryState.open = true;
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        loadMemoryHistory(false);
+        startMemoryHistoryPolling();
+    };
+
+    function onMemoryHistoryRuntimeEvent(qualifiedName) {
+        if (!memoryHistoryState.open || !isMemoryHistoryAutoRefreshEnabled()) {
+            return;
+        }
+        if (!qualifiedName || typeof qualifiedName !== 'string' || !memoryHistoryState.target) {
+            return;
+        }
+        var expected = memoryHistoryObjectName + '.' + memoryHistoryState.target;
+        if (qualifiedName === expected) {
+            loadMemoryHistory(true);
+        }
+    }
+
+    (function initMemoryHistoryModal() {
+        var modalEl = document.getElementById('memoryHistoryModal');
+        if (!modalEl) {
+            return;
+        }
+        modalEl.addEventListener('hidden.bs.modal', function() {
+            memoryHistoryState.open = false;
+            memoryHistoryState.kind = null;
+            memoryHistoryState.target = null;
+            stopMemoryHistoryPolling();
+        });
+        modalEl.addEventListener('shown.bs.modal', function() {
+            memoryHistoryState.open = true;
+            startMemoryHistoryPolling();
+        });
+
+        var autoEl = document.getElementById('memoryHistoryAutoRefresh');
+        if (autoEl) {
+            autoEl.addEventListener('change', function() {
+                if (autoEl.checked) {
+                    loadMemoryHistory(true);
+                    startMemoryHistoryPolling();
+                } else {
+                    stopMemoryHistoryPolling();
+                    setMemoryHistoryStatus('{{ _("Auto refresh disabled") }}');
+                }
+            });
+        }
+        var refreshBtn = document.getElementById('memoryHistoryRefreshBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function() {
+                loadMemoryHistory(false);
+            });
+        }
+
+        if (typeof socket !== 'undefined' && socket) {
+            socket.on('changeProperty', function(msg) {
+                if (memoryHistoryState.kind === 'property') {
+                    onMemoryHistoryRuntimeEvent(msg && msg.property);
+                }
+            });
+            socket.on('executedMethod', function(msg) {
+                if (memoryHistoryState.kind === 'method') {
+                    onMemoryHistoryRuntimeEvent(msg && msg.method);
+                }
+            });
+        }
+    })();
+
 </script>
 
 <style>
+    /* История в памяти — токены текущей UI-темы (как choices-theme.css) */
+    .memory-history-modal-dialog {
+        --bs-modal-width: min(96vw, 1400px);
+        --mh-bg: var(--cui-body-bg, var(--bs-modal-bg, var(--bs-body-bg)));
+        --mh-fg: var(--cui-body-color, var(--bs-modal-color, var(--bs-body-color)));
+        --mh-muted: var(--cui-secondary-color, var(--bs-secondary-color));
+        --mh-border: var(--cui-border-color, var(--bs-border-color));
+        --mh-border-soft: var(--bs-border-color-translucent, var(--mh-border));
+        --mh-surface: var(--cui-secondary-bg, var(--bs-secondary-bg));
+        --mh-surface-2: var(--cui-tertiary-bg, var(--bs-tertiary-bg));
+    }
+
+    .memory-history-modal-content {
+        border-color: var(--mh-border);
+        background-color: var(--mh-bg);
+        color: var(--mh-fg);
+    }
+
+    .memory-history-modal-content > .modal-header {
+        border-bottom-color: var(--mh-border);
+        background-color: var(--mh-surface-2);
+        color: var(--mh-fg);
+    }
+
+    .memory-history-modal-content > .modal-header .modal-title {
+        color: var(--mh-fg);
+    }
+
+    .memory-history-modal-content > .modal-footer {
+        border-top-color: var(--mh-border);
+        background-color: var(--mh-surface-2);
+    }
+
+    .memory-history-toolbar {
+        border-color: var(--mh-border) !important;
+        background-color: var(--mh-surface) !important;
+        color: var(--mh-fg);
+    }
+
+    /* Не наследовать огромный switch редактора свойств */
+    .memory-history-switch .form-check-input {
+        width: 2.2rem;
+        height: 1.15rem;
+        margin-top: 0.15rem;
+    }
+
+    .memory-history-switch .form-check-label {
+        margin-left: 0.35rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--mh-fg);
+    }
+
+    .memory-history-table-wrap {
+        border: 1px solid var(--mh-border);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        background: var(--mh-surface);
+    }
+
+    /* fit — по содержимому; fill — оставшаяся ширина (Source у свойств, Params у методов) */
+    .memory-history-table {
+        table-layout: auto;
+        width: 100%;
+        margin-bottom: 0;
+        color: var(--mh-fg);
+        --bs-table-bg: transparent;
+        --bs-table-color: var(--mh-fg);
+        --bs-table-hover-bg: var(--mh-surface-2);
+        --bs-table-hover-color: var(--mh-fg);
+        --bs-table-border-color: var(--mh-border-soft);
+    }
+
+    .memory-history-table > thead > tr > th {
+        vertical-align: middle;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--mh-muted);
+        background-color: var(--mh-surface-2);
+        border-bottom-color: var(--mh-border);
+        white-space: nowrap;
+        padding: 0.55rem 0.75rem;
+    }
+
+    .memory-history-table > tbody > tr > td {
+        vertical-align: top;
+        padding: 0.55rem 0.75rem;
+        border-bottom-color: var(--mh-border-soft);
+        background-color: transparent;
+        color: var(--mh-fg);
+    }
+
+    .memory-history-table > tbody > tr:last-child > td {
+        border-bottom: 0;
+    }
+
+    .memory-history-table > tbody > tr:hover > td {
+        background-color: var(--mh-surface-2);
+        color: var(--mh-fg);
+    }
+
+    .memory-history-table .mh-col-fit {
+        width: 1%;
+    }
+
+    .memory-history-table .mh-col-fit.text-nowrap {
+        white-space: nowrap;
+    }
+
+    /* Длинный source у методов: своя доля ширины, без сжатия в 1 символ */
+    .memory-history-table .mh-col-source {
+        width: 32%;
+        min-width: 16rem;
+        max-width: 36rem;
+        word-break: normal;
+        overflow-wrap: break-word;
+    }
+
+    .memory-history-table .mh-col-fill {
+        width: auto;
+        min-width: 12rem;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .memory-history-table .mh-col-duration {
+        width: 1%;
+        white-space: nowrap;
+        text-align: right;
+        vertical-align: top;
+    }
+
+    .memory-history-table .mh-time,
+    .memory-history-table .mh-duration {
+        font-size: 0.68rem;
+        font-weight: 500;
+        padding: 0.15rem 0.35rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .memory-history-table .mh-value {
+        display: inline-block;
+        max-width: 100%;
+        font-size: 0.8125rem;
+        line-height: 1.35;
+        color: var(--mh-fg);
+        background: var(--mh-surface-2);
+        border: 1px solid var(--mh-border-soft);
+        border-radius: 0.25rem;
+        padding: 0.15rem 0.45rem;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .memory-history-table .source-trace {
+        display: inline-flex;
+        align-items: flex-start;
+        gap: 0.35rem;
+        min-width: 0;
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .memory-history-table .source-trace-icon {
+        flex: 0 0 auto;
+        margin-top: 0.2rem;
+        font-size: 0.72rem;
+        color: var(--mh-muted);
+        opacity: 0.85;
+    }
+
+    .memory-history-table .source-trace-text {
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+        font-size: 0.75rem;
+        line-height: 1.35;
+        color: var(--mh-fg);
+        background: var(--mh-surface-2);
+        border: 1px solid var(--mh-border-soft);
+        border-radius: 0.25rem;
+        padding: 0.12rem 0.4rem;
+        white-space: normal;
+        /* перенос по пробелам / "->", не по каждому символу */
+        overflow-wrap: break-word;
+        word-break: normal;
+        text-align: left;
+    }
+
+    .memory-history-table .memory-history-empty td {
+        padding: 1.25rem 0.75rem;
+        color: var(--mh-muted);
+    }
+
+    @media (max-width: 767.98px) {
+        .memory-history-table thead {
+            display: none;
+        }
+
+        .memory-history-table tbody tr {
+            display: block;
+            border: 1px solid var(--mh-border);
+            border-radius: 0.5rem;
+            margin: 0.45rem;
+            padding: 0.25rem;
+            background: var(--mh-surface);
+        }
+
+        .memory-history-table tbody tr.memory-history-empty {
+            border: 0;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+        }
+
+        .memory-history-table tbody td {
+            display: block;
+            width: 100% !important;
+            border: 0 !important;
+            padding: 0.35rem 0.5rem !important;
+        }
+
+        .memory-history-table tbody td::before {
+            content: attr(data-label);
+            display: block;
+            font-size: 0.68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            color: var(--mh-muted);
+            margin-bottom: 0.15rem;
+        }
+
+        .memory-history-table tbody tr.memory-history-empty td::before {
+            display: none;
+        }
+
+        .memory-history-table-wrap {
+            border: 0;
+            background: transparent;
+            overflow: visible;
+        }
+    }
+
     .property-editor {
         margin-bottom: 1rem;
         transition: opacity 0.2s ease-in-out;
@@ -2917,14 +4215,14 @@
     .property-editor input:focus,
     .property-editor select:focus,
     .property-editor textarea:focus {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        border-color: var(--bs-primary);
+        box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
     }
     
     .property-editor .form-text {
         margin-top: 0.5rem;
         font-size: 0.875rem;
-        color: #6c757d;
+        color: var(--bs-secondary-color);
     }
     
     
@@ -2958,10 +4256,11 @@
     #propertyDescription {
         font-style: italic;
         padding: 0.75rem;
-        background-color: rgba(13, 110, 253, 0.1);
-        border-left: 3px solid #0d6efd;
+        background-color: rgba(var(--bs-primary-rgb), 0.1);
+        border-left: 3px solid var(--bs-primary);
         border-radius: 0.375rem;
         margin-bottom: 1rem;
+        color: var(--bs-body-color);
     }
        
     .spinner-border-sm {
@@ -2993,11 +4292,11 @@
     .task-inactive > td,
     .task-inactive > th {
         text-decoration: line-through;
-        color: #6c757d;
+        color: var(--bs-secondary-color);
     }
     .task-inactive p {
         text-decoration: line-through;
-        color: #6c757d;
+        color: var(--bs-secondary-color);
     }
     .task-inactive .badge {
         text-decoration: none;
@@ -3077,4 +4376,9 @@
 </script>
 {% include 'includes/code_block_styles.html' %}
 
+{% endblock %}
+
+{% block javascripts %}
+{{ super() }}
+<script src="{{ url_for('Objects.static', filename='choices/choices.min.js') }}"></script>
 {% endblock %}

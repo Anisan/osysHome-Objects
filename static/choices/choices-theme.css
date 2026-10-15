@@ -1,0 +1,113 @@
+/* Choices.js — цвета из текущей UI-темы (Bootstrap / CoreUI vars) */
+.choices {
+  margin-bottom: 0;
+  --obj-choices-bg: var(--cui-body-bg, var(--bs-body-bg));
+  --obj-choices-color: var(--cui-body-color, var(--bs-body-color));
+  --obj-choices-muted: var(--cui-secondary-color, var(--bs-secondary-color));
+  --obj-choices-border: var(--cui-border-color, var(--bs-border-color));
+  --obj-choices-hover: var(--cui-tertiary-bg, var(--bs-tertiary-bg));
+  --obj-choices-chip-bg: var(--cui-secondary-bg, var(--bs-secondary-bg));
+  --obj-choices-primary: var(--cui-primary, var(--bs-primary));
+  --obj-choices-primary-rgb: var(--cui-primary-rgb, var(--bs-primary-rgb));
+}
+
+.choices__inner {
+  background-color: var(--obj-choices-bg) !important;
+  color: var(--obj-choices-color);
+  border-color: var(--obj-choices-border);
+  min-height: 38px;
+}
+
+.is-focused .choices__inner,
+.is-open .choices__inner {
+  border-color: var(--obj-choices-primary);
+  box-shadow: 0 0 0 0.25rem rgba(var(--obj-choices-primary-rgb), 0.2);
+}
+
+.choices__list--dropdown,
+.choices__list[aria-expanded] {
+  background-color: var(--obj-choices-bg);
+  color: var(--obj-choices-color);
+  border-color: var(--obj-choices-border);
+  z-index: 1060;
+}
+
+.choices__list--dropdown .choices__item--selectable.is-highlighted {
+  background-color: var(--obj-choices-hover) !important;
+  color: var(--obj-choices-color) !important;
+}
+
+.choices__list--dropdown .choices__item--selectable.is-selected,
+.choices__list[aria-expanded] .choices__item--selectable.is-selected,
+.choices__list--dropdown .choices__item--choice.is-selected,
+.choices__list[aria-expanded] .choices__item--choice.is-selected {
+  background-color: color-mix(in srgb, var(--obj-choices-hover) 70%, transparent) !important;
+  color: var(--obj-choices-color) !important;
+}
+
+.choices__list--dropdown .choices__item--selectable.is-highlighted.is-selected,
+.choices__list[aria-expanded] .choices__item--selectable.is-highlighted.is-selected,
+.choices__list--dropdown .choices__item--choice.is-highlighted.is-selected,
+.choices__list[aria-expanded] .choices__item--choice.is-highlighted.is-selected {
+  background-color: var(--obj-choices-hover) !important;
+  color: var(--obj-choices-color) !important;
+}
+
+.choices__input,
+.choices__input--cloned {
+  background-color: transparent !important;
+  color: var(--obj-choices-color) !important;
+}
+
+.choices__input::placeholder,
+.choices__input--cloned::placeholder {
+  color: var(--obj-choices-muted) !important;
+}
+
+.choices__list--dropdown .choices__item,
+.choices__list[aria-expanded] .choices__item {
+  color: var(--obj-choices-color);
+}
+
+.choices__placeholder {
+  color: var(--obj-choices-muted) !important;
+  opacity: 1;
+}
+
+.choices__list--multiple .choices__item {
+  background: var(--obj-choices-chip-bg) !important;
+  border: 1px solid var(--obj-choices-border) !important;
+  color: var(--obj-choices-color) !important;
+  border-radius: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.choices[data-type*=select-multiple] .choices__button,
+.choices[data-type*=text] .choices__button {
+  border-left: 1px solid var(--obj-choices-border) !important;
+  background-image: none !important;
+  color: var(--obj-choices-color) !important;
+  opacity: 0.85;
+  width: auto !important;
+  padding-left: 0.45rem !important;
+  margin: 0 !important;
+  text-indent: 0 !important;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.choices[data-type*=select-multiple] .choices__button::after,
+.choices[data-type*=text] .choices__button::after {
+  content: "×";
+}
+
+.choices[data-type*=select-multiple] .choices__button:hover,
+.choices[data-type*=text] .choices__button:hover {
+  opacity: 1;
+}
+
+.choices__list--single .choices__item {
+  color: var(--obj-choices-color);
+}

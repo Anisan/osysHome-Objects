@@ -214,6 +214,61 @@
             </div>
             </div>
 
+            <!-- Источник вариантов для list / enum -->
+            <div id="options-source-params" style="display: none;">
+                <h6 class="text-muted mb-3 mt-2">{{ _('Options source') }}</h6>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">{{ _('Source') }}</label>
+                        <select class="form-control" id="param-options-source">
+                            <option value="">{{ _('None') }} — {{ _('manual') }}</option>
+                            <option value="objects">{{ _('All objects') }}</option>
+                            <option value="class">{{ _('Objects by class') }}</option>
+                            <option value="property">{{ _('Property value') }}</option>
+                            <option value="static" id="param-options-source-static">{{ _('Static list') }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4" id="options-class-wrap" style="display: none;">
+                        <label class="form-label">{{ _('Class') }}</label>
+                        <input type="text" class="form-control" id="param-options-class" placeholder="Sensor">
+                    </div>
+                    <div class="col-md-4" id="options-label-wrap" style="display: none;">
+                        <label class="form-label">{{ _('Label field') }}</label>
+                        <select class="form-control" id="param-options-label">
+                            <option value="description">description</option>
+                            <option value="name">name</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mt-2" id="options-property-wrap" style="display: none;">
+                    <div class="col-md-6">
+                        <label class="form-label">{{ _('Object') }}</label>
+                        <input type="text" class="form-control" id="param-options-object" placeholder="{{ _('Current object if empty') }}">
+                        <small class="form-text text-muted">{{ _('Leave empty to use the current object') }}</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ _('Property') }}</label>
+                        <input type="text" class="form-control" id="param-options-property" placeholder="available_modes">
+                        <small class="form-text text-muted">{{ _('Property with list / dict of options') }}</small>
+                    </div>
+                </div>
+                <div class="row mt-2" id="options-static-wrap" style="display: none;">
+                    <div class="col-md-12">
+                        <label class="form-label">{{ _('Options (JSON)') }}</label>
+                        <textarea class="form-control" id="param-options" rows="4" placeholder='["a", "b"] or [{"value": "a", "label": "Alpha"}]'></textarea>
+                        <small class="form-text text-muted">
+                            {{ _('Static options for the editor. Array of strings or objects with value/label.') }}
+                        </small>
+                    </div>
+                </div>
+                <small class="form-text text-muted d-block mt-2" id="options-source-hint-list" style="display: none;">
+                    {{ _('If source is not set, list values are edited as JSON. Static list uses Options (JSON).') }}
+                </small>
+                <small class="form-text text-muted d-block mt-2" id="options-source-hint-enum" style="display: none;">
+                    {{ _('Without source use Enum Values (JSON). Objects/class/property load choices dynamically.') }}
+                </small>
+            </div>
+
             <div id="color-format-params" style="display: none;">
                 <h6 class="text-muted mb-3 mt-2">{{ _('Color type parameters') }}</h6>
             <div class="row">
@@ -340,6 +395,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const stringParams = document.getElementById('string-params');
     const enumParams = document.getElementById('enum-params');
     const colorFormatParams = document.getElementById('color-format-params');
+    const optionsSourceParams = document.getElementById('options-source-params');
+    const optionsClassWrap = document.getElementById('options-class-wrap');
+    const optionsLabelWrap = document.getElementById('options-label-wrap');
+    const optionsPropertyWrap = document.getElementById('options-property-wrap');
+    const optionsStaticWrap = document.getElementById('options-static-wrap');
+    const optionsSourceHintList = document.getElementById('options-source-hint-list');
+    const optionsSourceHintEnum = document.getElementById('options-source-hint-enum');
     const tabTypeEmpty = document.getElementById('tab-type-empty');
     const tabTypeHint = document.getElementById('tab-type-hint');
     const propTabTypeBtn = document.getElementById('prop-tab-type-btn');
@@ -358,6 +420,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const stepFloatField = document.getElementById('param-step-float');
     const regexpField = document.getElementById('param-regexp');
     const enumValuesField = document.getElementById('param-enum-values');
+    const optionsSourceField = document.getElementById('param-options-source');
+    const optionsClassField = document.getElementById('param-options-class');
+    const optionsLabelField = document.getElementById('param-options-label');
+    const optionsObjectField = document.getElementById('param-options-object');
+    const optionsPropertyField = document.getElementById('param-options-property');
+    const optionsField = document.getElementById('param-options');
     const allowedValuesField = document.getElementById('param-allowed-values');
     const rateLimitField = document.getElementById('param-rate-limit');
     const dependsOnField = document.getElementById('param-depends-on');
@@ -421,6 +489,34 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleHint('hint-parent-params', !!document.getElementById('hint-parent-params') && curParams !== normalizeParams(parentHintData.params_norm || ''));
     }
     
+    function syncOptionsSourceOptionsForType(type) {
+        const staticOpt = document.getElementById('param-options-source-static');
+        if (staticOpt) {
+            // Для enum статический список — это enum_values, отдельный static не нужен
+            staticOpt.hidden = (type === 'enum');
+            staticOpt.disabled = (type === 'enum');
+        }
+        if (type === 'enum' && optionsSourceField && optionsSourceField.value === 'static') {
+            optionsSourceField.value = '';
+        }
+    }
+
+    function toggleOptionsSourceFields() {
+        const type = typeSelect ? typeSelect.value : '';
+        const source = optionsSourceField ? optionsSourceField.value : '';
+        if (optionsClassWrap) optionsClassWrap.style.display = source === 'class' ? 'block' : 'none';
+        if (optionsLabelWrap) optionsLabelWrap.style.display = (source === 'objects' || source === 'class') ? 'block' : 'none';
+        if (optionsPropertyWrap) optionsPropertyWrap.style.display = source === 'property' ? 'flex' : 'none';
+        // static options только для list
+        if (optionsStaticWrap) {
+            optionsStaticWrap.style.display = (type === 'list' && source === 'static') ? 'block' : 'none';
+        }
+        // enum_values только без динамического источника
+        if (type === 'enum' && enumParams) {
+            enumParams.style.display = source ? 'none' : 'flex';
+        }
+    }
+
     function toggleValidationParams() {
         const type = typeSelect.value;
         let hasTypeParams = false;
@@ -432,6 +528,9 @@ document.addEventListener('DOMContentLoaded', function() {
         enumParams.style.display = 'none';
         validationParams.style.display = 'none';
         colorFormatParams.style.display = 'none';
+        if (optionsSourceParams) optionsSourceParams.style.display = 'none';
+        if (optionsSourceHintList) optionsSourceHintList.style.display = 'none';
+        if (optionsSourceHintEnum) optionsSourceHintEnum.style.display = 'none';
 
         if (type === 'int' || type === 'float') {
             hasTypeParams = true;
@@ -449,7 +548,16 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (type === 'enum') {
             hasTypeParams = true;
             validationParams.style.display = 'block';
-            enumParams.style.display = 'flex';
+            if (optionsSourceParams) optionsSourceParams.style.display = 'block';
+            if (optionsSourceHintEnum) optionsSourceHintEnum.style.display = 'block';
+            syncOptionsSourceOptionsForType('enum');
+            toggleOptionsSourceFields();
+        } else if (type === 'list') {
+            hasTypeParams = true;
+            if (optionsSourceParams) optionsSourceParams.style.display = 'block';
+            if (optionsSourceHintList) optionsSourceHintList.style.display = 'block';
+            syncOptionsSourceOptionsForType('list');
+            toggleOptionsSourceFields();
         } else if (type === 'color') {
             hasTypeParams = true;
             colorFormatParams.style.display = 'block';
@@ -467,7 +575,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function focusTypeTabIfNeeded(type) {
-        if (['int', 'float', 'str', 'enum', 'color'].indexOf(type) === -1) {
+        if (['int', 'float', 'str', 'enum', 'list', 'color'].indexOf(type) === -1) {
             return;
         }
         const tabBtn = document.getElementById('prop-tab-type-btn');
@@ -499,21 +607,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else if (type === 'str' && regexpField.value) {
             params.regexp = regexpField.value;
-        } else if (type === 'enum' && enumValuesField.value) {
-            try {
-                // Parse enum values as JSON or Python dict
-                let enumValues;
+        } else if (type === 'enum') {
+            const enumSource = optionsSourceField ? String(optionsSourceField.value || '').trim() : '';
+            // enum_values — статический список; при objects/class не сохраняем
+            if (!enumSource && enumValuesField.value) {
                 try {
-                    enumValues = JSON.parse(enumValuesField.value);
+                    let enumValues;
+                    try {
+                        enumValues = JSON.parse(enumValuesField.value);
+                    } catch (e) {
+                        const normalized = enumValuesField.value.replace(/(\d+):/g, '"$1":');
+                        enumValues = JSON.parse(normalized);
+                    }
+                    params.enum_values = enumValues;
                 } catch (e) {
-                    // Try to convert Python dict format to JSON
-                    const normalized = enumValuesField.value.replace(/(\d+):/g, '"$1":');
-                    enumValues = JSON.parse(normalized);
+                    console.error('Invalid enum values JSON:', e);
                 }
-                // Store enum values in separate field
-                params.enum_values = enumValues;
-            } catch (e) {
-                console.error('Invalid enum values JSON:', e);
             }
         } else if (type === 'color') {
             if (readFormatField.value) params.read_format = readFormatField.value;
@@ -521,6 +630,38 @@ document.addEventListener('DOMContentLoaded', function() {
             if (colorTempUnitField.value) params.color_temp_unit = colorTempUnitField.value;
             if (hueScaleField.value) params.hue_scale = parseInt(hueScaleField.value);
             if (satScaleField.value) params.sat_scale = parseInt(satScaleField.value);
+        }
+
+        if (type === 'list' || type === 'enum') {
+            let source = optionsSourceField ? String(optionsSourceField.value || '').trim() : '';
+            // Для enum static не используется (это enum_values)
+            if (type === 'enum' && source === 'static') {
+                source = '';
+            }
+            if (source) {
+                params.options_source = source;
+                if (source === 'class' && optionsClassField && optionsClassField.value.trim()) {
+                    params.options_class = optionsClassField.value.trim();
+                }
+                if ((source === 'objects' || source === 'class') && optionsLabelField && optionsLabelField.value) {
+                    params.options_label = optionsLabelField.value;
+                }
+                if (source === 'property') {
+                    if (optionsObjectField && optionsObjectField.value.trim()) {
+                        params.options_object = optionsObjectField.value.trim();
+                    }
+                    if (optionsPropertyField && optionsPropertyField.value.trim()) {
+                        params.options_property = optionsPropertyField.value.trim();
+                    }
+                }
+                if (type === 'list' && source === 'static' && optionsField && optionsField.value.trim()) {
+                    try {
+                        params.options = JSON.parse(optionsField.value);
+                    } catch (e) {
+                        console.error('Invalid options JSON:', e);
+                    }
+                }
+            }
         }
         
         // Add advanced validation parameters
@@ -577,6 +718,51 @@ document.addEventListener('DOMContentLoaded', function() {
                     enumValuesField.value = JSON.stringify(params.enum_values, null, 2);
                 }
 
+                if (params.options_source && optionsSourceField) {
+                    // enum + static → сводим к enum_values (без дубля)
+                    if (typeSelect.value === 'enum' && params.options_source === 'static') {
+                        optionsSourceField.value = '';
+                        if (!params.enum_values && params.options && enumValuesField) {
+                            const migrated = {};
+                            if (Array.isArray(params.options)) {
+                                params.options.forEach(function(item) {
+                                    if (item && typeof item === 'object' && item.value !== undefined) {
+                                        migrated[String(item.value)] = String(item.label != null ? item.label : item.value);
+                                    } else {
+                                        migrated[String(item)] = String(item);
+                                    }
+                                });
+                            } else if (typeof params.options === 'object') {
+                                Object.keys(params.options).forEach(function(k) {
+                                    migrated[String(k)] = String(params.options[k]);
+                                });
+                            }
+                            if (Object.keys(migrated).length) {
+                                enumValuesField.value = JSON.stringify(migrated, null, 2);
+                            }
+                        }
+                    } else {
+                        optionsSourceField.value = params.options_source;
+                    }
+                }
+                if (params.options_class && optionsClassField) {
+                    optionsClassField.value = params.options_class;
+                }
+                if (params.options_label && optionsLabelField) {
+                    optionsLabelField.value = params.options_label;
+                }
+                if (params.options_object && optionsObjectField) {
+                    optionsObjectField.value = params.options_object;
+                }
+                if (params.options_property && optionsPropertyField) {
+                    optionsPropertyField.value = params.options_property;
+                }
+                if (params.options && optionsField && typeSelect.value === 'list') {
+                    optionsField.value = JSON.stringify(params.options, null, 2);
+                }
+                syncOptionsSourceOptionsForType(typeSelect.value);
+                toggleOptionsSourceFields();
+
                 if (params.read_format) {
                     readFormatField.value = params.read_format;
                 }
@@ -627,7 +813,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update JSON on any field change
     const allFields = [iconField, colorField, sortOrderField, defaultValueField, readOnlyField, 
                        minField, maxField, decimalsField, stepIntField, stepFloatField, regexpField, 
-                       enumValuesField, allowedValuesField, rateLimitField, dependsOnField,
+                       enumValuesField, optionsSourceField, optionsClassField, optionsLabelField,
+                       optionsObjectField, optionsPropertyField, optionsField,
+                       allowedValuesField, rateLimitField, dependsOnField,
                        readFormatField, writeFormatField, colorTempUnitField, hueScaleField, satScaleField];
     allFields.forEach(field => {
         if (field) {
@@ -635,6 +823,12 @@ document.addEventListener('DOMContentLoaded', function() {
             field.addEventListener('input', buildParamsJson);
         }
     });
+    if (optionsSourceField) {
+        optionsSourceField.addEventListener('change', function() {
+            toggleOptionsSourceFields();
+            buildParamsJson();
+        });
+    }
 
     const basicFields = ['name', 'description', 'method_id', 'history'];
     basicFields.forEach(fieldId => {

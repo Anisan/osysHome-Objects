@@ -33,6 +33,9 @@ def routeObjectTools(req):
     if op == 'export_values':
         return _export_values(obj)
 
+    if op == 'memory_history':
+        return _memory_history(obj, req)
+
     if req.method != 'POST':
         return jsonify({'success': False, 'message': 'Method not allowed'}), 405
 
@@ -73,6 +76,40 @@ def _delete_object(obj: Object):
         'message': 'Object deleted',
         'object_id': obj.id,
         'object_name': name,
+    })
+
+
+def _memory_history(obj: Object, req):
+    """История значений свойств и вызовов методов в runtime-памяти."""
+    runtime = objects_storage.getObjectByName(obj.name)
+    if runtime is None:
+        # Объект есть в БД, но ещё не загружен в storage — подгружаем
+        objects_storage.reload_object(obj.id)
+        runtime = objects_storage.getObjectByName(obj.name)
+    if runtime is None:
+        return jsonify({
+            'success': False,
+            'message': 'Object not loaded in runtime',
+        }), 404
+
+    property_name = req.args.get('property') or None
+    method_name = req.args.get('method') or None
+    data = runtime.getMemoryHistory(
+        property_name=property_name,
+        method_name=method_name,
+        serialize=True,
+    )
+    prop_count = sum(len(v) for v in data['properties'].values())
+    method_count = sum(len(v) for v in data['methods'].values())
+    return jsonify({
+        'success': True,
+        'object': data['object'],
+        'properties': data['properties'],
+        'methods': data['methods'],
+        'counts': {
+            'properties': prop_count,
+            'methods': method_count,
+        },
     })
 
 
