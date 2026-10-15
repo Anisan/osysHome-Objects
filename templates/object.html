@@ -1440,7 +1440,7 @@
 <!-- Модальное окно истории конкретного свойства/метода в памяти -->
 <div class="modal fade" id="memoryHistoryModal" tabindex="-1" aria-labelledby="memoryHistoryModalTitle" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered memory-history-modal-dialog">
-        <div class="modal-content">
+        <div class="modal-content memory-history-modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="memoryHistoryModalTitle">
                     <i class="fas fa-memory me-2"></i>{{ _('Memory history')}}
@@ -1448,45 +1448,47 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="d-flex flex-wrap gap-3 align-items-center mb-3">
-                    <div class="form-check form-switch mb-0">
-                        <input class="form-check-input" type="checkbox" id="memoryHistoryAutoRefresh" checked>
-                        <label class="form-check-label" for="memoryHistoryAutoRefresh">{{ _('Auto refresh')}}</label>
+                <div class="memory-history-toolbar card border shadow-sm mb-3">
+                    <div class="card-body py-2 px-3 d-flex flex-wrap gap-2 align-items-center">
+                        <div class="form-check form-switch memory-history-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="memoryHistoryAutoRefresh" checked>
+                            <label class="form-check-label" for="memoryHistoryAutoRefresh">{{ _('Auto refresh')}}</label>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="memoryHistoryRefreshBtn">
+                            <i class="fas fa-sync me-1"></i>{{ _('Refresh')}}
+                        </button>
+                        <span class="badge bg-secondary text-light" id="memoryHistoryCount">0</span>
+                        <span class="text-muted small ms-auto" id="memoryHistoryStatus"></span>
                     </div>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="memoryHistoryRefreshBtn">
-                        <i class="fas fa-sync me-1"></i>{{ _('Refresh')}}
-                    </button>
-                    <span class="badge bg-secondary" id="memoryHistoryCount">0</span>
-                    <span class="text-muted small" id="memoryHistoryStatus"></span>
                 </div>
-                <div class="table-responsive" id="memoryHistoryPropsWrap">
-                    <table class="table table-sm table-hover align-middle mb-0 memory-history-table">
+                <div class="table-responsive memory-history-table-wrap" id="memoryHistoryPropsWrap">
+                    <table class="table table-hover table-sm mb-0 memory-history-table">
                         <thead>
                             <tr>
-                                <th class="mh-col-fit">{{ _('Time')}}</th>
-                                <th class="mh-col-fit">{{ _('Value')}}</th>
-                                <th class="mh-col-fill">{{ _('Source')}}</th>
-                                <th class="mh-col-fit">{{ _('Flags')}}</th>
+                                <th class="mh-col-fit" data-label="{{ _('Time') }}">{{ _('Time')}}</th>
+                                <th class="mh-col-fit" data-label="{{ _('Value') }}">{{ _('Value')}}</th>
+                                <th class="mh-col-fill" data-label="{{ _('Source') }}">{{ _('Source')}}</th>
+                                <th class="mh-col-fit" data-label="{{ _('Flags') }}">{{ _('Flags')}}</th>
                             </tr>
                         </thead>
                         <tbody id="memoryHistoryPropsBody">
-                            <tr><td colspan="4" class="text-muted text-center">{{ _('No data')}}</td></tr>
+                            <tr class="memory-history-empty"><td colspan="4" class="text-muted text-center">{{ _('No data')}}</td></tr>
                         </tbody>
                     </table>
                 </div>
-                <div class="table-responsive d-none" id="memoryHistoryMethodsWrap">
-                    <table class="table table-sm table-hover align-middle mb-0 memory-history-table">
+                <div class="table-responsive memory-history-table-wrap d-none" id="memoryHistoryMethodsWrap">
+                    <table class="table table-hover table-sm mb-0 memory-history-table">
                         <thead>
                             <tr>
-                                <th class="mh-col-fit">{{ _('Time')}}</th>
-                                <th class="mh-col-fit">{{ _('Source')}}</th>
-                                <th class="mh-col-fit" title="{{ _('Duration') }}">ms</th>
-                                <th class="mh-col-fill">{{ _('Params')}}</th>
-                                <th class="mh-col-fit">{{ _('Result')}}</th>
+                                <th class="mh-col-fit" data-label="{{ _('Time') }}">{{ _('Time')}}</th>
+                                <th class="mh-col-source" data-label="{{ _('Source') }}">{{ _('Source')}}</th>
+                                <th class="mh-col-duration" data-label="{{ _('Duration') }}" title="{{ _('Duration') }}">ms</th>
+                                <th class="mh-col-fill" data-label="{{ _('Params') }}">{{ _('Params')}}</th>
+                                <th class="mh-col-fit" data-label="{{ _('Result') }}">{{ _('Result')}}</th>
                             </tr>
                         </thead>
                         <tbody id="memoryHistoryMethodsBody">
-                            <tr><td colspan="5" class="text-muted text-center">{{ _('No data')}}</td></tr>
+                            <tr class="memory-history-empty"><td colspan="5" class="text-muted text-center">{{ _('No data')}}</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -3653,7 +3655,37 @@
         if (str.length > 200) {
             str = str.slice(0, 200) + '…';
         }
-        return '<code class="small">' + escapeHtmlMemoryHistory(str) + '</code>';
+        return '<span class="mh-value font-monospace">' + escapeHtmlMemoryHistory(str) + '</span>';
+    }
+
+    function formatMemoryHistorySource(source) {
+        var text = (source === null || source === undefined) ? '' : String(source);
+        if (!text) {
+            return '<span class="text-muted">—</span>';
+        }
+        return '<span class="source-trace" title="' + escapeHtmlMemoryHistory('{{ _("Source") }}') + '">'
+            + '<i class="fa-solid fa-route source-trace-icon" aria-hidden="true"></i>'
+            + '<span class="source-trace-text font-monospace">' + escapeHtmlMemoryHistory(text) + '</span>'
+            + '</span>';
+    }
+
+    function formatMemoryHistoryTime(ts) {
+        var text = (ts === null || ts === undefined) ? '' : String(ts);
+        if (!text) {
+            return '<span class="text-muted">—</span>';
+        }
+        return '<span class="badge bg-secondary mh-time">' + escapeHtmlMemoryHistory(text) + '</span>';
+    }
+
+    function formatMemoryHistoryDuration(execTime) {
+        if (execTime === null || execTime === undefined || execTime === '') {
+            return '<span class="text-muted">—</span>';
+        }
+        var num = Number(execTime);
+        var label = Number.isFinite(num)
+            ? (String(Math.round(num)) + ' ms')
+            : (String(execTime) + ' ms');
+        return '<span class="badge bg-secondary mh-duration">' + escapeHtmlMemoryHistory(label) + '</span>';
     }
 
     function isMemoryHistoryAutoRefreshEnabled() {
@@ -3667,7 +3699,7 @@
             return;
         }
         el.textContent = text || '';
-        el.className = 'text-muted small' + (isError ? ' text-danger' : '');
+        el.className = 'text-muted small ms-auto' + (isError ? ' text-danger' : '');
     }
 
     function stopMemoryHistoryPolling() {
@@ -3734,17 +3766,17 @@
             });
             if (propsBody) {
                 if (!rows.length) {
-                    propsBody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">{{ _("No data")}}</td></tr>';
+                    propsBody.innerHTML = '<tr class="memory-history-empty"><td colspan="4" class="text-muted text-center">{{ _("No data")}}</td></tr>';
                 } else {
                     propsBody.innerHTML = rows.map(function(row) {
                         var flags = row.history_only
-                            ? '<span class="badge bg-secondary">history_only</span>'
-                            : '';
+                            ? '<span class="badge bg-warning text-dark">history_only</span>'
+                            : '<span class="text-muted">—</span>';
                         return '<tr>'
-                            + '<td class="mh-col-fit text-nowrap"><span class="badge bg-secondary">' + escapeHtmlMemoryHistory(row.ts) + '</span></td>'
-                            + '<td class="mh-col-fit text-nowrap">' + formatMemoryHistoryCell(row.value) + '</td>'
-                            + '<td class="mh-col-fill"><span class="badge bg-success">' + escapeHtmlMemoryHistory(row.source) + '</span></td>'
-                            + '<td class="mh-col-fit text-nowrap">' + flags + '</td>'
+                            + '<td class="mh-col-fit text-nowrap" data-label="{{ _("Time") }}">' + formatMemoryHistoryTime(row.ts) + '</td>'
+                            + '<td class="mh-col-fit" data-label="{{ _("Value") }}">' + formatMemoryHistoryCell(row.value) + '</td>'
+                            + '<td class="mh-col-fill" data-label="{{ _("Source") }}">' + formatMemoryHistorySource(row.source) + '</td>'
+                            + '<td class="mh-col-fit text-nowrap" data-label="{{ _("Flags") }}">' + flags + '</td>'
                             + '</tr>';
                     }).join('');
                 }
@@ -3765,18 +3797,15 @@
             });
             if (methodsBody) {
                 if (!rows.length) {
-                    methodsBody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">{{ _("No data")}}</td></tr>';
+                    methodsBody.innerHTML = '<tr class="memory-history-empty"><td colspan="5" class="text-muted text-center">{{ _("No data")}}</td></tr>';
                 } else {
                     methodsBody.innerHTML = rows.map(function(row) {
-                        var execTime = (row.exec_time === null || row.exec_time === undefined || row.exec_time === '')
-                            ? ''
-                            : ('<span class="badge bg-info text-dark">' + escapeHtmlMemoryHistory(String(row.exec_time)) + '</span>');
                         return '<tr>'
-                            + '<td class="mh-col-fit text-nowrap"><span class="badge bg-secondary">' + escapeHtmlMemoryHistory(row.ts) + '</span></td>'
-                            + '<td class="mh-col-fit text-nowrap"><span class="badge bg-success">' + escapeHtmlMemoryHistory(row.source) + '</span></td>'
-                            + '<td class="mh-col-fit text-nowrap">' + execTime + '</td>'
-                            + '<td class="mh-col-fill">' + formatMemoryHistoryCell(row.args) + '</td>'
-                            + '<td class="mh-col-fit text-nowrap">' + formatMemoryHistoryCell(row.result) + '</td>'
+                            + '<td class="mh-col-fit text-nowrap" data-label="{{ _("Time") }}">' + formatMemoryHistoryTime(row.ts) + '</td>'
+                            + '<td class="mh-col-source" data-label="{{ _("Source") }}">' + formatMemoryHistorySource(row.source) + '</td>'
+                            + '<td class="mh-col-duration text-nowrap" data-label="{{ _("Duration") }}">' + formatMemoryHistoryDuration(row.exec_time) + '</td>'
+                            + '<td class="mh-col-fill" data-label="{{ _("Params") }}">' + formatMemoryHistoryCell(row.args) + '</td>'
+                            + '<td class="mh-col-fit" data-label="{{ _("Result") }}">' + formatMemoryHistoryCell(row.result) + '</td>'
                             + '</tr>';
                     }).join('');
                 }
@@ -3924,38 +3953,251 @@
 </script>
 
 <style>
-    /* Шире стандартного modal-xl для Params/Result */
+    /* История в памяти — токены текущей UI-темы (как choices-theme.css) */
     .memory-history-modal-dialog {
         --bs-modal-width: min(96vw, 1400px);
+        --mh-bg: var(--cui-body-bg, var(--bs-modal-bg, var(--bs-body-bg)));
+        --mh-fg: var(--cui-body-color, var(--bs-modal-color, var(--bs-body-color)));
+        --mh-muted: var(--cui-secondary-color, var(--bs-secondary-color));
+        --mh-border: var(--cui-border-color, var(--bs-border-color));
+        --mh-border-soft: var(--bs-border-color-translucent, var(--mh-border));
+        --mh-surface: var(--cui-secondary-bg, var(--bs-secondary-bg));
+        --mh-surface-2: var(--cui-tertiary-bg, var(--bs-tertiary-bg));
+    }
+
+    .memory-history-modal-content {
+        border-color: var(--mh-border);
+        background-color: var(--mh-bg);
+        color: var(--mh-fg);
+    }
+
+    .memory-history-modal-content > .modal-header {
+        border-bottom-color: var(--mh-border);
+        background-color: var(--mh-surface-2);
+        color: var(--mh-fg);
+    }
+
+    .memory-history-modal-content > .modal-header .modal-title {
+        color: var(--mh-fg);
+    }
+
+    .memory-history-modal-content > .modal-footer {
+        border-top-color: var(--mh-border);
+        background-color: var(--mh-surface-2);
+    }
+
+    .memory-history-toolbar {
+        border-color: var(--mh-border) !important;
+        background-color: var(--mh-surface) !important;
+        color: var(--mh-fg);
+    }
+
+    /* Не наследовать огромный switch редактора свойств */
+    .memory-history-switch .form-check-input {
+        width: 2.2rem;
+        height: 1.15rem;
+        margin-top: 0.15rem;
+    }
+
+    .memory-history-switch .form-check-label {
+        margin-left: 0.35rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--mh-fg);
+    }
+
+    .memory-history-table-wrap {
+        border: 1px solid var(--mh-border);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        background: var(--mh-surface);
     }
 
     /* fit — по содержимому; fill — оставшаяся ширина (Source у свойств, Params у методов) */
     .memory-history-table {
         table-layout: auto;
         width: 100%;
+        margin-bottom: 0;
+        color: var(--mh-fg);
+        --bs-table-bg: transparent;
+        --bs-table-color: var(--mh-fg);
+        --bs-table-hover-bg: var(--mh-surface-2);
+        --bs-table-hover-color: var(--mh-fg);
+        --bs-table-border-color: var(--mh-border-soft);
+    }
+
+    .memory-history-table > thead > tr > th {
+        vertical-align: middle;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--mh-muted);
+        background-color: var(--mh-surface-2);
+        border-bottom-color: var(--mh-border);
+        white-space: nowrap;
+        padding: 0.55rem 0.75rem;
+    }
+
+    .memory-history-table > tbody > tr > td {
+        vertical-align: top;
+        padding: 0.55rem 0.75rem;
+        border-bottom-color: var(--mh-border-soft);
+        background-color: transparent;
+        color: var(--mh-fg);
+    }
+
+    .memory-history-table > tbody > tr:last-child > td {
+        border-bottom: 0;
+    }
+
+    .memory-history-table > tbody > tr:hover > td {
+        background-color: var(--mh-surface-2);
+        color: var(--mh-fg);
     }
 
     .memory-history-table .mh-col-fit {
         width: 1%;
-        vertical-align: top;
     }
 
     .memory-history-table .mh-col-fit.text-nowrap {
         white-space: nowrap;
     }
 
+    /* Длинный source у методов: своя доля ширины, без сжатия в 1 символ */
+    .memory-history-table .mh-col-source {
+        width: 32%;
+        min-width: 16rem;
+        max-width: 36rem;
+        word-break: normal;
+        overflow-wrap: break-word;
+    }
+
     .memory-history-table .mh-col-fill {
-        width: 99%;
-        min-width: 10rem;
+        width: auto;
+        min-width: 12rem;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .memory-history-table .mh-col-duration {
+        width: 1%;
+        white-space: nowrap;
+        text-align: right;
         vertical-align: top;
+    }
+
+    .memory-history-table .mh-time,
+    .memory-history-table .mh-duration {
+        font-size: 0.68rem;
+        font-weight: 500;
+        padding: 0.15rem 0.35rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .memory-history-table .mh-value {
+        display: inline-block;
+        max-width: 100%;
+        font-size: 0.8125rem;
+        line-height: 1.35;
+        color: var(--mh-fg);
+        background: var(--mh-surface-2);
+        border: 1px solid var(--mh-border-soft);
+        border-radius: 0.25rem;
+        padding: 0.15rem 0.45rem;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
         word-break: break-word;
     }
 
-    .memory-history-table .mh-col-fill code {
-        white-space: pre-wrap;
-        word-break: break-word;
-        display: inline-block;
+    .memory-history-table .source-trace {
+        display: inline-flex;
+        align-items: flex-start;
+        gap: 0.35rem;
+        min-width: 0;
         max-width: 100%;
+        width: 100%;
+    }
+
+    .memory-history-table .source-trace-icon {
+        flex: 0 0 auto;
+        margin-top: 0.2rem;
+        font-size: 0.72rem;
+        color: var(--mh-muted);
+        opacity: 0.85;
+    }
+
+    .memory-history-table .source-trace-text {
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+        font-size: 0.75rem;
+        line-height: 1.35;
+        color: var(--mh-fg);
+        background: var(--mh-surface-2);
+        border: 1px solid var(--mh-border-soft);
+        border-radius: 0.25rem;
+        padding: 0.12rem 0.4rem;
+        white-space: normal;
+        /* перенос по пробелам / "->", не по каждому символу */
+        overflow-wrap: break-word;
+        word-break: normal;
+        text-align: left;
+    }
+
+    .memory-history-table .memory-history-empty td {
+        padding: 1.25rem 0.75rem;
+        color: var(--mh-muted);
+    }
+
+    @media (max-width: 767.98px) {
+        .memory-history-table thead {
+            display: none;
+        }
+
+        .memory-history-table tbody tr {
+            display: block;
+            border: 1px solid var(--mh-border);
+            border-radius: 0.5rem;
+            margin: 0.45rem;
+            padding: 0.25rem;
+            background: var(--mh-surface);
+        }
+
+        .memory-history-table tbody tr.memory-history-empty {
+            border: 0;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+        }
+
+        .memory-history-table tbody td {
+            display: block;
+            width: 100% !important;
+            border: 0 !important;
+            padding: 0.35rem 0.5rem !important;
+        }
+
+        .memory-history-table tbody td::before {
+            content: attr(data-label);
+            display: block;
+            font-size: 0.68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            color: var(--mh-muted);
+            margin-bottom: 0.15rem;
+        }
+
+        .memory-history-table tbody tr.memory-history-empty td::before {
+            display: none;
+        }
+
+        .memory-history-table-wrap {
+            border: 0;
+            background: transparent;
+            overflow: visible;
+        }
     }
 
     .property-editor {
@@ -3973,14 +4215,14 @@
     .property-editor input:focus,
     .property-editor select:focus,
     .property-editor textarea:focus {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        border-color: var(--bs-primary);
+        box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
     }
     
     .property-editor .form-text {
         margin-top: 0.5rem;
         font-size: 0.875rem;
-        color: #6c757d;
+        color: var(--bs-secondary-color);
     }
     
     
@@ -4014,10 +4256,11 @@
     #propertyDescription {
         font-style: italic;
         padding: 0.75rem;
-        background-color: rgba(13, 110, 253, 0.1);
-        border-left: 3px solid #0d6efd;
+        background-color: rgba(var(--bs-primary-rgb), 0.1);
+        border-left: 3px solid var(--bs-primary);
         border-radius: 0.375rem;
         margin-bottom: 1rem;
+        color: var(--bs-body-color);
     }
        
     .spinner-border-sm {
@@ -4049,11 +4292,11 @@
     .task-inactive > td,
     .task-inactive > th {
         text-decoration: line-through;
-        color: #6c757d;
+        color: var(--bs-secondary-color);
     }
     .task-inactive p {
         text-decoration: line-through;
-        color: #6c757d;
+        color: var(--bs-secondary-color);
     }
     .task-inactive .badge {
         text-decoration: none;
