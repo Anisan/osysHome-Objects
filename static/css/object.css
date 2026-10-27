@@ -1,0 +1,748 @@
+/* Страница объекта (object.html) */
+
+.nav-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.tab-with-action {
+  position: relative;
+}
+
+.tab-with-action .nav-link {
+  padding-right: 2.9rem;
+}
+
+.tab-with-action .tab-add-action {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.25rem;
+}
+
+body.objects-compact-view .object-stats-card {
+  display: none !important;
+}
+
+.property-color-swatch {
+  display: inline-block;
+  width: 1.75rem;
+  height: 1.75rem;
+  min-width: 1.75rem;
+  border-radius: 0.25rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  vertical-align: middle;
+}
+
+.objects-object-page .property-type-icon {
+  min-width: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bs-secondary-color, #6c757d);
+  opacity: 0.9;
+}
+
+.objects-object-page .property-type-icon iconify-icon {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.property-list-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  gap: 0.25rem;
+  height: calc(1.5em + 0.75rem + 2px);
+  min-height: calc(1.5em + 0.75rem + 2px);
+  overflow: auto;
+  resize: vertical;
+  cursor: default;
+}
+
+.property-list-input .badge {
+  font-weight: 500;
+  white-space: normal;
+  text-align: left;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+/* Кнопка слева, справа столкой: дата и source */
+.objects-object-page .meta-runtime {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+  min-width: 0;
+}
+
+.objects-object-page .meta-runtime-lines {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* Время изменения / выполнения — компактнее */
+.objects-object-page [id^="prop_changed:"],
+.objects-object-page [id^="method_executed:"] {
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 0.15rem 0.35rem;
+}
+
+/* Source: иконка маршрута + mono-блок (не badge) */
+.objects-object-page .source-trace {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.objects-object-page .source-trace:has(> .source-trace-text:empty) {
+  display: none;
+}
+
+.objects-object-page .source-trace-icon {
+  flex: 0 0 auto;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--bs-secondary-color, #6c757d);
+  opacity: 0.75;
+}
+
+.objects-object-page .source-trace-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--bs-body-color);
+  background: rgba(var(--bs-secondary-rgb), 0.12);
+  border-radius: 0.25rem;
+  padding: 0.12rem 0.4rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-align: left;
+}
+
+.property-list-input .property-list-empty {
+  color: var(--bs-secondary-color, #6c757d);
+  font-size: 0.875rem;
+}
+
+.objects-object-page .tab-content .table td,
+.objects-object-page .tab-content .table th {
+  vertical-align: top;
+}
+
+/* Методы: имя по содержимому, кнопки справа, статус — на оставшееся место */
+.objects-object-page .methods-table {
+  width: 100%;
+}
+
+.objects-object-page .methods-table > thead > tr > th:nth-last-child(3),
+.objects-object-page .methods-table > tbody > tr > td:nth-last-child(3) {
+  width: 1%;
+}
+
+.objects-object-page .methods-table > tbody > tr > td:nth-last-child(3) .fw-semibold {
+  white-space: nowrap;
+}
+
+.objects-object-page .methods-table > thead > tr > th:nth-last-child(2),
+.objects-object-page .methods-table > tbody > tr > td:nth-last-child(2) {
+  width: 100%;
+}
+
+.objects-object-page .methods-table > thead > tr > th:last-child,
+.objects-object-page .methods-table > tbody > tr > td:last-child {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.objects-object-page > .object-main-col {
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.objects-object-page > .object-preview-col {
+  flex: 0 0 20rem;
+  max-width: 20rem;
+  min-width: 18rem;
+}
+
+.objects-object-page > .object-preview-resizer {
+  flex: 0 0 12px;
+  width: 12px;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  background: transparent;
+  position: relative;
+}
+
+.objects-object-page > .object-preview-resizer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: rgba(var(--bs-secondary-rgb), 0.4);
+  opacity: 0.35;
+  transition: opacity 0.12s ease;
+}
+
+.objects-object-page > .object-preview-resizer:hover::after,
+.objects-object-page > .object-preview-resizer.dragging::after {
+  opacity: 0.85;
+}
+
+@media (max-width: 991.98px) {
+  .objects-object-page > .object-main-col,
+  .objects-object-page > .object-preview-col {
+    flex: 0 0 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .objects-object-page > .object-preview-col {
+    margin-top: 1rem;
+  }
+
+  .objects-object-page > .object-preview-resizer {
+    display: none !important;
+  }
+
+  .objects-object-page .tab-content .table td:last-child,
+  .objects-object-page .tab-content .table th:last-child {
+    white-space: normal !important;
+    min-width: 210px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .objects-object-page .nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 0.25rem;
+  }
+
+  .objects-object-page .nav-tabs .nav-item {
+    flex: 0 0 auto;
+  }
+
+  .objects-object-page .tab-with-action .nav-link {
+    padding-right: 2.3rem;
+  }
+
+  .objects-object-page .tab-with-action .tab-add-action {
+    right: 0.5rem;
+  }
+
+  .objects-object-page .tab-content .table {
+    font-size: 0.92rem;
+  }
+
+  .objects-object-page .tab-content .table td:last-child .btn,
+  .objects-object-page .tab-content .table th:last-child .btn {
+    margin-bottom: 0.35rem;
+  }
+
+  .objects-object-page .tab-content .table td:last-child .btn:last-child,
+  .objects-object-page .tab-content .table th:last-child .btn:last-child {
+    margin-bottom: 0;
+  }
+
+  .objects-object-page .tab-content .btn-group {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.35rem;
+  }
+
+  .objects-object-page .properties-table thead,
+  .objects-object-page .methods-table thead {
+    display: none;
+  }
+
+  .objects-object-page .properties-table tbody tr,
+  .objects-object-page .methods-table tbody tr {
+    display: block;
+    border: 1px solid rgba(var(--bs-secondary-rgb), 0.3);
+    border-radius: 0.5rem;
+    margin-bottom: 0.45rem;
+    padding: 0.25rem;
+  }
+
+  .objects-object-page .properties-table tbody td,
+  .objects-object-page .properties-table tbody th,
+  .objects-object-page .methods-table tbody td,
+  .objects-object-page .methods-table tbody th {
+    display: block;
+    width: 100% !important;
+    border: 0 !important;
+    padding: 0.18rem 0.22rem;
+    white-space: normal !important;
+  }
+
+  .objects-object-page .properties-table tbody td:last-child,
+  .objects-object-page .methods-table tbody td:last-child {
+    margin-top: 0.2rem;
+    min-width: 0 !important;
+  }
+
+  .objects-object-page .properties-table .badge,
+  .objects-object-page .methods-table .badge {
+    font-size: 0.68rem !important;
+    padding: 0.22rem 0.4rem;
+  }
+
+  .objects-object-page .object-stats-card .card-body {
+    padding-top: 0.6rem !important;
+    padding-bottom: 0.6rem !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .objects-object-page .tab-content .table td:last-child .btn,
+  .objects-object-page .tab-content .table th:last-child .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .objects-object-page .properties-table tbody td:last-child,
+  .objects-object-page .methods-table tbody td:last-child {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.3rem;
+  }
+
+  .objects-object-page .properties-table tbody td:last-child .btn,
+  .objects-object-page .methods-table tbody td:last-child .btn {
+    width: auto;
+    min-width: 2rem;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.78rem;
+    margin-bottom: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .objects-object-page .btn i.me-2 {
+    margin-right: 0.4rem !important;
+  }
+}
+
+/* Hide by .active (set sync by Bootstrap), not .show (delayed by fade).
+   Using :not(.show) left panes with only .active stuck at display:none and
+   made Properties/Methods/... tabs appear dead after code edits / reloads. */
+#myTabContent > .tab-pane:not(.active) {
+  display: none !important;
+}
+
+#tools .card {
+  border-color: rgba(var(--bs-secondary-rgb), 0.45) !important;
+}
+
+#tools .card-header {
+  border-bottom-color: rgba(var(--bs-secondary-rgb), 0.35);
+  background-color: rgba(var(--bs-secondary-rgb), 0.06);
+}
+
+#tools .card-body.d-flex {
+  align-items: flex-start;
+}
+
+#tools .card-body .btn {
+  flex: 0 0 auto;
+  width: auto;
+  align-self: auto;
+}
+
+/* История в памяти — токены текущей UI-темы (как choices-theme.css) */
+.memory-history-modal-dialog {
+  --bs-modal-width: min(96vw, 1400px);
+  --mh-bg: var(--cui-body-bg, var(--bs-modal-bg, var(--bs-body-bg)));
+  --mh-fg: var(--cui-body-color, var(--bs-modal-color, var(--bs-body-color)));
+  --mh-muted: var(--cui-secondary-color, var(--bs-secondary-color));
+  --mh-border: var(--cui-border-color, var(--bs-border-color));
+  --mh-border-soft: var(--bs-border-color-translucent, var(--mh-border));
+  --mh-surface: var(--cui-secondary-bg, var(--bs-secondary-bg));
+  --mh-surface-2: var(--cui-tertiary-bg, var(--bs-tertiary-bg));
+}
+
+.memory-history-modal-content {
+  border-color: var(--mh-border);
+  background-color: var(--mh-bg);
+  color: var(--mh-fg);
+}
+
+.memory-history-modal-content > .modal-header {
+  border-bottom-color: var(--mh-border);
+  background-color: var(--mh-surface-2);
+  color: var(--mh-fg);
+}
+
+.memory-history-modal-content > .modal-header .modal-title {
+  color: var(--mh-fg);
+}
+
+.memory-history-modal-content > .modal-footer {
+  border-top-color: var(--mh-border);
+  background-color: var(--mh-surface-2);
+}
+
+.memory-history-toolbar {
+  border-color: var(--mh-border) !important;
+  background-color: var(--mh-surface) !important;
+  color: var(--mh-fg);
+}
+
+/* Не наследовать огромный switch редактора свойств */
+.memory-history-switch .form-check-input {
+  width: 2.2rem;
+  height: 1.15rem;
+  margin-top: 0.15rem;
+}
+
+.memory-history-switch .form-check-label {
+  margin-left: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--mh-fg);
+}
+
+.memory-history-table-wrap {
+  border: 1px solid var(--mh-border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--mh-surface);
+}
+
+/* fit — по содержимому; fill — оставшаяся ширина (Source у свойств, Params у методов) */
+.memory-history-table {
+  table-layout: auto;
+  width: 100%;
+  margin-bottom: 0;
+  color: var(--mh-fg);
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--mh-fg);
+  --bs-table-hover-bg: var(--mh-surface-2);
+  --bs-table-hover-color: var(--mh-fg);
+  --bs-table-border-color: var(--mh-border-soft);
+}
+
+.memory-history-table > thead > tr > th {
+  vertical-align: middle;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--mh-muted);
+  background-color: var(--mh-surface-2);
+  border-bottom-color: var(--mh-border);
+  white-space: nowrap;
+  padding: 0.55rem 0.75rem;
+}
+
+.memory-history-table > tbody > tr > td {
+  vertical-align: top;
+  padding: 0.55rem 0.75rem;
+  border-bottom-color: var(--mh-border-soft);
+  background-color: transparent;
+  color: var(--mh-fg);
+}
+
+.memory-history-table > tbody > tr:last-child > td {
+  border-bottom: 0;
+}
+
+.memory-history-table > tbody > tr:hover > td {
+  background-color: var(--mh-surface-2);
+  color: var(--mh-fg);
+}
+
+.memory-history-table .mh-col-fit {
+  width: 1%;
+}
+
+.memory-history-table .mh-col-fit.text-nowrap {
+  white-space: nowrap;
+}
+
+/* Длинный source у методов: своя доля ширины, без сжатия в 1 символ */
+.memory-history-table .mh-col-source {
+  width: 32%;
+  min-width: 16rem;
+  max-width: 36rem;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.memory-history-table .mh-col-fill {
+  width: auto;
+  min-width: 12rem;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.memory-history-table .mh-col-duration {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  vertical-align: top;
+}
+
+.memory-history-table .mh-time,
+.memory-history-table .mh-duration {
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 0.15rem 0.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.memory-history-table .mh-value {
+  display: inline-block;
+  max-width: 100%;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--mh-fg);
+  background: var(--mh-surface-2);
+  border: 1px solid var(--mh-border-soft);
+  border-radius: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.memory-history-table .source-trace {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+.memory-history-table .source-trace-icon {
+  flex: 0 0 auto;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--mh-muted);
+  opacity: 0.85;
+}
+
+.memory-history-table .source-trace-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--mh-fg);
+  background: var(--mh-surface-2);
+  border: 1px solid var(--mh-border-soft);
+  border-radius: 0.25rem;
+  padding: 0.12rem 0.4rem;
+  white-space: normal;
+  /* перенос по пробелам / "->", не по каждому символу */
+  overflow-wrap: break-word;
+  word-break: normal;
+  text-align: left;
+}
+
+.memory-history-table .memory-history-empty td {
+  padding: 1.25rem 0.75rem;
+  color: var(--mh-muted);
+}
+
+@media (max-width: 767.98px) {
+  .memory-history-table thead {
+    display: none;
+  }
+
+  .memory-history-table tbody tr {
+    display: block;
+    border: 1px solid var(--mh-border);
+    border-radius: 0.5rem;
+    margin: 0.45rem;
+    padding: 0.25rem;
+    background: var(--mh-surface);
+  }
+
+  .memory-history-table tbody tr.memory-history-empty {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .memory-history-table tbody td {
+    display: block;
+    width: 100% !important;
+    border: 0 !important;
+    padding: 0.35rem 0.5rem !important;
+  }
+
+  .memory-history-table tbody td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--mh-muted);
+    margin-bottom: 0.15rem;
+  }
+
+  .memory-history-table tbody tr.memory-history-empty td::before {
+    display: none;
+  }
+
+  .memory-history-table-wrap {
+    border: 0;
+    background: transparent;
+    overflow: visible;
+  }
+}
+
+.property-editor {
+  margin-bottom: 1rem;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.property-editor input,
+.property-editor select,
+.property-editor textarea {
+  font-size: 1rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.property-editor input:focus,
+.property-editor select:focus,
+.property-editor textarea:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.property-editor .form-text {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--bs-secondary-color);
+}
+
+.form-check-input {
+  width: 3rem;
+  height: 1.5rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+}
+
+.form-check-label {
+  cursor: pointer;
+  margin-left: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  user-select: none;
+}
+
+#errorMessage {
+  margin-bottom: 0;
+  word-wrap: break-word;
+  animation: shake 0.5s;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+#propertyDescription {
+  font-style: italic;
+  padding: 0.75rem;
+  background-color: rgba(var(--bs-primary-rgb), 0.1);
+  border-left: 3px solid var(--bs-primary);
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+  color: var(--bs-body-color);
+}
+
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Стиль для JSON редактора */
+#value-json {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Плавные переходы для модального окна */
+.modal.fade .modal-dialog {
+  transition: transform 0.3s ease-out;
+}
+
+/* Цветовая индикация для модального окна */
+.modal-content {
+  transition: border-left-color 0.3s ease;
+}
+
+/* Стили для неактивных задач */
+.task-inactive > td,
+.task-inactive > th {
+  text-decoration: line-through;
+  color: var(--bs-secondary-color);
+}
+
+.task-inactive p {
+  text-decoration: line-through;
+  color: var(--bs-secondary-color);
+}
+
+.task-inactive .badge {
+  text-decoration: none;
+}
+
+/* Кнопки управления не должны быть затронуты стилями неактивных задач */
+.task-inactive .btn {
+  text-decoration: none !important;
+  opacity: 1 !important;
+  color: inherit !important;
+}
+
+/* Явно исключаем колонку с кнопками из стилей неактивных задач */
+.task-inactive td:last-child,
+.task-inactive th:last-child {
+  text-decoration: none !important;
+  opacity: 1 !important;
+  color: inherit !important;
+}

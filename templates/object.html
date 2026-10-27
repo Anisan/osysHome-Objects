@@ -39,6 +39,74 @@
 } -%}
 <iconify-icon icon="{{ type_icons.get(t, 'mdi:tag-outline') }}" width="1.05rem" height="1.05rem" aria-hidden="true"></iconify-icon>
 {%- endmacro %}
+{% set memory_property_history_on = (config.MEMORY_HISTORY_WINDOW_SEC|default(3600)|int > 0) and (config.MEMORY_HISTORY_MAX_ENTRIES|default(100)|int > 0) %}
+{% set memory_method_history_on = (config.MEMORY_METHOD_CALLS_WINDOW_SEC|default(3600)|int > 0) and (config.MEMORY_METHOD_CALLS_MAX_ENTRIES|default(100)|int > 0) %}
+{% macro render_property_history_link(prop_name, history_days, object_id, memory_on) -%}
+{%- set h = history_days if history_days is not none else 0 -%}
+{%- set from_db = (h != 0) -%}
+{%- if from_db or memory_on -%}
+{%- set source_label = _('Database') if from_db else _('Memory') -%}
+{%- set badge_class = 'bg-warning text-dark' if from_db else 'bg-secondary text-light' -%}
+{%- set source_icon = 'fa-database' if from_db else 'fa-memory' -%}
+{%- set source_key = 'database' if from_db else 'memory' -%}
+{%- set dropdown_id = 'propHistoryMenu_' ~ prop_name -%}
+<span class="property-history-dropdown">
+  <span class="badge {{ badge_class }} p-0 property-history-badge">
+    <button type="button"
+            class="property-history-badge-main"
+            title="{{ source_label }} — {{ _('Graph') }}"
+            onclick='openPropertyHistoryChartModal({property: {{ prop_name|tojson }}, objectId: {{ object_id|tojson }}, source: {{ source_key|tojson }}})'>
+      <i class="fas {{ source_icon }} me-1" aria-hidden="true"></i>
+      {%- if from_db -%}
+      {{ _('History') }}: {{ h|abs }} {{ _('days') }}
+      {%- else -%}
+      {{ _('History') }}
+      {%- endif -%}
+    </button>
+    <span class="property-history-badge-sep" aria-hidden="true"></span>
+    <button type="button"
+            class="property-history-badge-link"
+            id="{{ dropdown_id }}"
+            data-ph-toggle
+            aria-expanded="false"
+            aria-haspopup="true"
+            title="{{ source_label }} — {{ _('History') }}"
+            onclick="window.__phToggleMenu && window.__phToggleMenu(event, this)">
+      <i class="fas fa-caret-down" aria-hidden="true"></i>
+      <span class="visually-hidden">{{ _('History') }}</span>
+    </button>
+  </span>
+  <ul class="property-history-menu" role="menu" aria-labelledby="{{ dropdown_id }}">
+    <li role="none">
+      <button type="button" class="dropdown-item" role="menuitem"
+              onclick='openPropertyHistoryChartModal({property: {{ prop_name|tojson }}, objectId: {{ object_id|tojson }}, source: {{ source_key|tojson }}, view: "graph"})'>
+        <i class="fas fa-chart-area me-2" aria-hidden="true"></i>{{ _('Graph') }}
+      </button>
+    </li>
+    <li role="none">
+      <button type="button" class="dropdown-item" role="menuitem"
+              onclick='openPropertyHistoryChartModal({property: {{ prop_name|tojson }}, objectId: {{ object_id|tojson }}, source: {{ source_key|tojson }}, view: "analytics"})'>
+        <i class="fas fa-chart-pie me-2" aria-hidden="true"></i>{{ _('Analytics') }}
+      </button>
+    </li>
+    <li role="none">
+      <button type="button" class="dropdown-item" role="menuitem"
+              onclick='openPropertyHistoryChartModal({property: {{ prop_name|tojson }}, objectId: {{ object_id|tojson }}, source: {{ source_key|tojson }}, view: "table"})'>
+        <i class="fas fa-table me-2" aria-hidden="true"></i>{{ _('Table') }}
+      </button>
+    </li>
+    <li role="separator"><hr class="dropdown-divider"></li>
+    <li role="none">
+      <a class="dropdown-item" role="menuitem"
+         href="HistoryView?name={{ prop_name|urlencode }}&object={{ object_id }}"
+         target="_blank" rel="noopener">
+        <i class="fas fa-external-link-alt me-2" aria-hidden="true"></i>{{ _('Open full history') }}
+      </a>
+    </li>
+  </ul>
+</span>
+{%- endif -%}
+{%- endmacro %}
 {% from "macros/code_editor.html" import render_editor %}
 {% from "includes/objects_breadcrumb.html" import breadcrumb_object with context %}
 {% block breadcrumb %}
@@ -51,6 +119,8 @@
 {{ super() }}
 <link rel="stylesheet" href="{{ url_for('Objects.static', filename='choices/choices.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('Objects.static', filename='choices/choices-theme.css') }}">
+<link rel="stylesheet" href="{{ url_for('Objects.static', filename='css/object.css') }}?v=1">
+<link rel="stylesheet" href="{{ url_for('Objects.static', filename='css/object-property-history.css') }}?v=3">
 {% endblock %}
 
 {% block module_content %}
@@ -77,392 +147,6 @@
 <!-- Подключение скриптов Prism -->
 <script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.js"></script>
 <script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism-python.min.js"></script>
-<style>
-  .nav-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-  }
-
-  .tab-with-action {
-    position: relative;
-  }
-
-  .tab-with-action .nav-link {
-    padding-right: 2.9rem;
-  }
-
-  .tab-with-action .tab-add-action {
-    position: absolute;
-    top: 50%;
-    right: 0.75rem;
-    transform: translateY(-50%);
-    z-index: 2;
-    width: 1.5rem;
-    height: 1.5rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.25rem;
-  }
-
-  body.objects-compact-view .object-stats-card {
-    display: none !important;
-  }
-
-  .property-color-swatch {
-    display: inline-block;
-    width: 1.75rem;
-    height: 1.75rem;
-    min-width: 1.75rem;
-    border-radius: 0.25rem;
-    border: 1px solid rgba(0, 0, 0, 0.15);
-    vertical-align: middle;
-  }
-
-  .objects-object-page .property-type-icon {
-    min-width: 2.25rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--bs-secondary-color, #6c757d);
-    opacity: 0.9;
-  }
-
-  .objects-object-page .property-type-icon iconify-icon {
-    display: inline-block;
-    vertical-align: middle;
-  }
-
-  .property-list-input {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    align-content: flex-start;
-    gap: 0.25rem;
-    height: calc(1.5em + 0.75rem + 2px);
-    min-height: calc(1.5em + 0.75rem + 2px);
-    overflow: auto;
-    resize: vertical;
-    cursor: default;
-  }
-
-  .property-list-input .badge {
-    font-weight: 500;
-    white-space: normal;
-    text-align: left;
-    max-width: 100%;
-    word-break: break-word;
-  }
-
-  /* Кнопка слева, справа столкой: дата и source */
-  .objects-object-page .meta-runtime {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.45rem;
-    margin-top: 0.35rem;
-    min-width: 0;
-  }
-
-  .objects-object-page .meta-runtime-lines {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.2rem;
-    min-width: 0;
-    flex: 1 1 auto;
-  }
-
-  /* Время изменения / выполнения — компактнее */
-  .objects-object-page [id^="prop_changed:"],
-  .objects-object-page [id^="method_executed:"] {
-    font-size: 0.68rem;
-    font-weight: 500;
-    padding: 0.15rem 0.35rem;
-  }
-
-  /* Source: иконка маршрута + mono-блок (не badge) */
-  .objects-object-page .source-trace {
-    display: inline-flex;
-    align-items: flex-start;
-    gap: 0.35rem;
-    flex: 0 1 auto;
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  .objects-object-page .source-trace:has(> .source-trace-text:empty) {
-    display: none;
-  }
-
-  .objects-object-page .source-trace-icon {
-    flex: 0 0 auto;
-    margin-top: 0.2rem;
-    font-size: 0.72rem;
-    color: var(--bs-secondary-color, #6c757d);
-    opacity: 0.75;
-  }
-
-  .objects-object-page .source-trace-text {
-    flex: 1 1 auto;
-    min-width: 0;
-    max-width: 100%;
-    font-size: 0.75rem;
-    line-height: 1.35;
-    color: var(--bs-body-color);
-    background: rgba(var(--bs-secondary-rgb), 0.12);
-    border-radius: 0.25rem;
-    padding: 0.12rem 0.4rem;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-    text-align: left;
-  }
-
-  .property-list-input .property-list-empty {
-    color: var(--bs-secondary-color, #6c757d);
-    font-size: 0.875rem;
-  }
-
-  .objects-object-page .tab-content .table td,
-  .objects-object-page .tab-content .table th {
-    vertical-align: top;
-  }
-
-  /* Методы: имя по содержимому, кнопки справа, статус — на оставшееся место */
-  .objects-object-page .methods-table {
-    width: 100%;
-  }
-
-  .objects-object-page .methods-table > thead > tr > th:nth-last-child(3),
-  .objects-object-page .methods-table > tbody > tr > td:nth-last-child(3) {
-    width: 1%;
-  }
-
-  .objects-object-page .methods-table > tbody > tr > td:nth-last-child(3) .fw-semibold {
-    white-space: nowrap;
-  }
-
-  .objects-object-page .methods-table > thead > tr > th:nth-last-child(2),
-  .objects-object-page .methods-table > tbody > tr > td:nth-last-child(2) {
-    width: 100%;
-  }
-
-  .objects-object-page .methods-table > thead > tr > th:last-child,
-  .objects-object-page .methods-table > tbody > tr > td:last-child {
-    width: 1%;
-    white-space: nowrap;
-    text-align: right;
-  }
-
-  .objects-object-page > .object-main-col {
-    min-width: 0;
-    flex: 1 1 0;
-  }
-
-  .objects-object-page > .object-preview-col {
-    flex: 0 0 20rem;
-    max-width: 20rem;
-    min-width: 18rem;
-  }
-
-  .objects-object-page > .object-preview-resizer {
-    flex: 0 0 12px;
-    width: 12px;
-    cursor: col-resize;
-    user-select: none;
-    touch-action: none;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    background: transparent;
-    position: relative;
-  }
-
-  .objects-object-page > .object-preview-resizer::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    width: 1px;
-    transform: translateX(-50%);
-    background: rgba(var(--bs-secondary-rgb), 0.4);
-    opacity: 0.35;
-    transition: opacity 0.12s ease;
-  }
-
-  .objects-object-page > .object-preview-resizer:hover::after,
-  .objects-object-page > .object-preview-resizer.dragging::after {
-    opacity: 0.85;
-  }
-
-  @media (max-width: 991.98px) {
-    .objects-object-page > .object-main-col,
-    .objects-object-page > .object-preview-col {
-      flex: 0 0 100%;
-      max-width: 100%;
-      min-width: 0;
-    }
-
-    .objects-object-page > .object-preview-col {
-      margin-top: 1rem;
-    }
-
-    .objects-object-page > .object-preview-resizer {
-      display: none !important;
-    }
-
-    .objects-object-page .tab-content .table td:last-child,
-    .objects-object-page .tab-content .table th:last-child {
-      white-space: normal !important;
-      min-width: 210px;
-    }
-  }
-
-  @media (max-width: 767.98px) {
-    .objects-object-page .nav-tabs {
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      overflow-y: hidden;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
-      padding-bottom: 0.25rem;
-    }
-
-    .objects-object-page .nav-tabs .nav-item {
-      flex: 0 0 auto;
-    }
-
-    .objects-object-page .tab-with-action .nav-link {
-      padding-right: 2.3rem;
-    }
-
-    .objects-object-page .tab-with-action .tab-add-action {
-      right: 0.5rem;
-    }
-
-    .objects-object-page .tab-content .table {
-      font-size: 0.92rem;
-    }
-
-    .objects-object-page .tab-content .table td:last-child .btn,
-    .objects-object-page .tab-content .table th:last-child .btn {
-      margin-bottom: 0.35rem;
-    }
-
-    .objects-object-page .tab-content .table td:last-child .btn:last-child,
-    .objects-object-page .tab-content .table th:last-child .btn:last-child {
-      margin-bottom: 0;
-    }
-
-    .objects-object-page .tab-content .btn-group {
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      gap: 0.35rem;
-    }
-
-    .objects-object-page .properties-table thead,
-    .objects-object-page .methods-table thead {
-      display: none;
-    }
-
-    .objects-object-page .properties-table tbody tr,
-    .objects-object-page .methods-table tbody tr {
-      display: block;
-      border: 1px solid rgba(var(--bs-secondary-rgb), 0.3);
-      border-radius: 0.5rem;
-      margin-bottom: 0.45rem;
-      padding: 0.25rem;
-    }
-
-    .objects-object-page .properties-table tbody td,
-    .objects-object-page .properties-table tbody th,
-    .objects-object-page .methods-table tbody td,
-    .objects-object-page .methods-table tbody th {
-      display: block;
-      width: 100% !important;
-      border: 0 !important;
-      padding: 0.18rem 0.22rem;
-      white-space: normal !important;
-    }
-
-    .objects-object-page .properties-table tbody td:last-child,
-    .objects-object-page .methods-table tbody td:last-child {
-      margin-top: 0.2rem;
-      min-width: 0 !important;
-    }
-
-    .objects-object-page .properties-table .badge,
-    .objects-object-page .methods-table .badge {
-      font-size: 0.68rem !important;
-      padding: 0.22rem 0.4rem;
-    }
-
-    .objects-object-page .object-stats-card .card-body {
-      padding-top: 0.6rem !important;
-      padding-bottom: 0.6rem !important;
-    }
-  }
-
-  @media (max-width: 575.98px) {
-    .objects-object-page .tab-content .table td:last-child .btn,
-    .objects-object-page .tab-content .table th:last-child .btn {
-      width: 100%;
-      justify-content: center;
-    }
-
-    .objects-object-page .properties-table tbody td:last-child,
-    .objects-object-page .methods-table tbody td:last-child {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      gap: 0.3rem;
-    }
-
-    .objects-object-page .properties-table tbody td:last-child .btn,
-    .objects-object-page .methods-table tbody td:last-child .btn {
-      width: auto;
-      min-width: 2rem;
-      padding: 0.2rem 0.45rem;
-      font-size: 0.78rem;
-      margin-bottom: 0 !important;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .objects-object-page .btn i.me-2 {
-      margin-right: 0.4rem !important;
-    }
-  }
-
-  /* Hide by .active (set sync by Bootstrap), not .show (delayed by fade).
-     Using :not(.show) left panes with only .active stuck at display:none and
-     made Properties/Methods/... tabs appear dead after code edits / reloads. */
-  #myTabContent > .tab-pane:not(.active) {
-    display: none !important;
-  }
-
-  #tools .card {
-    border-color: rgba(var(--bs-secondary-rgb), 0.45) !important;
-  }
-
-  #tools .card-header {
-    border-bottom-color: rgba(var(--bs-secondary-rgb), 0.35);
-    background-color: rgba(var(--bs-secondary-rgb), 0.06);
-  }
-
-  #tools .card-body.d-flex {
-    align-items: flex-start;
-  }
-
-  #tools .card-body .btn {
-    flex: 0 0 auto;
-    width: auto;
-    align-self: auto;
-  }
-</style>
 <ul class="nav nav-tabs mb-3 align-items-center" id="configTabs" role="tablist">
     <li class="nav-item">
         <a class="nav-link tab-button{% if tab == ''%} active{%endif%}" id="general-tab" href="#general" data-bs-toggle="tab" role="tab" aria-controls="general" aria-selected="{{ 'true' if tab == '' else 'false' }}">{{ _('General')}}</a>
@@ -584,15 +268,21 @@
                             </div>
                         </td>
                         <td width="10%"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            {%if property.linked%}
-                            <p style="color: gray;margin: 0px;">
+                            {% set prop_history_link = render_property_history_link(property.name, property.history, id, memory_property_history_on) %}
+                            {% if prop_history_link|trim %}
+                            <div class="mb-1">{{ prop_history_link }}</div>
+                            {% endif %}
+                            {% if property.linked %}
+                            <div class="d-flex align-items-center flex-wrap gap-1" style="color: gray;">
+                                <i class="fas fa-link" aria-hidden="true"></i>
                                 {% for link in property.linked %}
-                                <a class="badge bg-success" href="/admin/{{link}}">{{link}}</a>
+                                <a class="badge bg-success" href="/admin/{{link}}">{{ link }}</a>
                                 {% endfor %}
-                            </p>
-                            {%endif%}
-                            {%if property.history%}<p style="color: gray;margin: 0px;"><a href="HistoryView?name={{property.name}}&object={{id}}" class="badge bg-warning text-dark">{{ _('History')}}: {{property.history}} {{ _('days')}}</a></p>{%endif%}
-                            {%if property.method%}<p style="color: gray;margin: 0px;"><span class="badge bg-primary">{{ _('Method')}}: {{property.method}}</span></p>{%endif%}
+                            </div>
+                            {% endif %}
+                            {% if property.method %}
+                            <div><span class="badge bg-primary">{{ _('Method') }}: {{ property.method }}</span></div>
+                            {% endif %}
                             {% if property.jobs%}
                                 {%for job in property.jobs%}
                                 <div class="d-flex align-items-center flex-nowrap gap-1" style="color: gray; margin: 0;">
@@ -713,9 +403,11 @@
                                 {% endif %}
                             </div>
                             <div class="meta-runtime">
+                                {% if memory_property_history_on %}
                                 <button type="button" class="btn btn-outline-secondary btn-sm" title="{{ _('Memory history') }}" onclick='openMemoryHistoryModal({property: {{ property.name|tojson }}})'>
                                     <i class="fas fa-memory"></i>
                                 </button>
+                                {% endif %}
                                 <div class="meta-runtime-lines">
                                     <span class="badge bg-secondary" id="prop_changed:{{form.name.data}}.{{property.name}}">{{property.changed}}</span>
                                     <span class="source-trace" title="{{ _('Source') }}">
@@ -846,9 +538,11 @@
                             {% endif%}
                             {% if not method.redefined %}
                             <div class="meta-runtime">
+                                {% if memory_method_history_on %}
                                 <button type="button" class="btn btn-outline-secondary btn-sm" title="{{ _('Memory history') }}" onclick='openMemoryHistoryModal({method: {{ method.name|tojson }}})'>
                                     <i class="fas fa-memory"></i>
                                 </button>
+                                {% endif %}
                                 <div class="meta-runtime-lines">
                                     <span class="badge bg-secondary" id="method_executed:{{form.name.data}}.{{method.name}}">{{method.executed}}</span>
                                     <span class="source-trace" title="{{ _('Source') }}">
@@ -956,9 +650,11 @@
                                 {% endfor %}
                             {% endif %}
                             <div class="meta-runtime">
+                                {% if memory_method_history_on %}
                                 <button type="button" class="btn btn-outline-secondary btn-sm" title="{{ _('Memory history') }}" onclick='openMemoryHistoryModal({method: {{ method.name|tojson }}})'>
                                     <i class="fas fa-memory"></i>
                                 </button>
+                                {% endif %}
                                 <div class="meta-runtime-lines">
                                     <span class="badge bg-secondary" id="method_executed:{{form.name.data}}.{{method.name}}">{{method.executed}}</span>
                                     <span class="source-trace" title="{{ _('Source') }}">
@@ -1026,9 +722,7 @@
                     {% endfor %}
                 </span>
                 {%endif%}
-                {% if prop.history > 0 %}
-                    <a href="HistoryView?name={{prop.name}}&object={{id}}" class="badge bg-warning text-dark">{{ _('History')}}: {{prop.history}} {{ _('days')}}</a>
-                {% endif %}
+                {{ render_property_history_link(prop.name, prop.history, id, memory_property_history_on) }}
                 {% if prop.method %}
                     <span class="badge bg-primary">↳ {{prop.method}}</span>
                 {% endif %}
@@ -1436,6 +1130,36 @@
 </div>
 
 {{ cron_builder_modal() }}
+
+<!-- Модалка графика истории свойства (встраивает HistoryView embed=chart) -->
+<div class="modal fade" id="propertyHistoryChartModal" tabindex="-1" aria-labelledby="propertyHistoryChartModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-fullscreen-lg-down property-history-chart-modal-dialog">
+        <div class="modal-content property-history-chart-modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title d-flex flex-wrap align-items-center gap-2" id="propertyHistoryChartModalTitle">
+                    <i class="fas fa-chart-area" aria-hidden="true"></i>
+                    <span id="propertyHistoryChartModalLabel">{{ _('Graph') }}</span>
+                    <span class="badge bg-secondary text-light d-none" id="propertyHistoryChartSourceBadge"></span>
+                </h5>
+                <div class="d-flex align-items-center gap-2 ms-auto me-2">
+                    <a class="btn btn-sm btn-outline-primary d-none" id="propertyHistoryChartFullLink" href="#" target="_blank" rel="noopener">
+                        <i class="fas fa-external-link-alt me-1" aria-hidden="true"></i>{{ _('Open full history') }}
+                    </a>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0 property-history-chart-modal-body">
+                <div id="propertyHistoryChartLoading" class="property-history-chart-loading" aria-live="polite">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">{{ _('Loading history') }}</span>
+                    </div>
+                    <span class="text-muted mt-2">{{ _('Loading history') }}</span>
+                </div>
+                <iframe id="propertyHistoryChartFrame" title="{{ _('Graph') }}" class="property-history-chart-frame d-none" loading="lazy"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Модальное окно истории конкретного свойства/метода в памяти -->
 <div class="modal fade" id="memoryHistoryModal" tabindex="-1" aria-labelledby="memoryHistoryModalTitle" aria-hidden="true">
@@ -3864,6 +3588,103 @@
             });
     }
 
+    var propertyHistoryChartObjectId = {{ id|tojson }};
+    var propertyHistoryChartLabels = {
+        graph: {{ _('Graph')|tojson }},
+        analytics: {{ _('Analytics')|tojson }},
+        table: {{ _('Table')|tojson }},
+        database: {{ _('Database')|tojson }},
+        memory: {{ _('Memory')|tojson }}
+    };
+
+    function setPropertyHistoryChartLoading(isLoading) {
+        var loadingEl = document.getElementById('propertyHistoryChartLoading');
+        var frame = document.getElementById('propertyHistoryChartFrame');
+        if (loadingEl) {
+            loadingEl.classList.toggle('d-none', !isLoading);
+        }
+        if (frame) {
+            frame.classList.toggle('d-none', isLoading);
+        }
+    }
+
+    window.openPropertyHistoryChartModal = function openPropertyHistoryChartModal(options) {
+        var modalEl = document.getElementById('propertyHistoryChartModal');
+        var frame = document.getElementById('propertyHistoryChartFrame');
+        var titleEl = document.getElementById('propertyHistoryChartModalLabel');
+        var badgeEl = document.getElementById('propertyHistoryChartSourceBadge');
+        var fullLink = document.getElementById('propertyHistoryChartFullLink');
+        if (!modalEl || !frame || typeof bootstrap === 'undefined') {
+            return;
+        }
+        options = options || {};
+        var propName = options.property;
+        if (!propName) {
+            return;
+        }
+        var objectId = options.objectId != null ? options.objectId : propertyHistoryChartObjectId;
+        var source = String(options.source || '').toLowerCase();
+        var view = String(options.view || 'graph').toLowerCase();
+        var sourceLabel = source === 'database'
+            ? propertyHistoryChartLabels.database
+            : propertyHistoryChartLabels.memory;
+        var viewLabel = propertyHistoryChartLabels.graph;
+        if (view === 'analytics') {
+            viewLabel = propertyHistoryChartLabels.analytics;
+        } else if (view === 'table') {
+            viewLabel = propertyHistoryChartLabels.table;
+        }
+
+        if (titleEl) {
+            titleEl.textContent = viewLabel + ': ' + memoryHistoryObjectName + '.' + propName;
+        }
+        if (badgeEl) {
+            badgeEl.textContent = sourceLabel;
+            badgeEl.classList.remove('d-none', 'bg-warning', 'text-dark', 'bg-secondary', 'text-light');
+            if (source === 'database') {
+                badgeEl.classList.add('bg-warning', 'text-dark');
+            } else {
+                badgeEl.classList.add('bg-secondary', 'text-light');
+            }
+        }
+        var fullUrl = 'HistoryView?name=' + encodeURIComponent(propName) + '&object=' + encodeURIComponent(objectId);
+        var embedUrl = fullUrl;
+        if (view === 'analytics') {
+            embedUrl = fullUrl + '&embed=analytics';
+        } else if (view === 'table') {
+            embedUrl = fullUrl + '&embed=table';
+        } else {
+            embedUrl = fullUrl + '&embed=chart';
+        }
+        modalEl.classList.toggle('property-history-chart-modal--scroll', view === 'analytics' || view === 'table');
+        if (fullLink) {
+            fullLink.href = fullUrl;
+            fullLink.classList.remove('d-none');
+        }
+        setPropertyHistoryChartLoading(true);
+        frame.src = embedUrl;
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    };
+
+    (function initPropertyHistoryChartModal() {
+        var modalEl = document.getElementById('propertyHistoryChartModal');
+        var frame = document.getElementById('propertyHistoryChartFrame');
+        if (!modalEl || !frame) {
+            return;
+        }
+        frame.addEventListener('load', function() {
+            if (!frame.src || frame.src === 'about:blank' || frame.src.indexOf('about:blank') !== -1) {
+                return;
+            }
+            setPropertyHistoryChartLoading(false);
+        });
+        modalEl.addEventListener('hidden.bs.modal', function() {
+            // Очищаем iframe, чтобы остановить подписки HistoryView
+            setPropertyHistoryChartLoading(true);
+            frame.src = 'about:blank';
+        });
+    })();
+
     // Для вызова из inline onclick (глобальная область)
     window.openMemoryHistoryModal = function openMemoryHistoryModal(options) {
         var modalEl = document.getElementById('memoryHistoryModal');
@@ -3952,369 +3773,6 @@
 
 </script>
 
-<style>
-    /* История в памяти — токены текущей UI-темы (как choices-theme.css) */
-    .memory-history-modal-dialog {
-        --bs-modal-width: min(96vw, 1400px);
-        --mh-bg: var(--cui-body-bg, var(--bs-modal-bg, var(--bs-body-bg)));
-        --mh-fg: var(--cui-body-color, var(--bs-modal-color, var(--bs-body-color)));
-        --mh-muted: var(--cui-secondary-color, var(--bs-secondary-color));
-        --mh-border: var(--cui-border-color, var(--bs-border-color));
-        --mh-border-soft: var(--bs-border-color-translucent, var(--mh-border));
-        --mh-surface: var(--cui-secondary-bg, var(--bs-secondary-bg));
-        --mh-surface-2: var(--cui-tertiary-bg, var(--bs-tertiary-bg));
-    }
-
-    .memory-history-modal-content {
-        border-color: var(--mh-border);
-        background-color: var(--mh-bg);
-        color: var(--mh-fg);
-    }
-
-    .memory-history-modal-content > .modal-header {
-        border-bottom-color: var(--mh-border);
-        background-color: var(--mh-surface-2);
-        color: var(--mh-fg);
-    }
-
-    .memory-history-modal-content > .modal-header .modal-title {
-        color: var(--mh-fg);
-    }
-
-    .memory-history-modal-content > .modal-footer {
-        border-top-color: var(--mh-border);
-        background-color: var(--mh-surface-2);
-    }
-
-    .memory-history-toolbar {
-        border-color: var(--mh-border) !important;
-        background-color: var(--mh-surface) !important;
-        color: var(--mh-fg);
-    }
-
-    /* Не наследовать огромный switch редактора свойств */
-    .memory-history-switch .form-check-input {
-        width: 2.2rem;
-        height: 1.15rem;
-        margin-top: 0.15rem;
-    }
-
-    .memory-history-switch .form-check-label {
-        margin-left: 0.35rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: var(--mh-fg);
-    }
-
-    .memory-history-table-wrap {
-        border: 1px solid var(--mh-border);
-        border-radius: 0.5rem;
-        overflow: hidden;
-        background: var(--mh-surface);
-    }
-
-    /* fit — по содержимому; fill — оставшаяся ширина (Source у свойств, Params у методов) */
-    .memory-history-table {
-        table-layout: auto;
-        width: 100%;
-        margin-bottom: 0;
-        color: var(--mh-fg);
-        --bs-table-bg: transparent;
-        --bs-table-color: var(--mh-fg);
-        --bs-table-hover-bg: var(--mh-surface-2);
-        --bs-table-hover-color: var(--mh-fg);
-        --bs-table-border-color: var(--mh-border-soft);
-    }
-
-    .memory-history-table > thead > tr > th {
-        vertical-align: middle;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.02em;
-        color: var(--mh-muted);
-        background-color: var(--mh-surface-2);
-        border-bottom-color: var(--mh-border);
-        white-space: nowrap;
-        padding: 0.55rem 0.75rem;
-    }
-
-    .memory-history-table > tbody > tr > td {
-        vertical-align: top;
-        padding: 0.55rem 0.75rem;
-        border-bottom-color: var(--mh-border-soft);
-        background-color: transparent;
-        color: var(--mh-fg);
-    }
-
-    .memory-history-table > tbody > tr:last-child > td {
-        border-bottom: 0;
-    }
-
-    .memory-history-table > tbody > tr:hover > td {
-        background-color: var(--mh-surface-2);
-        color: var(--mh-fg);
-    }
-
-    .memory-history-table .mh-col-fit {
-        width: 1%;
-    }
-
-    .memory-history-table .mh-col-fit.text-nowrap {
-        white-space: nowrap;
-    }
-
-    /* Длинный source у методов: своя доля ширины, без сжатия в 1 символ */
-    .memory-history-table .mh-col-source {
-        width: 32%;
-        min-width: 16rem;
-        max-width: 36rem;
-        word-break: normal;
-        overflow-wrap: break-word;
-    }
-
-    .memory-history-table .mh-col-fill {
-        width: auto;
-        min-width: 12rem;
-        word-break: break-word;
-        overflow-wrap: anywhere;
-    }
-
-    .memory-history-table .mh-col-duration {
-        width: 1%;
-        white-space: nowrap;
-        text-align: right;
-        vertical-align: top;
-    }
-
-    .memory-history-table .mh-time,
-    .memory-history-table .mh-duration {
-        font-size: 0.68rem;
-        font-weight: 500;
-        padding: 0.15rem 0.35rem;
-        font-variant-numeric: tabular-nums;
-    }
-
-    .memory-history-table .mh-value {
-        display: inline-block;
-        max-width: 100%;
-        font-size: 0.8125rem;
-        line-height: 1.35;
-        color: var(--mh-fg);
-        background: var(--mh-surface-2);
-        border: 1px solid var(--mh-border-soft);
-        border-radius: 0.25rem;
-        padding: 0.15rem 0.45rem;
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-    }
-
-    .memory-history-table .source-trace {
-        display: inline-flex;
-        align-items: flex-start;
-        gap: 0.35rem;
-        min-width: 0;
-        max-width: 100%;
-        width: 100%;
-    }
-
-    .memory-history-table .source-trace-icon {
-        flex: 0 0 auto;
-        margin-top: 0.2rem;
-        font-size: 0.72rem;
-        color: var(--mh-muted);
-        opacity: 0.85;
-    }
-
-    .memory-history-table .source-trace-text {
-        flex: 1 1 auto;
-        min-width: 0;
-        max-width: 100%;
-        font-size: 0.75rem;
-        line-height: 1.35;
-        color: var(--mh-fg);
-        background: var(--mh-surface-2);
-        border: 1px solid var(--mh-border-soft);
-        border-radius: 0.25rem;
-        padding: 0.12rem 0.4rem;
-        white-space: normal;
-        /* перенос по пробелам / "->", не по каждому символу */
-        overflow-wrap: break-word;
-        word-break: normal;
-        text-align: left;
-    }
-
-    .memory-history-table .memory-history-empty td {
-        padding: 1.25rem 0.75rem;
-        color: var(--mh-muted);
-    }
-
-    @media (max-width: 767.98px) {
-        .memory-history-table thead {
-            display: none;
-        }
-
-        .memory-history-table tbody tr {
-            display: block;
-            border: 1px solid var(--mh-border);
-            border-radius: 0.5rem;
-            margin: 0.45rem;
-            padding: 0.25rem;
-            background: var(--mh-surface);
-        }
-
-        .memory-history-table tbody tr.memory-history-empty {
-            border: 0;
-            margin: 0;
-            padding: 0;
-            background: transparent;
-        }
-
-        .memory-history-table tbody td {
-            display: block;
-            width: 100% !important;
-            border: 0 !important;
-            padding: 0.35rem 0.5rem !important;
-        }
-
-        .memory-history-table tbody td::before {
-            content: attr(data-label);
-            display: block;
-            font-size: 0.68rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
-            color: var(--mh-muted);
-            margin-bottom: 0.15rem;
-        }
-
-        .memory-history-table tbody tr.memory-history-empty td::before {
-            display: none;
-        }
-
-        .memory-history-table-wrap {
-            border: 0;
-            background: transparent;
-            overflow: visible;
-        }
-    }
-
-    .property-editor {
-        margin-bottom: 1rem;
-        transition: opacity 0.2s ease-in-out;
-    }
-    
-    .property-editor input,
-    .property-editor select,
-    .property-editor textarea {
-        font-size: 1rem;
-        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    }
-    
-    .property-editor input:focus,
-    .property-editor select:focus,
-    .property-editor textarea:focus {
-        border-color: var(--bs-primary);
-        box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
-    }
-    
-    .property-editor .form-text {
-        margin-top: 0.5rem;
-        font-size: 0.875rem;
-        color: var(--bs-secondary-color);
-    }
-    
-    
-    .form-check-input {
-        width: 3rem;
-        height: 1.5rem;
-        cursor: pointer;
-        transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
-    }
-    
-    .form-check-label {
-        cursor: pointer;
-        margin-left: 0.5rem;
-        font-size: 1.1rem;
-        font-weight: 500;
-        user-select: none;
-    }
-    
-    #errorMessage {
-        margin-bottom: 0;
-        word-wrap: break-word;
-        animation: shake 0.5s;
-    }
-    
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-        20%, 40%, 60%, 80% { transform: translateX(5px); }
-    }
-    
-    #propertyDescription {
-        font-style: italic;
-        padding: 0.75rem;
-        background-color: rgba(var(--bs-primary-rgb), 0.1);
-        border-left: 3px solid var(--bs-primary);
-        border-radius: 0.375rem;
-        margin-bottom: 1rem;
-        color: var(--bs-body-color);
-    }
-       
-    .spinner-border-sm {
-        width: 1rem;
-        height: 1rem;
-    }
-    
-    /* Стиль для JSON редактора */
-    #value-json {
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 0.9rem;
-        line-height: 1.5;
-    }
-    
-    /* Плавные переходы для модального окна */
-    .modal.fade .modal-dialog {
-        transition: transform 0.3s ease-out;
-    }
-
-    /* Цветовая индикация для модального окна */
-    .modal-content {
-        transition: border-left-color 0.3s ease;
-    }
-
-    /* Цветовой фон для строк свойств */
-    /* Никаких спец-классов и переменных, используем только inline background-color на <tr> */
-    
-    /* Стили для неактивных задач */
-    .task-inactive > td,
-    .task-inactive > th {
-        text-decoration: line-through;
-        color: var(--bs-secondary-color);
-    }
-    .task-inactive p {
-        text-decoration: line-through;
-        color: var(--bs-secondary-color);
-    }
-    .task-inactive .badge {
-        text-decoration: none;
-    }
-    /* Кнопки управления не должны быть затронуты стилями неактивных задач - они остаются полностью видимыми */
-    .task-inactive .btn {
-        text-decoration: none !important;
-        opacity: 1 !important;
-        color: inherit !important;
-    }
-    /* Явно исключаем колонку с кнопками из стилей неактивных задач */
-    .task-inactive td:last-child,
-    .task-inactive th:last-child {
-        text-decoration: none !important;
-        opacity: 1 !important;
-        color: inherit !important;
-    }
-</style>
 <script>
     function toggleScheduleActive(taskId, enable, tab) {
         var endpoint = enable ? '/api/Scheduler/task/' + taskId + '/enable' : '/api/Scheduler/task/' + taskId + '/disable';
@@ -4381,4 +3839,47 @@
 {% block javascripts %}
 {{ super() }}
 <script src="{{ url_for('Objects.static', filename='choices/choices.min.js') }}"></script>
+<script src="{{ url_for('Objects.static', filename='js/object-property-history.js') }}?v=2"></script>
+<script>
+/* Fallback, если static js не загрузился */
+(function () {
+  if (typeof window.__phToggleMenu === "function") return;
+  var openMenu = null, openToggle = null;
+  function restore(menu) {
+    if (menu && menu._phHome && menu.parentElement !== menu._phHome) menu._phHome.appendChild(menu);
+    if (menu) menu._phHome = null;
+  }
+  function closeMenu() {
+    if (openMenu) { openMenu.classList.remove("is-open"); openMenu.style.left = ""; openMenu.style.top = ""; restore(openMenu); openMenu = null; }
+    if (openToggle) { openToggle.classList.remove("is-open"); openToggle.setAttribute("aria-expanded", "false"); openToggle = null; }
+  }
+  window.__phToggleMenu = function (event, toggle) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    if (!toggle) return;
+    var root = toggle.closest(".property-history-dropdown");
+    var menu = root && root.querySelector(".property-history-menu");
+    if (!menu) return;
+    if (openToggle === toggle) { closeMenu(); return; }
+    closeMenu();
+    openMenu = menu; openToggle = toggle;
+    toggle.classList.add("is-open"); toggle.setAttribute("aria-expanded", "true");
+    menu._phHome = root; document.body.appendChild(menu);
+    var rect = toggle.getBoundingClientRect();
+    menu.classList.add("is-open");
+    var w = menu.offsetWidth || 180, h = menu.offsetHeight || 120;
+    var left = Math.min(Math.max(8, rect.right - w), window.innerWidth - w - 8);
+    var top = rect.bottom + 2;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, rect.top - h - 2);
+    menu.style.left = left + "px"; menu.style.top = top + "px";
+  };
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("[data-ph-toggle]")) return;
+    if (e.target.closest(".property-history-menu")) { setTimeout(closeMenu, 0); return; }
+    closeMenu();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeMenu(); });
+  window.addEventListener("scroll", closeMenu, true);
+  window.addEventListener("resize", closeMenu);
+})();
+</script>
 {% endblock %}
