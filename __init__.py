@@ -21,14 +21,20 @@ class Objects(BasePlugin):
     def __init__(self,app):
         super().__init__(app,__name__)
         self.title = "Objects"
-        self.version = "1.13"
+        self.version = "1.24"
         self.description = """Objects editor"""
         self.actions = ["search", "widget"]
         self.category = "System"
         self.author = "Eraser"
 
     def initialization(self):
-        pass
+        @self._app.context_processor
+        def _inject_protected_object_names():
+            from app.core.lib.object import getProtectedObjectNames, getProtectedClassNames
+            return {
+                "protected_object_names": sorted(getProtectedObjectNames()),
+                "protected_class_names": sorted(getProtectedClassNames()),
+            }
 
     def admin(self, request):
         args = request.args

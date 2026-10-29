@@ -74,6 +74,58 @@ def normalize_params_json(params_str):
     
     return None
 
+
+def parse_params_dict(raw):
+    """Разбирает params из JSON-строки/dict в dict."""
+    if not raw:
+        return {}
+    if isinstance(raw, dict):
+        return dict(raw)
+    try:
+        parsed = json.loads(raw) if isinstance(raw, str) else raw
+        return dict(parsed) if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
+
+
+def is_params_protected(raw):
+    """True если params.protected."""
+    return bool(parse_params_dict(raw).get('protected'))
+
+
+def is_property_effectively_protected(item, class_owner=None):
+    """True если свойство или одноимённый предок в классе protected."""
+    if not item:
+        return False
+    if is_params_protected(getattr(item, 'params', None)):
+        return True
+    if not class_owner:
+        return False
+    name = getattr(item, 'name', None)
+    if not name:
+        return False
+    # для свойства класса — предки; для свойства объекта — весь класс объекта
+    start_id = class_owner.parent_id if getattr(item, 'class_id', None) else class_owner.id
+    if not start_id:
+        return False
+    for parent in getPropertiesParents(start_id, []):
+        if parent.get('name') == name and is_params_protected(parent.get('params')):
+            return True
+    return False
+
+
+def merge_preserve_protected(form_params_json, existing_raw):
+    """Сохраняет protected из БД; из формы флаг игнорируется."""
+    existing = parse_params_dict(existing_raw)
+    form_dict = parse_params_dict(form_params_json) if form_params_json else {}
+    form_dict.pop('protected', None)
+    if existing.get('protected'):
+        form_dict['protected'] = True
+    if not form_dict:
+        return None
+    return json.dumps(form_dict)
+
+
 def routeProperty(request):
     def _norm_method_id(value):
         if value in (None, '', 'None', 'null'):
@@ -88,9 +140,17 @@ def routeProperty(request):
     if not checkPermission(class_id, object_id, None, id):
         abort(403)  # Возвращаем ошибку "Forbidden" если доступ запрещен
 
+    # redefine защищённого классового свойства запрещён
+    if op == 'redefine' and id:
+        src = Property.query.get(id)
+        if src and is_params_protected(src.params):
+            abort(403)
+
     if op == 'delete':
         if object_id:
             prop_o = Property.query.filter(Property.object_id == object_id, Property.id == id).one_or_none()
+            if prop_o and is_params_protected(prop_o.params):
+                abort(403)
             name = prop_o.name
             # Удаляем Value и History только если в цепочке классов (включая предков) нет
             # такого же свойства: при снятии override объект будет использовать свойство
@@ -116,6 +176,8 @@ def routeProperty(request):
             db.session.commit()
         else:
             prop = Property.query.filter(Property.class_id == class_id, Property.id == id).one_or_none()
+            if prop and is_params_protected(prop.params):
+                abort(403)
             prop_name = prop.name if prop else None
             obj_names = []
             if prop:
@@ -189,16 +251,28 @@ def routeProperty(request):
                 prop.method_id = int(form.method_id.data) if form.method_id.data else None
                 prop.history = form.history.data
                 prop.type = form.type.data
-                prop.params = normalize_params_json(form.params.data)
+                prop.params = merge_preserve_protected(
+                    normalize_params_json(form.params.data), item.params)
                 db.session.add(prop)
                 item = prop
             else:
                 old_type = item.type
                 property_name = item.name
                 old_name = item.name
+                existing_params = item.params
+                was_protected = is_property_effectively_protected(item, class_owner)
+                if was_protected and form.name.data != old_name:
+                    abort(403)
+                if was_protected and (form.type.data or '') != (old_type or ''):
+                    abort(403)
                 form.populate_obj(item)  # Обновляем значения объекта данными из формы
                 item.method_id = int(form.method_id.data) if form.method_id.data else None
-                item.params = normalize_params_json(form.params.data)
+                # при override не даём снять protected, унаследованный от класса
+                parent_params_for_merge = existing_params
+                if was_protected and not is_params_protected(existing_params):
+                    parent_params_for_merge = json.dumps({"protected": True})
+                item.params = merge_preserve_protected(
+                    normalize_params_json(form.params.data), parent_params_for_merge)
                 if old_name != item.name and object_id:
                     db.session.query(Value).filter(Value.object_id == object_id, Value.name == old_name).update({'name': item.name})
                 if old_name != item.name and class_id and not object_id:
@@ -209,7 +283,8 @@ def routeProperty(request):
                 if object_owner and old_name != item.name:
                     objects_storage.changeObject("rename", object_owner.name, old_name, None, item.name)
         else:
-            params_data = normalize_params_json(form.params.data)
+            params_data = merge_preserve_protected(
+                normalize_params_json(form.params.data), None)
             item = Property(
                 name=form.name.data,
                 description=form.description.data,
@@ -299,6 +374,9 @@ def routeProperty(request):
                     'params_raw': parent_source.params or '',
                 }
 
+    name_readonly = bool(
+        id and item and is_property_effectively_protected(item, class_owner)
+    )
     content = {
         'id': id,
         'form':form,
@@ -307,5 +385,7 @@ def routeProperty(request):
         'parent_property': parent_property,
         'current_method_id_norm': _norm_method_id(form.method_id.data),
         'class_hierarchy': get_class_hierarchy(class_owner.id if class_owner else None),
+        'name_readonly': name_readonly,
+        'is_protected': name_readonly,
     }
     return render_template('property.html', **content)

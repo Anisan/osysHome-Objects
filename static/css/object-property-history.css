@@ -1,0 +1,179 @@
+/* Property history badge + chart modal */
+
+.property-history-dropdown {
+  display: inline;
+}
+
+.property-history-badge {
+  display: inline-flex !important;
+  align-items: stretch;
+  vertical-align: baseline;
+  font-weight: 700 !important;
+  margin: 0;
+  padding: 0 !important;
+  line-height: 1;
+}
+
+.property-history-badge-main,
+.property-history-badge-link {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  line-height: 1 !important;
+  padding: 0.35em 0.65em;
+  cursor: pointer;
+}
+
+.property-history-badge-main {
+  padding-right: 0.5em;
+}
+
+.property-history-badge-link {
+  padding-left: 0.45em;
+  padding-right: 0.55em;
+}
+
+.property-history-badge-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 0.2em 0;
+  background: currentColor;
+  opacity: 0.35;
+  flex: 0 0 1px;
+}
+
+.property-history-badge-main:hover,
+.property-history-badge-link:hover,
+.property-history-badge-main:focus-visible,
+.property-history-badge-link:focus-visible,
+.property-history-badge-link.is-open {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  outline: none;
+  color: inherit !important;
+}
+
+.property-history-badge.bg-secondary .property-history-badge-main:hover,
+.property-history-badge.bg-secondary .property-history-badge-link:hover,
+.property-history-badge.bg-secondary .property-history-badge-main:focus-visible,
+.property-history-badge.bg-secondary .property-history-badge-link:focus-visible,
+.property-history-badge.bg-secondary .property-history-badge-link.is-open {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.property-history-menu {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  min-width: 11rem;
+  margin: 0;
+  padding: 0.35rem 0;
+  list-style: none;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--bs-body-color, #212529);
+  background-color: var(--bs-body-bg, #fff);
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  border-radius: 0.375rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.2);
+}
+
+.property-history-menu.is-open {
+  display: block;
+}
+
+.property-history-menu .dropdown-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  clear: both;
+  text-align: inherit;
+  white-space: nowrap;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.property-history-menu .dropdown-item:hover,
+.property-history-menu .dropdown-item:focus {
+  background-color: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.1);
+  color: inherit;
+}
+
+.property-history-chart-modal-dialog {
+  --bs-modal-width: min(96vw, 1400px);
+}
+
+.property-history-chart-modal-content {
+  height: min(92vh, 900px);
+  display: flex;
+  flex-direction: column;
+}
+
+.property-history-chart-modal-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Аналитика/таблица: скролл внутри iframe (документ embed выше окна) */
+.property-history-chart-modal--scroll .property-history-chart-modal-body {
+  overflow: hidden;
+}
+
+.property-history-chart-modal--scroll .property-history-chart-frame {
+  /* iframe занимает тело; прокрутка — у документа HistoryView */
+  overflow: auto;
+}
+
+.property-history-chart-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bs-body-bg, #fff);
+}
+
+.property-history-chart-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  background: var(--bs-body-bg, #fff);
+}
+
+@media (max-width: 767.98px) {
+  .objects-object-page .properties-table .property-history-badge,
+  .objects-object-page .methods-table .property-history-badge {
+    padding: 0 !important;
+  }
+
+  .objects-object-page .properties-table .property-history-badge-main,
+  .objects-object-page .properties-table .property-history-badge-link,
+  .objects-object-page .methods-table .property-history-badge-main,
+  .objects-object-page .methods-table .property-history-badge-link {
+    padding: 0.22rem 0.4rem;
+    font-size: 0.68rem;
+  }
+}

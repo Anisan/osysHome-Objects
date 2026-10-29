@@ -9,6 +9,7 @@ from app.core.main.ObjectsStorage import objects_storage
 from plugins.Objects.forms.utils import checkPermission, getClassId, get_objects_for_class_tree
 from app.core.lib.object_tree import invalidate_objects_tree_cache
 from app.core.lib.object_db import delete_object_from_db, delete_objects_by_class, cleanup_orphan_records
+from app.core.lib.object import isClassProtected
 
 _NAME_RE = re.compile(r'^[^\s.]+$')
 _MAX_BULK_CREATE = 100
@@ -123,6 +124,8 @@ def _delete_class(class_id: int):
     cls = Class.query.get(class_id)
     if not cls:
         return jsonify({'success': False, 'message': 'Class not found'}), 404
+    if isClassProtected(class_id=class_id):
+        return jsonify({'success': False, 'message': 'Class is protected'}), 403
 
     children_count = Class.query.filter(Class.parent_id == class_id).count()
     objects_count = Object.query.filter(Object.class_id == class_id).count()

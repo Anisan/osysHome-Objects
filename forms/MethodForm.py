@@ -1,7 +1,9 @@
 from flask import redirect, render_template, abort
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, RadioField, BooleanField
-from plugins.Objects.forms.PropertyForm import normalize_params_json
+from plugins.Objects.forms.PropertyForm import (
+    normalize_params_json, is_params_protected, merge_preserve_protected,
+)
 from wtforms.validators import DataRequired, ValidationError
 from sqlalchemy import delete
 
@@ -9,7 +11,10 @@ from app.core.models.Clasess import Class, Object, Method, Property
 from app.core.lib.common import getJob, addCronJob, clearScheduledJob
 from app.database import db
 from app.core.main.ObjectsStorage import objects_storage
-from plugins.Objects.forms.utils import no_spaces_or_dots, get_class_hierarchy, checkPermission, getClassId, getObjectId, get_method_inheritance_chain
+from plugins.Objects.forms.utils import (
+    no_spaces_or_dots, get_class_hierarchy, checkPermission, getClassId, getObjectId,
+    get_method_inheritance_chain, getMethodsParents,
+)
 from app.database import parse_int_id
 
 
@@ -55,8 +60,32 @@ def routeMethod(request):
     else:
         class_owner = Class.get_by_id(class_id)
 
+    def _method_effectively_protected(method_rec):
+        """True если метод или одноимённый предок в классе protected."""
+        if not method_rec:
+            return False
+        if is_params_protected(method_rec.params):
+            return True
+        if not class_owner:
+            return False
+        start_id = class_owner.parent_id if method_rec.class_id else class_owner.id
+        if not start_id:
+            return False
+        for parent in getMethodsParents(start_id, []):
+            if parent.get('name') == method_rec.name and is_params_protected(parent.get('params')):
+                return True
+        return False
+
+    # redefine защищённого классового метода запрещён
+    if op == 'redefine' and id:
+        src = Method.query.get(id)
+        if src and is_params_protected(src.params):
+            abort(403)
+
     if op == 'delete':
         method_rec = Method.query.get(id) if id else None
+        if method_rec and is_params_protected(method_rec.params):
+            abort(403)
         method_name = method_rec.name if method_rec else None
         db.session.query(Property).filter(Property.method_id == id).update(
             {Property.method_id: None}, synchronize_session='fetch',
@@ -104,14 +133,23 @@ def routeMethod(request):
                 method.description = form.description.data
                 method.code = form.code.data
                 method.call_parent = form.call_parent.data
-                method.params = normalize_params_json(form.params.data)
+                method.params = merge_preserve_protected(
+                    normalize_params_json(form.params.data), item.params)
                 db.session.add(method)
                 db.session.commit()
                 id = method.id
             else:
                 old_name = item.name
+                existing_params = item.params
+                was_protected = _method_effectively_protected(item)
+                if was_protected and form.name.data != old_name:
+                    abort(403)
                 form.populate_obj(item)  # Обновляем значения объекта данными из формы
-                item.params = normalize_params_json(form.params.data)
+                parent_params_for_merge = existing_params
+                if was_protected and not is_params_protected(existing_params):
+                    parent_params_for_merge = '{"protected": true}'
+                item.params = merge_preserve_protected(
+                    normalize_params_json(form.params.data), parent_params_for_merge)
                 if object_owner and old_name != item.name:
                     objects_storage.changeObject("rename", object_owner.name, None, old_name, item.name)
         else:
@@ -120,7 +158,8 @@ def routeMethod(request):
                 description=form.description.data,
                 code=form.code.data,
                 call_parent=form.call_parent.data,
-                params=normalize_params_json(form.params.data),
+                params=merge_preserve_protected(
+                    normalize_params_json(form.params.data), None),
             )
             if class_id:
                 item.class_id = class_id
@@ -164,6 +203,7 @@ def routeMethod(request):
                 redefine_source_id=id if is_redefine else None,
             )
 
+    name_readonly = bool(id and item and _method_effectively_protected(item))
     content = {
         'id': id,
         'form':form,
@@ -172,5 +212,7 @@ def routeMethod(request):
         'saved': saved,
         'method_inheritance_chain': method_inheritance_chain,
         'class_hierarchy': get_class_hierarchy(class_owner.id if class_owner else None),
+        'name_readonly': name_readonly,
+        'is_protected': name_readonly,
     }
     return render_template('method.html', **content)

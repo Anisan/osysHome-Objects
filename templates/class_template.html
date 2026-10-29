@@ -1,7 +1,13 @@
 {% set children_count = class.children_count|default(class.children|length if class.children is defined else 0) %}
 {% set objects_count = class.objects_count|default(class.objects|length if class.objects is defined else 0) %}
-<div class="card mb-1 ml-2 class-card object-tree-card shadow-sm" data-class-id="{{ class.id }}" data-class-name="{{ class.name|e }}" data-search="{{ class.name }} {{ class.description }}">
-  <div class="card-header d-flex justify-content-between align-items-start gap-2 py-2">
+{% set _color = class.color|lower if class.color else '' %}
+{% if _color in ['#000', '#000000', 'black'] %}
+  {% set row_bg = '' %}
+{% else %}
+  {% set row_bg = _color ~ '26' if _color else '' %}
+{% endif %}
+<div class="card mb-1 ml-2 class-card object-tree-card shadow-sm" data-class-id="{{ class.id }}" data-class-name="{{ class.name|e }}" data-search="{{ class.name }} {{ class.description }}"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+  <div class="card-header d-flex justify-content-between align-items-start gap-2 py-2"{% if row_bg %} style="background-color: transparent;"{% endif %}>
     <button
       type="button"
       class="btn btn-link text-decoration-none text-reset p-0 flex-grow-1 text-start class-toggle"
@@ -11,13 +17,22 @@
       aria-controls="collapse{{ class.id }}"
     >
       <div class="d-flex align-items-start">
+        {% if class.icon %}
+          {% if ':' in class.icon %}
+            <iconify-icon icon="{{ class.icon }}" class="mt-1 me-1" style="font-size:1.25rem;{% if row_bg %}color: {{ class.color }};{% endif %}" title="{{ _('Class icon') }}"></iconify-icon>
+          {% else %}
+            <i class="{{ class.icon }} mt-1 me-1 fs-5"{% if row_bg %} style="color: {{ class.color }};"{% endif %} title="{{ _('Class icon') }}"></i>
+          {% endif %}
+        {% else %}
         <i class="fas fa-folder text-warning mt-1 me-1 fs-5"></i>
+        {% endif %}
         <div class="px-2">
           <div class="d-flex align-items-center flex-wrap gap-2">
             {% if show_id %}
             <span class="badge bg-secondary text-light" style="font-size:0.65rem;">ID: {{ class.id }}</span>
             {% endif %}
             <span class="fw-semibold class-name" data-original-text="{{ class.name }}">{{ class.name }}</span>
+            {% if class.protected %}<span class="badge bg-warning text-dark" title="{{ _('Protected')}}"><i class="fas fa-lock"></i></span>{% endif %}
             <i class="fas fa-spinner fa-spin text-primary d-none" data-role="branch-loader" aria-hidden="true"></i>
           </div>
           <small
@@ -52,10 +67,12 @@
           <li><a class="dropdown-item" href="?view=class&class={{class.id}}&tab=objects"><i class="feather icon-grid me-2"></i>{{ _('Objects')}}</a></li>
           <li><a class="dropdown-item" href="?view=class&class={{class.id}}&tab=template"><i class="fa-solid fa-paintbrush me-2"></i>{{ _('Template')}}</a></li>
           <li><a class="dropdown-item" href="?view=class&class={{class.id}}&tab=permissions"><i class="fa-solid fa-shield me-2"></i>{{ _('Permissions')}}</a></li>
+          {% if not class.protected %}
           <li class="class-delete-divider{% if children_count or objects_count %} d-none{% endif %}"><hr class="dropdown-divider"></li>
           <li class="class-delete-menu-item{% if children_count or objects_count %} d-none{% endif %}">
             <button type="button" class="dropdown-item text-danger class-delete-action" data-class-id="{{ class.id }}" data-class-name="{{ class.name|e }}"><i class="feather icon-trash me-2"></i>{{ _('Delete')}}</button>
           </li>
+          {% endif %}
         </ul>
       </div>
     </div>

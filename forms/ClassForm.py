@@ -9,9 +9,12 @@ from app.core.models.Clasess import Class, Property, Method, Object
 from app.database import db, row2dict
 from plugins.Objects.forms.utils import getMethodsParents, getPropertiesParents, getTemplatesParents, get_class_hierarchy, get_objects_for_class_tree, no_spaces_or_dots, ValidationError, checkPermission, getClassId, normalize_call_parent
 from app.core.main.ObjectsStorage import objects_storage
-from app.core.lib.object import getObject
+from app.core.lib.object import getObject, isObjectProtected, isClassProtected
 from app.core.lib.object_tree import invalidate_objects_tree_cache
 from app.core.lib.object_db import delete_objects_by_class, cleanup_orphan_records
+from plugins.Objects.forms.PropertyForm import (
+    is_params_protected, normalize_params_json, merge_preserve_protected, parse_params_dict,
+)
 
 # Определение класса формы
 class ClassForm(FlaskForm):
@@ -20,6 +23,7 @@ class ClassForm(FlaskForm):
     description = StringField('Description')
     parent_id = SelectField("Parent", validators=[Optional()])
     template = TextAreaField("Template", render_kw={"rows": 15})
+    params = TextAreaField("Parameters (JSON)")
     submit = SubmitField('Submit')
 
     def validate_name(self, name):
@@ -51,9 +55,11 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
     properties = [row2dict(prop) for prop in properties]
     parent_properties = []
     parent_property_names = set()
+    parent_properties_by_name = {}
     if item.parent_id:
         parent_props = getPropertiesParents(item.parent_id, parent_properties)
-        parent_property_names = {prop['name'] for prop in parent_props}
+        parent_properties_by_name = {prop['name']: prop for prop in parent_props}
+        parent_property_names = set(parent_properties_by_name)
         # исключить переопределенные
         parent_properties = [prop for prop in parent_props if prop['name'] not in [subitem['name'] for subitem in properties]]
     
@@ -82,6 +88,9 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
             method['parent_method_id'] = parent_method['id']
             method['parent_class_id'] = parent_method['class_id']
             method['parent_class_name'] = parent_method.get('class_name')
+            # protected родителя распространяется на override в дочернем классе
+            if is_params_protected(parent_method.get('params')):
+                method['protected'] = True
         method['call_parent'] = normalize_call_parent(method.get('call_parent'))
     
     def _safe_parse_params(raw_params):
@@ -116,6 +125,10 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
         method['icon'] = params.get('icon', '')
         method['color'] = params.get('color', '')
         method['sort_order'] = params.get('sort_order')
+        if bool(params.get('protected', False)):
+            method['protected'] = True
+        else:
+            method['protected'] = bool(method.get('protected', False))
 
     for idx, method in enumerate(parent_methods):
         method['_idx'] = idx
@@ -124,6 +137,7 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
         method['icon'] = params.get('icon', '')
         method['color'] = params.get('color', '')
         method['sort_order'] = params.get('sort_order')
+        method['protected'] = bool(params.get('protected', False))
 
     methods.sort(
         key=lambda m: (
@@ -152,6 +166,12 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
         prop['icon'] = params.get('icon', '')
         prop['color'] = params.get('color', '')
         prop['sort_order'] = params.get('sort_order')
+        prop['protected'] = bool(params.get('protected', False))
+        # protected родителя распространяется на override в дочернем классе
+        if prop.get('overrides_parent'):
+            parent_prop = parent_properties_by_name.get(prop['name'])
+            if parent_prop and is_params_protected(parent_prop.get('params')):
+                prop['protected'] = True
         prop['params'] = params
 
     for idx, prop in enumerate(parent_properties):
@@ -166,6 +186,7 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
         prop['icon'] = params.get('icon', '')
         prop['color'] = params.get('color', '')
         prop['sort_order'] = params.get('sort_order')
+        prop['protected'] = bool(params.get('protected', False))
         prop['params'] = params
 
     # Сортируем: сначала по sort_order (если задан), затем по исходному порядку
@@ -185,11 +206,18 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
     query = Object.query.filter(Object.class_id == class_id)
     if current_user.role not in ['admin','root']:
         query = query.filter(Object.name.notlike(r'\_%', escape='\\'))
-    objects = query.order_by(Object.name).all()
-    objects = [
-        {'id': obj.id, 'name': obj.name, 'description': obj.description, 'template': getObject(obj.name).render() if getObject(obj.name) and config.get("render", None) else ''}
-        for obj in objects
-    ]
+    objects = []
+    for obj in query.order_by(Object.name).all():
+        obj_params = parse_params_dict(getattr(obj, 'params', None))
+        objects.append({
+            'id': obj.id,
+            'name': obj.name,
+            'description': obj.description,
+            'protected': isObjectProtected(obj.name),
+            'icon': obj_params.get('icon', ''),
+            'color': obj_params.get('color', ''),
+            'template': getObject(obj.name).render() if getObject(obj.name) and config.get("render", None) else '',
+        })
     
     templates = {}
     if item.parent_id:
@@ -205,10 +233,14 @@ def _load_child_classes(class_id):
     children = query.order_by(Class.name).all()
     child_classes = []
     for child in children:
+        child_params = parse_params_dict(getattr(child, 'params', None))
         child_classes.append({
             'id': child.id,
             'name': child.name,
             'description': child.description,
+            'protected': bool(child_params.get('protected')),
+            'icon': child_params.get('icon', ''),
+            'color': child_params.get('color', ''),
             'children_count': Class.query.filter(Class.parent_id == child.id).count(),
             'objects_count': Object.query.filter(Object.class_id == child.id).count(),
         })
@@ -227,6 +259,8 @@ def routeClass(request, config):
         abort(403)  # Возвращаем ошибку "Forbidden" если доступ запрещен
 
     if op == 'delete':
+        if isClassProtected(class_id=id):
+            abort(403)
         deleted_names = delete_objects_by_class(id)
         sql = delete(Property).where(Property.class_id == id)
         db.session.execute(sql)
@@ -269,18 +303,32 @@ def routeClass(request, config):
         if parent_class_id and checkPermission(parent_class_id):
             form.parent_id.data = str(parent_class_id)
     old_name = ""
+    old_parent_id = None
     if id:
         old_name = item.name
+        old_parent_id = item.parent_id
     saved = False
     if form.validate_on_submit():
         if id:
+            class_protected = is_params_protected(getattr(item, 'params', None))
+            existing_params = item.params
+            new_name = (form.name.data or "").strip()
+            new_parent_id = int(form.parent_id.data) if form.parent_id.data else None
+            if class_protected and new_name != old_name:
+                abort(403)
+            if class_protected and new_parent_id != old_parent_id:
+                abort(403)
             form.populate_obj(item)  # Обновляем значения объекта данными из формы
-            item.parent_id = int(form.parent_id.data) if form.parent_id.data else None
+            item.parent_id = new_parent_id
+            item.params = merge_preserve_protected(
+                normalize_params_json(form.params.data), existing_params)
         else:
             item = Class(
                 name=form.name.data,
                 description=form.description.data,
-                parent_id=int(form.parent_id.data) if form.parent_id.data else None
+                parent_id=int(form.parent_id.data) if form.parent_id.data else None,
+                params=merge_preserve_protected(
+                    normalize_params_json(form.params.data), None),
             )
             db.session.add(item)
         db.session.commit()  # Сохраняем изменения в базе данных
@@ -320,6 +368,7 @@ def routeClass(request, config):
         child_classes = _load_child_classes(id)
         children_count = len(child_classes)
 
+    class_protected = bool(item and is_params_protected(getattr(item, 'params', None)))
     content = {
         'id': id,
         'form':form,
@@ -335,5 +384,8 @@ def routeClass(request, config):
         'tab': tab,
         'show_id': config.get("show_id", False),
         'class_hierarchy': get_class_hierarchy(id) if id else [],
+        'class_protected': class_protected,
+        'name_readonly': class_protected,
+        'params_json': (getattr(item, 'params', None) or '') if item else '',
     }
     return render_template('class.html', **content)
