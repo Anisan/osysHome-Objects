@@ -266,7 +266,6 @@
   "WebSocket is not available": "WebSocket is not available",
   "With message": "With message",
   "Without source use Enum Values (JSON). Objects/class/property load choices dynamically.": "Without source use Enum Values (JSON). Objects/class/property load choices dynamically.",
-<<<<<<< HEAD
   "Write format": "Write format",
   "Protected": "Protected",
   "Name cannot be changed": "Name cannot be changed",
@@ -275,7 +274,4 @@
   "Class cannot be changed": "Class cannot be changed",
   "Class is protected and cannot be deleted": "Class is protected and cannot be deleted",
   "Parent cannot be changed": "Parent cannot be changed"
-=======
-  "Write format": "Write format"
->>>>>>> master
 }

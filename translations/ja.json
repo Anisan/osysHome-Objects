@@ -266,7 +266,6 @@
   "WebSocket is not available": "WebSocketが利用できない",
   "With message": "メッセージ付き",
   "Without source use Enum Values (JSON). Objects/class/property load choices dynamically.": "ソースなしの場合は Enum Values (JSON) を使用。Objects/class/property は選択肢を動的に読み込みます。",
-<<<<<<< HEAD
   "Write format": "書き込みフォーマット",
   "Protected": "保護済み",
   "Name cannot be changed": "名前は変更できません",
@@ -275,7 +274,4 @@
   "Class cannot be changed": "クラスは変更できません",
   "Class is protected and cannot be deleted": "クラスは保護されているため削除できません",
   "Parent cannot be changed": "親は変更できません"
-=======
-  "Write format": "書き込みフォーマット"
->>>>>>> master
 }

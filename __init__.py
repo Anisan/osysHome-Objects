@@ -21,11 +21,7 @@ class Objects(BasePlugin):
     def __init__(self,app):
         super().__init__(app,__name__)
         self.title = "Objects"
-<<<<<<< HEAD
         self.version = "1.24"
-=======
-        self.version = "1.18"
->>>>>>> master
         self.description = """Objects editor"""
         self.actions = ["search", "widget"]
         self.category = "System"
