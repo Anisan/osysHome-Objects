@@ -266,5 +266,12 @@
   "WebSocket is not available": "WebSocket 不可用",
   "With message": "有留言",
   "Without source use Enum Values (JSON). Objects/class/property load choices dynamically.": "无来源时使用 Enum Values (JSON)。Objects/class/property 动态加载选项。",
-  "Write format": "写入格式"
+  "Write format": "写入格式",
+  "Protected": "受保护",
+  "Name cannot be changed": "名称不可更改",
+  "Object is protected and cannot be deleted": "对象受保护，无法删除",
+  "Type cannot be changed": "类型不可更改",
+  "Class cannot be changed": "类不可更改",
+  "Class is protected and cannot be deleted": "类受保护，无法删除",
+  "Parent cannot be changed": "无法更改父级"
 }

@@ -11,6 +11,7 @@ from app.core.lib.common import clearScheduledJob, getJobs
 from plugins.Objects.forms.utils import checkPermission, getObjectId
 from app.core.lib.object_tree import invalidate_objects_tree_cache
 from app.core.lib.object_db import cleanup_orphan_records, delete_object_from_db
+from app.core.lib.object import isObjectProtected
 
 _NAME_RE = re.compile(r'^[^\s.]+$')
 
@@ -65,6 +66,8 @@ def routeObjectTools(req):
 
 
 def _delete_object(obj: Object):
+    if isObjectProtected(obj.name):
+        abort(403)
     name = delete_object_from_db(obj.id)
     db.session.commit()
     invalidate_objects_tree_cache()

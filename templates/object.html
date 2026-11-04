@@ -1,5 +1,6 @@
 {% extends "objects_shell.html" %}
 {% from "macros/cron_builder.html" import cron_builder_field, cron_builder_modal, cron_builder_assets %}
+{% from "macros/icon_picker.html" import icon_picker_field, icon_picker_modal, icon_picker_assets %}
 {% macro render_dict(data, indent=0) %}
   {% for key, value in data.items() %}
     {% if value is mapping %}
@@ -188,25 +189,99 @@
 </script>
 <div class="tab-content" id="myTabContent">
     <div class="tab-pane fade {% if tab == ''%}show active{%endif%}" id="general" role="tabpanel" aria-labelledby="general-tab">
-        <form method="POST">
+        <form method="POST" id="object-general-form" onsubmit="if (window.buildObjectParamsJson) buildObjectParamsJson();">
         <!-- Поля формы -->
         {{ form.hidden_tag() }}
-        <div class="mb-3">
-            <label class="form-label">{{ _('Name') }}</label>
-            {{ form.name(class="form-control") }}
+        <ul class="nav nav-tabs" id="objectFormTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link tab-button active" id="obj-tab-general-btn" data-bs-toggle="tab" href="#obj-tab-general" role="tab" aria-controls="obj-tab-general" aria-selected="true">{{ _('General') }}</a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link tab-button" id="obj-tab-display-btn" data-bs-toggle="tab" href="#obj-tab-display" role="tab" aria-controls="obj-tab-display" aria-selected="false">{{ _('Display') }}</a>
+            </li>
+        </ul>
+        <div class="tab-content mt-3" id="objectFormTabContent">
+            <div class="tab-pane fade show active" id="obj-tab-general" role="tabpanel" aria-labelledby="obj-tab-general-btn" tabindex="0">
+                <div class="mb-3">
+                    <label class="form-label">{{ _('Name') }}</label>
+                    {% if name_readonly %}{{ form.name(class="form-control", readonly=true) }}<div class="form-text"><span class="badge bg-warning text-dark"><i class="fas fa-lock me-1"></i>{{ _("Protected") }}</span> {{ _("Name cannot be changed") }}</div>{% else %}{{ form.name(class="form-control") }}{% endif %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">{{ _('Description') }}</label>
+                    {{ form.description(class="form-control") }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">{{ _('Class') }}</label>
+                    {% if object_protected %}
+                    {{ form.class_id(class="form-control", disabled=true) }}
+                    <input type="hidden" name="class_id" value="{{ form.class_id.data or '' }}">
+                    <div class="form-text"><span class="badge bg-warning text-dark"><i class="fas fa-lock me-1"></i>{{ _("Protected") }}</span> {{ _("Class cannot be changed") }}</div>
+                    {% else %}
+                    {{ form.class_id(class="form-control") }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="tab-pane fade" id="obj-tab-display" role="tabpanel" aria-labelledby="obj-tab-display-btn" tabindex="0">
+                <p class="text-muted small mb-3">{{ _('UI settings for object cards and method lists') }}</p>
+                <div class="row">
+                    <div class="col-md-6 col-lg-4">
+                        {{ icon_picker_field('param-icon', label=_('Icon'), wrapper_class='mb-3') }}
+                    </div>
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <label class="form-label">{{ _('Color') }}</label>
+                        <input type="color" class="form-control form-control-color w-100" id="param-color">
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="mb-3">
-            <label class="form-label">{{ _('Description') }}</label>
-            {{ form.description(class="form-control") }}
-        </div>
-        <div class="mb-3">
-            <label class="form-label">{{ _('Class') }}</label>
-            {{ form.class_id(class="form-control") }}
-        </div>
+        <textarea name="params" id="params-json" style="display: none;">{{ params_json }}</textarea>
         <!-- Кнопка отправки формы -->
-        <button type="submit" class="btn btn-primary"><i class="fas fa-check me-2"></i>{{ _('Submit')}}</button>
-        <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-check me-2"></i>{{ _('Submit')}}</button>
+            <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
+        </div>
         </form>
+        {{ icon_picker_modal() }}
+        {{ icon_picker_assets() }}
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const paramsJsonField = document.getElementById('params-json');
+            const iconField = document.getElementById('param-icon');
+            const colorField = document.getElementById('param-color');
+
+            function buildObjectParamsJson() {
+                const params = {};
+                if (iconField && iconField.value) params.icon = iconField.value;
+                if (colorField && colorField.value) params.color = colorField.value;
+                if (paramsJsonField) {
+                    paramsJsonField.value = Object.keys(params).length > 0 ? JSON.stringify(params) : '';
+                }
+            }
+
+            function loadParamsFromJson() {
+                if (!paramsJsonField || !paramsJsonField.value) return;
+                try {
+                    const params = JSON.parse(paramsJsonField.value);
+                    if (iconField && params.icon) iconField.value = params.icon;
+                    if (colorField && params.color) colorField.value = params.color;
+                } catch (e) {
+                    console.error('Error loading object params:', e);
+                }
+            }
+
+            window.buildObjectParamsJson = buildObjectParamsJson;
+            loadParamsFromJson();
+            if (window.IconPicker) {
+                IconPicker.register('param-icon', { onChange: buildObjectParamsJson });
+            }
+            [iconField, colorField].forEach(function(field) {
+                if (field) {
+                    field.addEventListener('change', buildObjectParamsJson);
+                    field.addEventListener('input', buildObjectParamsJson);
+                }
+            });
+        });
+        </script>
     </div>
     <div class="tab-pane fade {% if tab == 'properties'%}show active{%endif%}" id="properties" role="tabpanel" aria-labelledby="properties-tab">
         <div class="table-responsive">
@@ -426,10 +501,10 @@
                                     <i class="fas fa-pencil-alt"></i>
                                 </a>
                                 <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button" title="{{ _('Add task')}}"><i class="fa-solid fa-calendar-days"></i></a>
-                                <a href="?view=property&object={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
+                                {% if not property.protected %}<a href="?view=property&object={{id}}&property={{property.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>{% else %}<span class="badge bg-warning text-dark align-self-center" title="{{ _('Protected')}}"><i class="fas fa-lock"></i></span>{% endif %}
                             {%else%}
                                 <a href="?view=schedule&object={{id}}&property={{property.id}}&op=add" class="btn btn-secondary btn-sm" role="button" title="{{ _('Add task')}}"><i class="fa-solid fa-calendar-days"></i></a>
-                                <a href="?view=property&object={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button" title="{{ _('Redefine')}}"><i class="fas fa-redo"></i></a>
+                                {% if not property.protected %}<a href="?view=property&object={{id}}&property={{property.id}}&op=redefine" class="btn btn-info btn-sm" role="button" title="{{ _('Redefine')}}"><i class="fas fa-redo"></i></a>{% else %}<span class="badge bg-warning text-dark align-self-center" title="{{ _('Protected')}}"><i class="fas fa-lock"></i></span>{% endif %}
                             {% endif %}
                         </td>
                     </tr>
@@ -556,11 +631,11 @@
                         <td style="{% if row_bg %}background-color: {{ row_bg }};{% endif %}">
                             {% if method.class_id %}
                                 {% if not method.redefined %}
-                                <a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button" title="{{ _('Redefine')}}"><i class="fas fa-redo"></i></a>
+                                {% if not method.protected %}<a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button" title="{{ _('Redefine')}}"><i class="fas fa-redo"></i></a>{% else %}<span class="badge bg-warning text-dark align-self-center" title="{{ _('Protected')}}"><i class="fas fa-lock"></i></span>{% endif %}
                                 {%endif%}
                             {%else%}
                                 <a href="?view=method&object={{id}}&method={{method.id}}&op=edit" class="btn btn-success btn-sm" role="button" title="{{ _('Edit')}}"><i class="fas fa-pencil-alt"></i></a>
-                                <a href="?view=method&object={{id}}&method={{method.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>
+                                {% if not method.protected %}<a href="?view=method&object={{id}}&method={{method.id}}&op=delete" onClick="return confirm('Delete record?')" class="btn btn-danger btn-sm" role="button" title="{{ _('Delete')}}"><i class="fas fa-trash"></i></a>{% else %}<span class="badge bg-warning text-dark align-self-center" title="{{ _('Protected')}}"><i class="fas fa-lock"></i></span>{% endif %}
                             {% endif %}
                             {% if not method.redefined %}
                                 <a href="?view=schedule&object={{id}}&method={{method.id}}&op=add" class="btn btn-secondary btn-sm" role="button" title="{{ _('Add task')}}"><i class="fa-solid fa-calendar-days"></i></a>
@@ -665,7 +740,7 @@
                             </div>
                         </td>
                         <td style="{% if row_bg %}background-color: {{ row_bg }};{% endif %}">
-                            <a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button" title="{{ _('Redefine')}}"><i class="fas fa-redo"></i></a>
+                            {% if not method.protected %}<a href="?view=method&object={{id}}&method={{method.id}}&op=redefine" class="btn btn-info btn-sm" role="button" title="{{ _('Redefine')}}"><i class="fas fa-redo"></i></a>{% else %}<span class="badge bg-warning text-dark align-self-center" title="{{ _('Protected')}}"><i class="fas fa-lock"></i></span>{% endif %}
                             <a href="?view=schedule&object={{id}}&method={{method.id}}&op=add" class="btn btn-secondary btn-sm" role="button" title="{{ _('Add task')}}"><i class="fa-solid fa-calendar-days"></i></a>
                             <a href="#" class="btn btn-warning btn-sm" onClick="callMethodWithResult('{{form.name.data}}.{{method.name}}',)" role="button" title="{{ _('Run')}}"><i class="fa-solid fa-gears"></i></a>
                         </td>
@@ -683,7 +758,11 @@
             {{ form.hidden_tag() }}
             <div class="mb-3" hidden>
                 <label class="form-label">{{ _('Class') }}</label>
+                {% if object_protected %}
+                <input type="hidden" name="class_id" value="{{ form.class_id.data or '' }}">
+                {% else %}
                 {{ form.class_id(class="form-control") }}
+                {% endif %}
             </div>
             <div class="mb-3">
                 <label class="form-label">{{ _('Template') }}</label>

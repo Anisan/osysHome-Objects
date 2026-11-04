@@ -1,6 +1,7 @@
 {% extends "objects_shell.html" %}
 {% from "macros/code_editor.html" import render_editor %}
 {% from "includes/objects_breadcrumb.html" import breadcrumb_class with context %}
+{% from "macros/icon_picker.html" import icon_picker_field, icon_picker_modal, icon_picker_assets %}
 
 {% block title %} Class {% endblock %} 
 
@@ -348,25 +349,99 @@
 {% endif %}
 <div class="tab-content mt-3" id="myTabContent">
     <div class="tab-pane fade {% if tab == ''%}show active{%endif%}" id="general" role="tabpanel" aria-labelledby="general-tab">
-        <form method="POST">
+        <form method="POST" id="class-general-form" onsubmit="if (window.buildClassParamsJson) buildClassParamsJson();">
             <!-- Поля формы -->
             {{ form.hidden_tag() }}
-            <div class="mb-3">
-                <label class="form-label">{{ _('Name') }}</label>
-                {{ form.name(class="form-control") }}
+            <ul class="nav nav-tabs" id="classFormTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link tab-button active" id="class-tab-general-btn" data-bs-toggle="tab" href="#class-tab-general" role="tab" aria-controls="class-tab-general" aria-selected="true">{{ _('General') }}</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link tab-button" id="class-tab-display-btn" data-bs-toggle="tab" href="#class-tab-display" role="tab" aria-controls="class-tab-display" aria-selected="false">{{ _('Display') }}</a>
+                </li>
+            </ul>
+            <div class="tab-content mt-3" id="classFormTabContent">
+                <div class="tab-pane fade show active" id="class-tab-general" role="tabpanel" aria-labelledby="class-tab-general-btn" tabindex="0">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('Name') }}</label>
+                        {% if name_readonly %}{{ form.name(class="form-control", readonly=true) }}<div class="form-text"><span class="badge bg-warning text-dark"><i class="fas fa-lock me-1"></i>{{ _("Protected") }}</span> {{ _("Name cannot be changed") }}</div>{% else %}{{ form.name(class="form-control") }}{% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('Description') }}</label>
+                        {{ form.description(class="form-control") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('Parent') }}</label>
+                        {% if class_protected %}
+                        {{ form.parent_id(class="form-control", disabled=true) }}
+                        <input type="hidden" name="parent_id" value="{{ form.parent_id.data or '' }}">
+                        <div class="form-text"><span class="badge bg-warning text-dark"><i class="fas fa-lock me-1"></i>{{ _("Protected") }}</span> {{ _("Parent cannot be changed") }}</div>
+                        {% else %}
+                        {{ form.parent_id(class="form-control") }}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="class-tab-display" role="tabpanel" aria-labelledby="class-tab-display-btn" tabindex="0">
+                    <p class="text-muted small mb-3">{{ _('UI settings for object cards and method lists') }}</p>
+                    <div class="row">
+                        <div class="col-md-6 col-lg-4">
+                            {{ icon_picker_field('param-icon', label=_('Icon'), wrapper_class='mb-3') }}
+                        </div>
+                        <div class="col-md-6 col-lg-3 mb-3">
+                            <label class="form-label">{{ _('Color') }}</label>
+                            <input type="color" class="form-control form-control-color w-100" id="param-color">
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="mb-3">
-                <label class="form-label">{{ _('Description') }}</label>
-                {{ form.description(class="form-control") }}
-            </div>
-            <div class="mb-3">
-                <label class="form-label">{{ _('Parent') }}</label>
-                {{ form.parent_id(class="form-control") }}
-            </div>
+            <textarea name="params" id="params-json" style="display: none;">{{ params_json }}</textarea>
             <!-- Кнопка отправки формы -->
-            <button type="submit" class="btn btn-primary"><i class="fas fa-check me-2"></i>{{ _('Submit')}}</button>
-            <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-check me-2"></i>{{ _('Submit')}}</button>
+                <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
+            </div>
         </form>
+        {{ icon_picker_modal() }}
+        {{ icon_picker_assets() }}
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const paramsJsonField = document.getElementById('params-json');
+            const iconField = document.getElementById('param-icon');
+            const colorField = document.getElementById('param-color');
+
+            function buildClassParamsJson() {
+                const params = {};
+                if (iconField && iconField.value) params.icon = iconField.value;
+                if (colorField && colorField.value) params.color = colorField.value;
+                if (paramsJsonField) {
+                    paramsJsonField.value = Object.keys(params).length > 0 ? JSON.stringify(params) : '';
+                }
+            }
+
+            function loadParamsFromJson() {
+                if (!paramsJsonField || !paramsJsonField.value) return;
+                try {
+                    const params = JSON.parse(paramsJsonField.value);
+                    if (iconField && params.icon) iconField.value = params.icon;
+                    if (colorField && params.color) colorField.value = params.color;
+                } catch (e) {
+                    console.error('Error loading class params:', e);
+                }
+            }
+
+            window.buildClassParamsJson = buildClassParamsJson;
+            loadParamsFromJson();
+            if (window.IconPicker) {
+                IconPicker.register('param-icon', { onChange: buildClassParamsJson });
+            }
+            [iconField, colorField].forEach(function(field) {
+                if (field) {
+                    field.addEventListener('change', buildClassParamsJson);
+                    field.addEventListener('input', buildClassParamsJson);
+                }
+            });
+        });
+        </script>
     </div>
     <div class="tab-pane fade {% if tab == 'properties'%}show active{%endif%}" id="properties" role="tabpanel" aria-labelledby="properties-tab">
         <div class="table-responsive">
@@ -503,12 +578,16 @@
                                    title="{{ _('Edit')}}">
                                     <i class="fas fa-pencil-alt"></i>
                                 </a>
+                                {% if not property.protected %}
                                 <a href="?view=property&class={{id}}&property={{property.id}}&op=delete"
                                    onClick="return confirm('Delete record?')"
                                    class="btn btn-outline-danger"
                                    title="{{ _('Delete')}}">
                                     <i class="fas fa-trash"></i>
                                 </a>
+                                {% else %}
+                                <span class="btn btn-outline-warning disabled" title="{{ _('Protected')}}"><i class="fas fa-lock"></i></span>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -632,11 +711,15 @@
                             <span class="badge bg-secondary">{{ property.type }}</span>
                         </td>
                         <td class="text-end"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            {% if not property.protected %}
                             <a href="?view=property&class={{id}}&property={{property.id}}&op=redefine"
                                class="btn btn-outline-info btn-sm"
                                role="button">
                                 <i class="fas fa-redo me-1"></i>{{ _('Redefine')}}
                             </a>
+                            {% else %}
+                            <span class="badge bg-warning text-dark" title="{{ _('Protected')}}"><i class="fas fa-lock"></i></span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -719,12 +802,16 @@
                                    title="{{ _('Edit')}}">
                                     <i class="fas fa-pencil-alt"></i>
                                 </a>
+                                {% if not method.protected %}
                                 <a href="?view=method&class={{id}}&method={{method.id}}&op=delete"
                                    onClick="return confirm('Delete record?')"
                                    class="btn btn-outline-danger"
                                    title="{{ _('Delete')}}">
                                     <i class="fas fa-trash"></i>
                                 </a>
+                                {% else %}
+                                <span class="btn btn-outline-warning disabled" title="{{ _('Protected')}}"><i class="fas fa-lock"></i></span>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -779,11 +866,15 @@
                             </div>
                         </td>
                         <td class="text-end"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+                            {% if not method.protected %}
                             <a href="?view=method&class={{id}}&method={{method.id}}&op=redefine"
                                class="btn btn-outline-info btn-sm"
                                role="button">
                                 <i class="fas fa-redo me-1"></i>{{ _('Redefine')}}
                             </a>
+                            {% else %}
+                            <span class="badge bg-warning text-dark" title="{{ _('Protected')}}"><i class="fas fa-lock"></i></span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -914,7 +1005,7 @@
                 </div>
             </div>
 
-            <div class="col-lg-6{% if objects or children_count %} d-none{% endif %}" id="deleteClassCard" data-children-count="{{ children_count|default(0) }}">
+            <div class="col-lg-6{% if objects or children_count or class_protected %} d-none{% endif %}" id="deleteClassCard" data-children-count="{{ children_count|default(0) }}">
                 <div class="card border shadow-sm h-100">
                     <div class="card-header"><i class="fas fa-folder-minus me-2 text-danger"></i>{{ _('Delete class')}}</div>
                     <div class="card-body">
@@ -925,6 +1016,16 @@
                     </div>
                 </div>
             </div>
+            {% if class_protected %}
+            <div class="col-lg-6">
+                <div class="card border shadow-sm h-100">
+                    <div class="card-header"><i class="fas fa-lock me-2 text-warning"></i>{{ _('Protected')}}</div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-0">{{ _('Class is protected and cannot be deleted')}}</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
             <div class="col-12 mt-2">
                 <h6 class="text-muted text-uppercase small mb-0">{{ _('Bulk values and methods')}}</h6>

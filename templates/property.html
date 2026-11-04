@@ -72,7 +72,7 @@
         <div class="tab-pane fade show active" id="prop-tab-general" role="tabpanel" aria-labelledby="prop-tab-general-btn" tabindex="0">
             <div class="mb-3">
                 <label class="form-label">{{ _('Name') }}</label>
-                {{ form.name(class="form-control") }}
+                {% if name_readonly %}{{ form.name(class="form-control", readonly=true) }}<div class="form-text"><span class="badge bg-warning text-dark"><i class="fas fa-lock me-1"></i>{{ _("Protected") }}</span></div>{% else %}{{ form.name(class="form-control") }}{% endif %}
                 {% if parent_property %}
                 <div class="form-text text-muted d-none" id="hint-parent-name">
                     <b>{{ _('Parent') }}:</b> {% if parent_property.class_name %}{{ parent_property.class_name }}.{% endif %}{{ parent_property.name }}
@@ -109,7 +109,13 @@
             </div>
             <div class="mb-3">
                 <label class="form-label">{{ _('Type') }}</label>
+                {% if name_readonly %}
+                {{ form.type(class="form-control", id="property-type", disabled=true) }}
+                <input type="hidden" name="type" value="{{ form.type.data or '' }}">
+                <div class="form-text"><span class="badge bg-warning text-dark"><i class="fas fa-lock me-1"></i>{{ _("Protected") }}</span> {{ _("Type cannot be changed") }}</div>
+                {% else %}
                 {{ form.type(class="form-control", id="property-type") }}
+                {% endif %}
                 {% if parent_property %}
                 <div class="form-text text-muted d-none" id="hint-parent-type">
                     <b>{{ _('Parent') }}:</b> {{ parent_property.type if parent_property.type else '-' }}
@@ -686,6 +692,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Update hidden field
+        // protected задаётся системой — не даём снять/выставить из UI
+        try {
+            const prev = JSON.parse(paramsJsonField.dataset.originalParams || paramsJsonField.value || '{}');
+            if (prev && prev.protected) params.protected = true;
+            else delete params.protected;
+        } catch (e) { delete params.protected; }
         paramsJsonField.value = Object.keys(params).length > 0 ? JSON.stringify(params) : '';
         updateParentHints();
     }

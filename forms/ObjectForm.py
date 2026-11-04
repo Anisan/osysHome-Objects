@@ -15,7 +15,10 @@ from plugins.Objects.forms.utils import no_spaces_or_dots, getPropertiesParents,
 from app.core.lib.object_tree import invalidate_objects_tree_cache
 from app.database import db
 from app.core.lib.object_db import delete_object_from_db
-from app.core.lib.object import renameObject
+from app.core.lib.object import renameObject, isObjectProtected
+from plugins.Objects.forms.PropertyForm import (
+    parse_params_dict, is_params_protected, normalize_params_json, merge_preserve_protected,
+)
 
 
 # Определение класса формы
@@ -25,6 +28,7 @@ class ObjectForm(FlaskForm):
     description = StringField('Description')
     class_id = SelectField("Class")
     template = TextAreaField("Template", render_kw={"rows": 15})
+    params = TextAreaField("Parameters (JSON)")
     submit = SubmitField('Submit')
 
     def validate_name(self, name):
@@ -144,6 +148,7 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
                 property['changed'] = convert_utc_to_local(runtime_prop.changed)
 
     for method in methods:
+        method['protected'] = is_params_protected(method.get('params'))
         if method['class_id']:
             method["class_name"] = dict_classes[method["class_id"]]
         job_name = item.name + r"\_" + method['name'] + r"\_%" # noqa
@@ -167,6 +172,9 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
             method['parent_class_id'] = parent_method['class_id']
             method['parent_class_name'] = parent_method.get('class_name')
             method['call_parent'] = normalize_call_parent(method.get('call_parent'))
+            # protected классового метода распространяется на override объекта
+            if parent_method.get('protected') or is_params_protected(parent_method.get('params')):
+                method['protected'] = True
 
     for idx, method in enumerate(methods):
         method['_idx'] = idx
@@ -214,6 +222,12 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
 
         # read_only – используем в шаблоне, чтобы отключать редактирование
         property['read_only'] = bool(params.get('read_only', False))
+        property['protected'] = bool(params.get('protected', False))
+        # protected классового свойства распространяется на override объекта
+        if property.get('overrides_parent'):
+            parent_prop = parent_properties_by_name.get(property['name'])
+            if parent_prop and is_params_protected(parent_prop.get('params')):
+                property['protected'] = True
 
         # icon и color – для визуального отображения в таблице
         property['icon'] = params.get('icon', '')
@@ -314,6 +328,9 @@ def routeObject(request, config):
         return redirect(f"Objects?view=object&object={new_obj.id}")
     
     if op == 'delete':
+        obj_del = Object.query.get(id)
+        if obj_del and isObjectProtected(obj_del.name):
+            abort(403)
         obj = Object.query.get_or_404(id)
         name = delete_object_from_db(id)
         db.session.commit()
@@ -325,6 +342,7 @@ def routeObject(request, config):
     saved = False
     properties = []
     methods = []
+    item = None
     query = Class.query
     if current_user.role not in ['admin','root']:
         query = query.filter(Class.name.notlike(r'\_%', escape='\\'))
@@ -352,20 +370,33 @@ def routeObject(request, config):
         old_name = item.name
     if form.validate_on_submit():
         if id:
+            old_class_id = item.class_id
+            existing_params = item.params
+            new_class_id = int(form.class_id.data) if form.class_id.data else None
+            if isObjectProtected(item.name) and new_class_id != old_class_id:
+                abort(403)
             new_name = (form.name.data or "").strip()
+            merged_params = merge_preserve_protected(
+                normalize_params_json(form.params.data), existing_params)
             if old_name and new_name and old_name != new_name:
+                if isObjectProtected(old_name):
+                    abort(403)
                 renameObject(old_name, new_name)
                 item = Object.query.filter(Object.name == new_name).one()
                 item.description = form.description.data
-                item.class_id = int(form.class_id.data) if form.class_id.data else None
+                item.class_id = new_class_id
                 item.template = form.template.data
+                item.params = merged_params
             else:
                 form.populate_obj(item)
-                item.class_id = int(form.class_id.data) if form.class_id.data else None
+                item.class_id = new_class_id
+                item.params = merged_params
         else:
             item = Object(
                 name=form.name.data,
                 description=form.description.data,
+                params=merge_preserve_protected(
+                    normalize_params_json(form.params.data), None),
             )
             item.class_id = int(form.class_id.data) if form.class_id.data else None
             db.session.add(item)
@@ -406,6 +437,7 @@ def routeObject(request, config):
                 template = ''
                 obj_dict = None
 
+    object_protected = bool(item and isObjectProtected(item.name))
     content = {
         'id': id,
         'form':form,
@@ -419,5 +451,8 @@ def routeObject(request, config):
         'saved': saved,
         'show_id': config.get("show_id", False),
         'class_hierarchy': get_class_hierarchy(class_owner.id if class_owner else None),
+        'object_protected': object_protected,
+        'name_readonly': object_protected,
+        'params_json': (getattr(item, 'params', None) or '') if item else '',
     }
     return render_template('object.html', **content)

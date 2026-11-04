@@ -1,6 +1,20 @@
-<div class="list-group-item-action d-flex justify-content-between align-items-start gap-2 py-2 ps-2 pe-2 object-item object-tree-card" data-object-id="{{ obj.id }}" data-search="{{ obj.name }} {{ obj.description }} {{ object_class_name|default('') }}">
+{% set _color = obj.color|lower if obj.color else '' %}
+{% if _color in ['#000', '#000000', 'black'] %}
+  {% set row_bg = '' %}
+{% else %}
+  {% set row_bg = _color ~ '26' if _color else '' %}
+{% endif %}
+<div class="list-group-item-action d-flex justify-content-between align-items-start gap-2 py-2 ps-2 pe-2 object-item object-tree-card" data-object-id="{{ obj.id }}" data-search="{{ obj.name }} {{ obj.description }} {{ object_class_name|default('') }}"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
     <div class="col d-flex align-items-start">
+        {% if obj.icon %}
+          {% if ':' in obj.icon %}
+            <iconify-icon icon="{{ obj.icon }}" class="ms-1 mt-1" style="font-size:1.25rem;{% if row_bg %}color: {{ obj.color }};{% endif %}" title="{{ _('Object icon') }}"></iconify-icon>
+          {% else %}
+            <i class="{{ obj.icon }} ms-1 mt-1 fs-5"{% if row_bg %} style="color: {{ obj.color }};"{% endif %} title="{{ _('Object icon') }}"></i>
+          {% endif %}
+        {% else %}
         <i class="fas fa-file text-info ms-1 mt-1 fs-5"></i>
+        {% endif %}
         <div class="px-3 flex-grow-1">
             <div class="d-flex align-items-center flex-wrap gap-2">
                 {% if show_id %}
@@ -42,7 +56,7 @@
                 <li><a class="dropdown-item" href="?view=object&object={{obj.id}}&tab=schedule"><i class="fa-solid fa-calendar-days me-2"></i>{{ _('Schedules')}}</a></li>
                 <li><a class="dropdown-item" href="?view=object&object={{obj.id}}&tab=permissions"><i class="fa-solid fa-shield me-2"></i>{{ _('Permissions')}}</a></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><button type="button" class="dropdown-item text-danger object-delete-action" data-object-id="{{ obj.id }}" data-object-name="{{ obj.name|e }}"><i class="feather icon-trash me-2"></i>{{ _('Delete')}}</button></li>
+                {% if not obj.protected %}<li><button type="button" class="dropdown-item text-danger object-delete-action" data-object-id="{{ obj.id }}" data-object-name="{{ obj.name|e }}"><i class="feather icon-trash me-2"></i>{{ _('Delete')}}</button></li>{% endif %}
             </ul>
         </div>
     </div>

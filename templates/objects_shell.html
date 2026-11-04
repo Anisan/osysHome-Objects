@@ -231,6 +231,8 @@
   var footerEl = deleteModalEl ? document.getElementById('objectDeleteModalFooter') : null;
   var closeButtonEl = deleteModalEl ? document.getElementById('objectDeleteModalClose') : null;
 
+  var protectedObjectNames = {{ protected_object_names|default([])|tojson }};
+  var protectedClassNames = {{ protected_class_names|default([])|tojson }};
   var entityLabels = {
     object: {
       deletingTitle: {{ _('Deleting object')|tojson }},
@@ -594,6 +596,22 @@
 
   function deleteEntityFromList(entityType, entityId, entityName, triggerEl) {
     if (deleteInProgress) {
+      return;
+    }
+    if (entityType === 'object' && protectedObjectNames.indexOf(entityName) !== -1) {
+      if (typeof notificationManager !== 'undefined') {
+        notificationManager.error({{ _('Object is protected and cannot be deleted')|tojson }});
+      } else {
+        window.alert({{ _('Object is protected and cannot be deleted')|tojson }});
+      }
+      return;
+    }
+    if (entityType === 'class' && protectedClassNames.indexOf(entityName) !== -1) {
+      if (typeof notificationManager !== 'undefined') {
+        notificationManager.error({{ _('Class is protected and cannot be deleted')|tojson }});
+      } else {
+        window.alert({{ _('Class is protected and cannot be deleted')|tojson }});
+      }
       return;
     }
 

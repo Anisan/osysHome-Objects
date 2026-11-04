@@ -266,5 +266,12 @@
   "WebSocket is not available": "웹소켓을 사용할 수 없습니다",
   "With message": "메시지 포함",
   "Without source use Enum Values (JSON). Objects/class/property load choices dynamically.": "소스가 없으면 Enum Values (JSON)을 사용하세요. Objects/class/property는 선택지를 동적으로 불러옵니다.",
-  "Write format": "쓰기 형식"
+  "Write format": "쓰기 형식",
+  "Protected": "보호됨",
+  "Name cannot be changed": "이름은 변경할 수 없습니다",
+  "Object is protected and cannot be deleted": "개체가 보호되어 삭제할 수 없습니다",
+  "Type cannot be changed": "유형을 변경할 수 없습니다",
+  "Class cannot be changed": "클래스를 변경할 수 없습니다",
+  "Class is protected and cannot be deleted": "클래스가 보호되어 삭제할 수 없습니다",
+  "Parent cannot be changed": "상위 클래스를 변경할 수 없습니다"
 }

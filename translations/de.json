@@ -266,5 +266,12 @@
   "WebSocket is not available": "WebSocket ist nicht verfügbar",
   "With message": "Mit Nachricht",
   "Without source use Enum Values (JSON). Objects/class/property load choices dynamically.": "Ohne Quelle Enum Values (JSON) verwenden. Objects/class/property laden Auswahl dynamisch.",
-  "Write format": "Schreibformat"
+  "Write format": "Schreibformat",
+  "Protected": "Geschützt",
+  "Name cannot be changed": "Name kann nicht geändert werden",
+  "Object is protected and cannot be deleted": "Objekt ist geschützt und kann nicht gelöscht werden",
+  "Type cannot be changed": "Typ kann nicht geändert werden",
+  "Class cannot be changed": "Klasse kann nicht geändert werden",
+  "Class is protected and cannot be deleted": "Klasse ist geschützt und kann nicht gelöscht werden",
+  "Parent cannot be changed": "Übergeordnete Klasse kann nicht geändert werden"
 }

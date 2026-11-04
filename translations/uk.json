@@ -266,5 +266,12 @@
   "WebSocket is not available": "WebSocket недоступен",
   "With message": "З повідомленням",
   "Without source use Enum Values (JSON). Objects/class/property load choices dynamically.": "Без джерела використовуйте Enum Values (JSON). Objects/class/property завантажують варіанти динамічно.",
-  "Write format": "Формат запису"
+  "Write format": "Формат запису",
+  "Protected": "Захищено",
+  "Name cannot be changed": "Ім'я не можна змінити",
+  "Object is protected and cannot be deleted": "Об'єкт захищено і не може бути видалений",
+  "Type cannot be changed": "Тип не можна змінити",
+  "Class cannot be changed": "Клас не можна змінити",
+  "Class is protected and cannot be deleted": "Клас захищено і не може бути видалений",
+  "Parent cannot be changed": "Батька не можна змінити"
 }

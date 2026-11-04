@@ -106,7 +106,7 @@
       <div class="tab-pane fade show active" id="meth-tab-general" role="tabpanel" aria-labelledby="meth-tab-general-btn" tabindex="0">
   <div class="mb-3">
       <label class="form-label">{{ _('Name') }}</label>
-      {{ form.name(class="form-control") }}
+      {% if name_readonly %}{{ form.name(class="form-control", readonly=true) }}<div class="form-text"><span class="badge bg-warning text-dark"><i class="fas fa-lock me-1"></i>{{ _("Protected") }}</span></div>{% else %}{{ form.name(class="form-control") }}{% endif %}
   </div>
   <div class="mb-3">
       <label class="form-label">{{ _('Description') }}</label>
