@@ -4,7 +4,7 @@
 {% else %}
   {% set row_bg = _color ~ '26' if _color else '' %}
 {% endif %}
-<div class="list-group-item-action d-flex justify-content-between align-items-start gap-2 py-2 ps-2 pe-2 object-item object-tree-card" data-object-id="{{ obj.id }}" data-search="{{ obj.name }} {{ obj.description }} {{ object_class_name|default('') }}"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
+<div class="list-group-item-action d-flex justify-content-between align-items-start gap-2 py-2 ps-2 pe-2 object-item object-tree-card{% if obj.advanced %} entity-row-advanced{% endif %}{% if obj.hidden %} entity-row-hidden{% endif %}" data-object-id="{{ obj.id }}" data-search="{{ obj.name }} {{ obj.description }} {{ object_class_name|default('') }}"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
     <div class="col d-flex align-items-start">
         {% if obj.icon %}
           {% if ':' in obj.icon %}
@@ -24,6 +24,8 @@
                 {% if object_class_name|default('') %}
                 <span class="badge bg-info-subtle text-info-emphasis object-class-name">{{ object_class_name }}</span>
                 {% endif %}
+                {% if obj.advanced %}<span class="badge text-bg-secondary" style="font-size:0.65rem;">{{ _('Advanced') }}</span>{% endif %}
+                {% if obj.hidden %}<span class="badge text-bg-secondary" style="font-size:0.65rem;">{{ _('Hidden') }}</span>{% endif %}
             </div>
             <small
               class="text-muted d-block object-description"

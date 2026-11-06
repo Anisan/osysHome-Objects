@@ -125,6 +125,9 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
         method['icon'] = params.get('icon', '')
         method['color'] = params.get('color', '')
         method['sort_order'] = params.get('sort_order')
+        method['group'] = str(params.get('group') or '').strip()
+        method['advanced'] = bool(params.get('advanced', False))
+        method['hidden'] = bool(params.get('hidden', False))
         if bool(params.get('protected', False)):
             method['protected'] = True
         else:
@@ -137,16 +140,24 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
         method['icon'] = params.get('icon', '')
         method['color'] = params.get('color', '')
         method['sort_order'] = params.get('sort_order')
+        method['group'] = str(params.get('group') or '').strip()
+        method['advanced'] = bool(params.get('advanced', False))
+        method['hidden'] = bool(params.get('hidden', False))
         method['protected'] = bool(params.get('protected', False))
 
+    # Сортировка: обычные → advanced; внутри — group, sort_order, исходный порядок
     methods.sort(
         key=lambda m: (
+            1 if m.get('advanced') else 0,
+            m.get('group') or '',
             m['sort_order'] if m.get('sort_order') is not None else 10**9,
             m.get('_idx', 0),
         )
     )
     parent_methods.sort(
         key=lambda m: (
+            1 if m.get('advanced') else 0,
+            m.get('group') or '',
             m['sort_order'] if m.get('sort_order') is not None else 10**9,
             m.get('_idx', 0),
         )
@@ -166,6 +177,9 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
         prop['icon'] = params.get('icon', '')
         prop['color'] = params.get('color', '')
         prop['sort_order'] = params.get('sort_order')
+        prop['group'] = str(params.get('group') or '').strip()
+        prop['advanced'] = bool(params.get('advanced', False))
+        prop['hidden'] = bool(params.get('hidden', False))
         prop['protected'] = bool(params.get('protected', False))
         # protected родителя распространяется на override в дочернем классе
         if prop.get('overrides_parent'):
@@ -186,18 +200,25 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
         prop['icon'] = params.get('icon', '')
         prop['color'] = params.get('color', '')
         prop['sort_order'] = params.get('sort_order')
+        prop['group'] = str(params.get('group') or '').strip()
+        prop['advanced'] = bool(params.get('advanced', False))
+        prop['hidden'] = bool(params.get('hidden', False))
         prop['protected'] = bool(params.get('protected', False))
         prop['params'] = params
 
-    # Сортируем: сначала по sort_order (если задан), затем по исходному порядку
+    # Сортировка: обычные → advanced; внутри — group, sort_order, исходный порядок
     properties.sort(
         key=lambda p: (
+            1 if p.get('advanced') else 0,
+            p.get('group') or '',
             p['sort_order'] if p.get('sort_order') is not None else 10**9,
             p.get('_idx', 0),
         )
     )
     parent_properties.sort(
         key=lambda p: (
+            1 if p.get('advanced') else 0,
+            p.get('group') or '',
             p['sort_order'] if p.get('sort_order') is not None else 10**9,
             p.get('_idx', 0),
         )
@@ -216,8 +237,11 @@ def _load_class_properties_methods_and_objects(item, class_id, config):
             'protected': isObjectProtected(obj.name),
             'icon': obj_params.get('icon', ''),
             'color': obj_params.get('color', ''),
+            'advanced': bool(obj_params.get('advanced')),
+            'hidden': bool(obj_params.get('hidden')),
             'template': getObject(obj.name).render() if getObject(obj.name) and config.get("render", None) else '',
         })
+    objects.sort(key=lambda o: (1 if o.get('advanced') else 0, (o.get('name') or '').lower()))
     
     templates = {}
     if item.parent_id:
@@ -241,9 +265,12 @@ def _load_child_classes(class_id):
             'protected': bool(child_params.get('protected')),
             'icon': child_params.get('icon', ''),
             'color': child_params.get('color', ''),
+            'advanced': bool(child_params.get('advanced')),
+            'hidden': bool(child_params.get('hidden')),
             'children_count': Class.query.filter(Class.parent_id == child.id).count(),
             'objects_count': Object.query.filter(Object.class_id == child.id).count(),
         })
+    child_classes.sort(key=lambda c: (1 if c.get('advanced') else 0, (c.get('name') or '').lower()))
     return child_classes
 
 

@@ -21,7 +21,7 @@ class Objects(BasePlugin):
     def __init__(self,app):
         super().__init__(app,__name__)
         self.title = "Objects"
-        self.version = "1.24"
+        self.version = "1.41"
         self.description = """Objects editor"""
         self.actions = ["search", "widget"]
         self.category = "System"
@@ -116,6 +116,18 @@ class Objects(BasePlugin):
         total_objects_count = len(tree_payload['standalone_objects']) + sum(
             len(items) for items in tree_payload['objects_by_class'].values()
         )
+        tree_has_advanced = any(
+            bool(c.get('advanced')) for c in tree_payload['classes_by_id'].values()
+        ) or any(
+            bool(o.get('advanced'))
+            for objs in tree_payload['objects_by_class'].values() for o in objs
+        ) or any(bool(o.get('advanced')) for o in tree_payload['standalone_objects'])
+        tree_has_hidden = any(
+            bool(c.get('hidden')) for c in tree_payload['classes_by_id'].values()
+        ) or any(
+            bool(o.get('hidden'))
+            for objs in tree_payload['objects_by_class'].values() for o in objs
+        ) or any(bool(o.get('hidden')) for o in tree_payload['standalone_objects'])
 
         content = {
             'classes': tree_payload['root_classes'],
@@ -127,6 +139,9 @@ class Objects(BasePlugin):
             'standalone_object_count': len(tree_payload['standalone_objects']),
             'total_class_count': len(tree_payload['classes_by_id']),
             'total_object_count': total_objects_count,
+            'tree_has_advanced': tree_has_advanced,
+            'tree_has_hidden': tree_has_hidden,
+            'can_show_hidden': current_user.role in ['admin', 'root'],
             'form': settings,
             'show_id': show_id,
         }

@@ -35,14 +35,20 @@ def getMethodsParents(id, methods):
     meth = query.order_by(Method.name).all()
 
     cls = Class.get_by_id(id)
+    
+    new_methods = []
     for item in meth:
         if item.name not in [subitem['name'] for subitem in methods]:
-            item = row2dict(item)
-            item["class_name"] = cls.name if cls else None
-            methods.append(item)
+            item_dict = row2dict(item)
+            item_dict["class_name"] = cls.name if cls else None
+            new_methods.append(item_dict)
+    
     if cls and cls.parent_id:
-        return getMethodsParents(cls.parent_id, methods)
-    return methods
+        # Рекурсивно получаем методы родителей и добавляем к new_methods
+        parent_methods = getMethodsParents(cls.parent_id, methods + new_methods)
+        return new_methods + parent_methods
+    
+    return new_methods
 
 def getTemplatesParents(id, templates):
     cls = Class.get_by_id(id)

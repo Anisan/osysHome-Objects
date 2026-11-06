@@ -2,6 +2,7 @@
 {% from "macros/code_editor.html" import render_editor %}
 {% from "includes/objects_breadcrumb.html" import breadcrumb_method with context %}
 {% from "macros/icon_picker.html" import icon_picker_field, icon_picker_modal, icon_picker_assets %}
+{% from "macros/color_picker.html" import color_picker_field, color_picker_assets %}
 {% from "macros/cron_builder.html" import cron_builder_field, cron_builder_modal, cron_builder_assets %}
 
 {% block breadcrumb %}
@@ -150,13 +151,26 @@
               <div class="col-md-6 col-lg-4">
                   {{ icon_picker_field('param-icon', label=_('Icon'), wrapper_class='mb-3') }}
               </div>
-              <div class="col-md-6 col-lg-3 mb-3">
-                  <label class="form-label">{{ _('Color') }}</label>
-                  <input type="color" class="form-control form-control-color w-100" id="param-color">
+              <div class="col-md-6 col-lg-3">
+                  {{ color_picker_field('param-color', label=_('Color'), wrapper_class='mb-3') }}
               </div>
               <div class="col-md-6 col-lg-3 mb-3">
                   <label class="form-label">{{ _('Sort Order') }}</label>
                   <input type="number" class="form-control" id="param-sort-order" placeholder="0">
+              </div>
+              <div class="col-md-6 col-lg-4 mb-3">
+                  <label class="form-label" for="param-group">{{ _('Group') }}</label>
+                  <input type="text" class="form-control" id="param-group" placeholder="{{ _('Group') }}">
+              </div>
+          </div>
+          <div class="d-flex flex-wrap gap-3">
+              <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="param-advanced">
+                  <label class="form-check-label" for="param-advanced">{{ _('Advanced') }}</label>
+              </div>
+              <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="param-hidden">
+                  <label class="form-check-label" for="param-hidden">{{ _('Hidden') }}</label>
               </div>
           </div>
       </div>
@@ -189,6 +203,7 @@
 
 {{ icon_picker_modal() }}
 {{ icon_picker_assets() }}
+{{ color_picker_assets() }}
 {{ cron_builder_modal() }}
 {{ cron_builder_assets() }}
 
@@ -398,28 +413,46 @@ async function submitForm(event) {
 document.addEventListener('DOMContentLoaded', function() {
     const paramsJsonField = document.getElementById('params-json');
     const iconField = document.getElementById('param-icon');
-    const colorField = document.getElementById('param-color');
     const sortOrderField = document.getElementById('param-sort-order');
+    const groupField = document.getElementById('param-group');
+    const advancedField = document.getElementById('param-advanced');
+    const hiddenField = document.getElementById('param-hidden');
 
     function buildParamsJson() {
         const params = {};
         if (iconField && iconField.value) params.icon = iconField.value;
-        if (colorField && colorField.value) params.color = colorField.value;
+        if (window.ColorPicker) {
+            const color = ColorPicker.getValue('param-color');
+            if (color) params.color = color;
+        }
         if (sortOrderField && sortOrderField.value) params.sort_order = parseInt(sortOrderField.value, 10);
+        if (groupField && groupField.value.trim()) params.group = groupField.value.trim();
+        if (advancedField && advancedField.checked) params.advanced = true;
+        if (hiddenField && hiddenField.checked) params.hidden = true;
         if (paramsJsonField) {
             paramsJsonField.value = Object.keys(params).length > 0 ? JSON.stringify(params) : '';
         }
     }
 
     function loadParamsFromJson() {
-        if (!paramsJsonField || !paramsJsonField.value) return;
+        if (!paramsJsonField || !paramsJsonField.value) {
+            if (window.ColorPicker) ColorPicker.clear('param-color', { silent: true });
+            return;
+        }
         try {
             const params = JSON.parse(paramsJsonField.value);
             if (iconField && params.icon) iconField.value = params.icon;
-            if (colorField && params.color) colorField.value = params.color;
+            if (window.ColorPicker) {
+                if (params.color) ColorPicker.setValue('param-color', params.color, { silent: true });
+                else ColorPicker.clear('param-color', { silent: true });
+            }
             if (sortOrderField && params.sort_order !== undefined) sortOrderField.value = params.sort_order;
+            if (groupField && params.group) groupField.value = params.group;
+            if (advancedField && params.advanced) advancedField.checked = true;
+            if (hiddenField && params.hidden) hiddenField.checked = true;
         } catch (e) {
             console.error('Error loading method params:', e);
+            if (window.ColorPicker) ColorPicker.clear('param-color', { silent: true });
         }
     }
 
@@ -428,7 +461,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.IconPicker) {
         IconPicker.register('param-icon', { onChange: buildParamsJson });
     }
-    [iconField, colorField, sortOrderField].forEach(field => {
+    if (window.ColorPicker) {
+        ColorPicker.register('param-color', { onChange: buildParamsJson });
+    }
+    [iconField, sortOrderField, groupField, advancedField, hiddenField].forEach(field => {
         if (field) {
             field.addEventListener('change', buildParamsJson);
             field.addEventListener('input', buildParamsJson);

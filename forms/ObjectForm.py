@@ -190,9 +190,15 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
         method['icon'] = params.get('icon', '')
         method['color'] = params.get('color', '')
         method['sort_order'] = params.get('sort_order')
+        method['group'] = str(params.get('group') or '').strip()
+        method['advanced'] = bool(params.get('advanced', False))
+        method['hidden'] = bool(params.get('hidden', False))
 
+    # Сортировка: обычные → advanced; внутри — group, sort_order, исходный порядок
     methods.sort(
         key=lambda m: (
+            1 if m.get('advanced') else 0,
+            m.get('group') or '',
             m['sort_order'] if m.get('sort_order') is not None else 10**9,
             m.get('_idx', 0),
         )
@@ -235,6 +241,9 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
 
         # sort_order – используем для сортировки свойств в списке (меньше = выше)
         property['sort_order'] = params.get('sort_order')
+        property['group'] = str(params.get('group') or '').strip()
+        property['advanced'] = bool(params.get('advanced', False))
+        property['hidden'] = bool(params.get('hidden', False))
 
         # default_value – если значение отсутствует в БД или равно None,
         # показываем значение по умолчанию вместо "None"
@@ -242,9 +251,11 @@ def _load_object_properties_and_methods(item, object_id, dict_classes):
         if not has_explicit_value and 'default_value' in params:
             property['value'] = params['default_value']
 
-    # Сортируем свойства: сначала по sort_order (если задан), затем по исходному порядку
+    # Сортировка: обычные → advanced; внутри — group, sort_order, исходный порядок
     properties.sort(
         key=lambda p: (
+            1 if p.get('advanced') else 0,
+            p.get('group') or '',
             p['sort_order'] if p.get('sort_order') is not None else 10**9,
             p.get('_idx', 0),
         )

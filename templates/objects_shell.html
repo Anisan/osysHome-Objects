@@ -1,6 +1,67 @@
 {% extends "layouts/module_admin.html" %}
 
 {% block module %}
+<style>
+  /* Заголовки групп свойств/методов — цвета из текущей темы (data-bs-theme / themes.css) */
+  .properties-table > tbody > tr.property-group-header > td,
+  .methods-table > tbody > tr.property-group-header > td {
+    background-color: var(--bs-tertiary-bg) !important;
+    color: var(--bs-secondary-color);
+    border-color: var(--bs-border-color);
+    font-size: 0.85rem;
+    text-align: left;
+  }
+  .properties-table > tbody > tr.property-group-header > td .fas,
+  .methods-table > tbody > tr.property-group-header > td .fas {
+    opacity: 0.7;
+  }
+  .property-image-thumb {
+    display: block;
+    max-height: 1.75rem;
+    max-width: 2.75rem;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    cursor: pointer;
+    border-radius: 0.2rem;
+  }
+  /* advanced/hidden: видимость через классы на таблице */
+  .properties-table:not(.show-advanced) > tbody > tr.property-row-advanced,
+  .methods-table:not(.show-advanced) > tbody > tr.property-row-advanced {
+    display: none !important;
+  }
+  .properties-table:not(.show-hidden) > tbody > tr.property-row-hidden,
+  .methods-table:not(.show-hidden) > tbody > tr.property-row-hidden {
+    display: none !important;
+  }
+  /* advanced/hidden для классов и объектов в дереве */
+  .objects-page:not(.show-entity-advanced) .entity-row-advanced,
+  .objects-page.multi-column-view:not(.show-entity-advanced) .objects-list > .object-item.entity-row-advanced {
+    display: none !important;
+  }
+  .objects-page:not(.show-entity-hidden) .entity-row-hidden,
+  .objects-page.multi-column-view:not(.show-entity-hidden) .objects-list > .object-item.entity-row-hidden {
+    display: none !important;
+  }
+  #configTabs .properties-filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  #configTabs .properties-filter-actions.d-none {
+    display: none !important;
+  }
+  #configTabs .properties-filter-btn {
+    min-width: 2rem;
+    padding: 0.2rem 0.45rem;
+    line-height: 1.2;
+  }
+  #configTabs .properties-filter-btn.active {
+    color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    background-color: transparent;
+  }
+</style>
 {% block module_content %}
 {% endblock module_content %}
 <div class="modal fade" id="importProgressModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" style="--bs-modal-zindex: 1220;">

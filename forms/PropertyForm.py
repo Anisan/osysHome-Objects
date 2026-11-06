@@ -225,12 +225,17 @@ def routeProperty(request):
     else:
         class_owner = Class.get_by_id(class_id)
     methods = []
-    if class_owner:
-        methods = getMethodsParents(class_owner.id, methods)
     if object_id:
-        obj_method = Method.query.filter(Method.object_id == object_id).all()
-        for method in obj_method:
-            methods.append(row2dict(method))
+        obj_methods = Method.query.filter(Method.object_id == object_id).all()
+        methods = [row2dict(method) for method in obj_methods]
+    if class_owner:
+        method_names = [method['name'] for method in methods if method.get('id') is not None]
+        cls_methods = getMethodsParents(class_owner.id, methods)
+        cls_methods_copy = list(cls_methods)
+        for method in cls_methods_copy:
+            if method['name'] not in method_names:
+                methods.append(method)
+                method_names.append(method['name'])
 
     method_names = {str(method['id']): method['name'] for method in methods if method.get('id') is not None}
 

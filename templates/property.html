@@ -1,6 +1,7 @@
 {% extends "objects_shell.html" %}
 {% from "includes/objects_breadcrumb.html" import breadcrumb_property with context %}
 {% from "macros/icon_picker.html" import icon_picker_field, icon_picker_modal, icon_picker_assets %}
+{% from "macros/color_picker.html" import color_picker_field, color_picker_assets %}
 
 {% block breadcrumb %}
 {{ breadcrumb_property(
@@ -131,9 +132,8 @@
                 <div class="col-md-6 col-lg-4">
                     {{ icon_picker_field('param-icon', label=_('Icon'), wrapper_class='mb-3') }}
                 </div>
-                <div class="col-md-6 col-lg-3 mb-3">
-                    <label class="form-label">{{ _('Color') }}</label>
-                    <input type="color" class="form-control form-control-color w-100" id="param-color">
+                <div class="col-md-6 col-lg-3">
+                    {{ color_picker_field('param-color', label=_('Color'), wrapper_class='mb-3') }}
                 </div>
                 <div class="col-md-6 col-lg-3 mb-3">
                     <label class="form-label">{{ _('Sort Order') }}</label>
@@ -144,11 +144,53 @@
                     <input type="text" class="form-control" id="param-default-value">
                 </div>
             </div>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="param-read-only">
-                <label class="form-check-label" for="param-read-only">
-                    {{ _('Read Only') }}
-                </label>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" for="param-unit">{{ _('Unit') }}</label>
+                    <input type="text" class="form-control" id="param-unit" placeholder="°C, %, W">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" for="param-format">{{ _('Format') }}</label>
+                    <input type="text" class="form-control" id="param-format" placeholder="0.00, duration, relative, {value}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" for="param-group">{{ _('Group') }}</label>
+                    <input type="text" class="form-control" id="param-group" placeholder="{{ _('Group') }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" for="param-multiline">{{ _('Multiline') }}</label>
+                    <input type="number" class="form-control" id="param-multiline" min="0" step="1" placeholder="0 = off, 3+ = rows">
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="param-read-only">
+                    <label class="form-check-label" for="param-read-only">{{ _('Read Only') }}</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="param-password">
+                    <label class="form-check-label" for="param-password">{{ _('Password') }}</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="param-url">
+                    <label class="form-check-label" for="param-url">URL</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="param-qr">
+                    <label class="form-check-label" for="param-qr">QR</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="param-image">
+                    <label class="form-check-label" for="param-image">{{ _('Image') }}</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="param-advanced">
+                    <label class="form-check-label" for="param-advanced">{{ _('Advanced') }}</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="param-hidden">
+                    <label class="form-check-label" for="param-hidden">{{ _('Hidden') }}</label>
+                </div>
             </div>
         </div>
 
@@ -390,6 +432,7 @@
 
 {{ icon_picker_modal() }}
 {{ icon_picker_assets() }}
+{{ color_picker_assets() }}
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -415,10 +458,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Get individual parameter fields
     const iconField = document.getElementById('param-icon');
-    const colorField = document.getElementById('param-color');
     const sortOrderField = document.getElementById('param-sort-order');
     const defaultValueField = document.getElementById('param-default-value');
     const readOnlyField = document.getElementById('param-read-only');
+    const passwordField = document.getElementById('param-password');
+    const unitField = document.getElementById('param-unit');
+    const formatField = document.getElementById('param-format');
+    const groupField = document.getElementById('param-group');
+    const multilineField = document.getElementById('param-multiline');
+    const urlField = document.getElementById('param-url');
+    const qrField = document.getElementById('param-qr');
+    const imageField = document.getElementById('param-image');
+    const advancedField = document.getElementById('param-advanced');
+    const hiddenField = document.getElementById('param-hidden');
     const minField = document.getElementById('param-min');
     const maxField = document.getElementById('param-max');
     const decimalsField = document.getElementById('param-decimals');
@@ -595,10 +647,25 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add common parameters
         if (iconField.value) params.icon = iconField.value;
-        if (colorField.value) params.color = colorField.value;
+        if (window.ColorPicker) {
+            const color = ColorPicker.getValue('param-color');
+            if (color) params.color = color;
+        }
         if (sortOrderField.value) params.sort_order = parseInt(sortOrderField.value);
         if (defaultValueField.value) params.default_value = defaultValueField.value;
         if (readOnlyField.checked) params.read_only = true;
+        if (passwordField && passwordField.checked) params.password = true;
+        if (unitField && unitField.value.trim()) params.unit = unitField.value.trim();
+        if (formatField && formatField.value.trim()) params.format = formatField.value.trim();
+        if (groupField && groupField.value.trim()) params.group = groupField.value.trim();
+        if (multilineField && multilineField.value !== '' && Number(multilineField.value) > 0) {
+            params.multiline = parseInt(multilineField.value, 10);
+        }
+        if (urlField && urlField.checked) params.url = true;
+        if (qrField && qrField.checked) params.qr = true;
+        if (imageField && imageField.checked) params.image = true;
+        if (advancedField && advancedField.checked) params.advanced = true;
+        if (hiddenField && hiddenField.checked) params.hidden = true;
         
         // Add type-specific parameters
         const type = typeSelect.value;
@@ -709,10 +776,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Load common parameters
                 if (params.icon) iconField.value = params.icon;
-                if (params.color) colorField.value = params.color;
+                if (window.ColorPicker) {
+                    if (params.color) ColorPicker.setValue('param-color', params.color, { silent: true });
+                    else ColorPicker.clear('param-color', { silent: true });
+                }
                 if (params.sort_order !== undefined) sortOrderField.value = params.sort_order;
                 if (params.default_value !== undefined) defaultValueField.value = params.default_value;
                 if (params.read_only) readOnlyField.checked = true;
+                if (passwordField && params.password) passwordField.checked = true;
+                if (unitField && params.unit) unitField.value = params.unit;
+                if (formatField && params.format) formatField.value = params.format;
+                if (groupField && params.group) groupField.value = params.group;
+                if (multilineField && params.multiline) multilineField.value = params.multiline;
+                if (urlField && params.url) urlField.checked = true;
+                if (qrField && params.qr) qrField.checked = true;
+                if (imageField && params.image) imageField.checked = true;
+                if (advancedField && params.advanced) advancedField.checked = true;
+                if (hiddenField && params.hidden) hiddenField.checked = true;
                 
                 // Load type-specific parameters
                 if (params.min !== undefined) minField.value = params.min;
@@ -813,6 +893,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.IconPicker) {
         IconPicker.register('param-icon', { onChange: buildParamsJson });
     }
+    if (window.ColorPicker) {
+        ColorPicker.register('param-color', { onChange: buildParamsJson });
+    }
     updateParentHints();
     
     // Listen for changes
@@ -823,7 +906,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Update JSON on any field change
-    const allFields = [iconField, colorField, sortOrderField, defaultValueField, readOnlyField, 
+    const allFields = [iconField, sortOrderField, defaultValueField, readOnlyField, passwordField,
+                       unitField, formatField, groupField, multilineField, urlField, qrField, imageField, advancedField, hiddenField,
                        minField, maxField, decimalsField, stepIntField, stepFloatField, regexpField, 
                        enumValuesField, optionsSourceField, optionsClassField, optionsLabelField,
                        optionsObjectField, optionsPropertyField, optionsField,

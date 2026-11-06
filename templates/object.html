@@ -1,6 +1,7 @@
 {% extends "objects_shell.html" %}
 {% from "macros/cron_builder.html" import cron_builder_field, cron_builder_modal, cron_builder_assets %}
 {% from "macros/icon_picker.html" import icon_picker_field, icon_picker_modal, icon_picker_assets %}
+{% from "macros/color_picker.html" import color_picker_field, color_picker_assets %}
 {% macro render_dict(data, indent=0) %}
   {% for key, value in data.items() %}
     {% if value is mapping %}
@@ -120,7 +121,7 @@
 {{ super() }}
 <link rel="stylesheet" href="{{ url_for('Objects.static', filename='choices/choices.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('Objects.static', filename='choices/choices-theme.css') }}">
-<link rel="stylesheet" href="{{ url_for('Objects.static', filename='css/object.css') }}?v=1">
+<link rel="stylesheet" href="{{ url_for('Objects.static', filename='css/object.css') }}?v=2">
 <link rel="stylesheet" href="{{ url_for('Objects.static', filename='css/object-property-history.css') }}?v=3">
 {% endblock %}
 
@@ -148,6 +149,19 @@
 <!-- Подключение скриптов Prism -->
 <script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.js"></script>
 <script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism-python.min.js"></script>
+{% set ns_props_filters = namespace(has_advanced=false, has_hidden=false) %}
+{% set ns_methods_filters = namespace(has_advanced=false, has_hidden=false) %}
+{% set can_show_hidden = current_user.role in ['admin', 'root'] %}
+{% if id %}
+{% for property in properties %}
+    {% if property.params.get('advanced') or property.advanced %}{% set ns_props_filters.has_advanced = true %}{% endif %}
+    {% if property.params.get('hidden') or property.hidden %}{% set ns_props_filters.has_hidden = true %}{% endif %}
+{% endfor %}
+{% for method in methods %}
+    {% if method.params.get('advanced') or method.advanced %}{% set ns_methods_filters.has_advanced = true %}{% endif %}
+    {% if method.params.get('hidden') or method.hidden %}{% set ns_methods_filters.has_hidden = true %}{% endif %}
+{% endfor %}
+{% endif %}
 <ul class="nav nav-tabs mb-3 align-items-center" id="configTabs" role="tablist">
     <li class="nav-item">
         <a class="nav-link tab-button{% if tab == ''%} active{%endif%}" id="general-tab" href="#general" data-bs-toggle="tab" role="tab" aria-controls="general" aria-selected="{{ 'true' if tab == '' else 'false' }}">{{ _('General')}}</a>
@@ -166,6 +180,34 @@
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'schedule'%} active{%endif%}" id="schedule-tab" href="#schedule_tab" data-bs-toggle="tab" role="tab" aria-controls="schedule_tab" aria-selected="{{ 'true' if tab == 'schedule' else 'false' }}">{{ _('Schedules')}}</a></li>
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'permissions'%} active{%endif%}" id="permissions-tab" href="#permissions_tab" data-bs-toggle="tab" role="tab" aria-controls="permissions_tab" aria-selected="{{ 'true' if tab == 'permissions' else 'false' }}">{{ _('Permissions')}}</a></li>
     <li class="nav-item flex-grow-1"></li>
+    {% if ns_props_filters.has_advanced or (ns_props_filters.has_hidden and can_show_hidden) %}
+    <li class="nav-item properties-filter-actions me-1{% if tab != 'properties' %} d-none{% endif %}" id="propertiesFilterActions">
+        {% if ns_props_filters.has_advanced %}
+        <button type="button" class="btn btn-sm btn-outline-secondary properties-filter-btn" id="toggleAdvancedPropertiesBtn" aria-expanded="false" title="{{ _('Show advanced') }}">
+            <i class="fas fa-layer-group" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+        {% if ns_props_filters.has_hidden and can_show_hidden %}
+        <button type="button" class="btn btn-sm btn-outline-secondary properties-filter-btn" id="toggleHiddenPropertiesBtn" aria-expanded="false" title="{{ _('Show hidden') }}">
+            <i class="fas fa-eye-slash" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+    </li>
+    {% endif %}
+    {% if ns_methods_filters.has_advanced or (ns_methods_filters.has_hidden and can_show_hidden) %}
+    <li class="nav-item properties-filter-actions me-1{% if tab != 'methods' %} d-none{% endif %}" id="methodsFilterActions">
+        {% if ns_methods_filters.has_advanced %}
+        <button type="button" class="btn btn-sm btn-outline-secondary properties-filter-btn" id="toggleAdvancedMethodsBtn" aria-expanded="false" title="{{ _('Show advanced') }}">
+            <i class="fas fa-layer-group" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+        {% if ns_methods_filters.has_hidden and can_show_hidden %}
+        <button type="button" class="btn btn-sm btn-outline-secondary properties-filter-btn" id="toggleHiddenMethodsBtn" aria-expanded="false" title="{{ _('Show hidden') }}">
+            <i class="fas fa-eye-slash" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+    </li>
+    {% endif %}
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'tools'%} active{%endif%}" id="tools-tab" href="#tools" data-bs-toggle="tab" role="tab" aria-controls="tools">{{ _('Tools')}}</a></li>
     {%endif%}
 </ul>
@@ -227,9 +269,18 @@
                     <div class="col-md-6 col-lg-4">
                         {{ icon_picker_field('param-icon', label=_('Icon'), wrapper_class='mb-3') }}
                     </div>
-                    <div class="col-md-6 col-lg-3 mb-3">
-                        <label class="form-label">{{ _('Color') }}</label>
-                        <input type="color" class="form-control form-control-color w-100" id="param-color">
+                    <div class="col-md-6 col-lg-3">
+                        {{ color_picker_field('param-color', label=_('Color'), wrapper_class='mb-3') }}
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="param-advanced">
+                        <label class="form-check-label" for="param-advanced">{{ _('Advanced') }}</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="param-hidden">
+                        <label class="form-check-label" for="param-hidden">{{ _('Hidden') }}</label>
                     </div>
                 </div>
             </div>
@@ -243,29 +294,45 @@
         </form>
         {{ icon_picker_modal() }}
         {{ icon_picker_assets() }}
+        {{ color_picker_assets() }}
         <script>
         document.addEventListener('DOMContentLoaded', function() {
             const paramsJsonField = document.getElementById('params-json');
             const iconField = document.getElementById('param-icon');
-            const colorField = document.getElementById('param-color');
+            const advancedField = document.getElementById('param-advanced');
+            const hiddenField = document.getElementById('param-hidden');
 
             function buildObjectParamsJson() {
                 const params = {};
                 if (iconField && iconField.value) params.icon = iconField.value;
-                if (colorField && colorField.value) params.color = colorField.value;
+                if (window.ColorPicker) {
+                    const color = ColorPicker.getValue('param-color');
+                    if (color) params.color = color;
+                }
+                if (advancedField && advancedField.checked) params.advanced = true;
+                if (hiddenField && hiddenField.checked) params.hidden = true;
                 if (paramsJsonField) {
                     paramsJsonField.value = Object.keys(params).length > 0 ? JSON.stringify(params) : '';
                 }
             }
 
             function loadParamsFromJson() {
-                if (!paramsJsonField || !paramsJsonField.value) return;
+                if (!paramsJsonField || !paramsJsonField.value) {
+                    if (window.ColorPicker) ColorPicker.clear('param-color', { silent: true });
+                    return;
+                }
                 try {
                     const params = JSON.parse(paramsJsonField.value);
                     if (iconField && params.icon) iconField.value = params.icon;
-                    if (colorField && params.color) colorField.value = params.color;
+                    if (window.ColorPicker) {
+                        if (params.color) ColorPicker.setValue('param-color', params.color, { silent: true });
+                        else ColorPicker.clear('param-color', { silent: true });
+                    }
+                    if (advancedField && params.advanced) advancedField.checked = true;
+                    if (hiddenField && params.hidden) hiddenField.checked = true;
                 } catch (e) {
                     console.error('Error loading object params:', e);
+                    if (window.ColorPicker) ColorPicker.clear('param-color', { silent: true });
                 }
             }
 
@@ -274,7 +341,10 @@
             if (window.IconPicker) {
                 IconPicker.register('param-icon', { onChange: buildObjectParamsJson });
             }
-            [iconField, colorField].forEach(function(field) {
+            if (window.ColorPicker) {
+                ColorPicker.register('param-color', { onChange: buildObjectParamsJson });
+            }
+            [iconField, advancedField, hiddenField].forEach(function(field) {
                 if (field) {
                     field.addEventListener('change', buildObjectParamsJson);
                     field.addEventListener('input', buildObjectParamsJson);
@@ -284,8 +354,9 @@
         </script>
     </div>
     <div class="tab-pane fade {% if tab == 'properties'%}show active{%endif%}" id="properties" role="tabpanel" aria-labelledby="properties-tab">
+        {% set ns_props = namespace(prev_group='__none__', col_count=(5 if show_id else 4)) %}
         <div class="table-responsive">
-            <table class="table table-hover table-sm properties-table">
+            <table class="table table-hover table-sm properties-table" id="objectPropertiesTable">
                 <thead>
                     <tr>
                         {% if show_id %}
@@ -306,7 +377,20 @@
                     {% else %}
                         {% set row_bg = _color ~ '26' if _color else '' %}
                     {% endif %}
-                    <tr class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-bottom: 5px;">
+                    {% set prop_group = property.params.get('group') or property.group or '' %}
+                    {% set is_advanced = property.params.get('advanced') or property.advanced %}
+                    {% set is_hidden = property.params.get('hidden') or property.hidden %}
+                    {% if prop_group and prop_group != ns_props.prev_group %}
+                    <tr class="property-group-header{% if is_advanced %} property-row-advanced{% endif %}{% if is_hidden %} property-row-hidden{% endif %}">
+                        <td colspan="{{ ns_props.col_count }}" class="fw-semibold py-1">
+                            <i class="fas fa-folder me-1" aria-hidden="true"></i>{{ prop_group }}
+                        </td>
+                    </tr>
+                    {% set ns_props.prev_group = prop_group %}
+                    {% elif not prop_group %}
+                    {% set ns_props.prev_group = '' %}
+                    {% endif %}
+                    <tr class="col-lg-4 col-md-4 col-sm-12 col-xs-12{% if is_advanced %} property-row-advanced{% endif %}{% if is_hidden %} property-row-hidden{% endif %}" style="margin-bottom: 5px;">
                         {% if show_id %}
                         <th scope="row" width="1%" nowrap{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ property.id }}</span>
@@ -321,11 +405,17 @@
                                         <i class="{{ property.icon }} p-2 me-2" title="{{ _('Property icon') }}" style="font-size:1.25rem;"></i>
                                     {% endif %}
                                 {% endif %}
+                                {% set prop_full_name = form.name.data ~ '.' ~ property.name %}
                                 <div>
-                                    <div class="fw-semibold">
-                                        {% if property.class_id %}<b>{% endif %}
-                                            {{ form.name.data }}.{{ property.name }}
-                                        {% if property.class_id %}</b>{% endif %}
+                                    <div class="fw-semibold d-flex align-items-center flex-wrap gap-1">
+                                        <span>{% if property.class_id %}<b>{% endif %}{{ prop_full_name }}{% if property.class_id %}</b>{% endif %}</span>
+                                        <button type="button"
+                                                class="btn btn-link btn-sm p-0 text-secondary"
+                                                title="{{ _('Copy') }} {{ _('Name') }}"
+                                                aria-label="{{ _('Copy') }} {{ _('Name') }}"
+                                                onclick='copyPropertyName({{ prop_full_name|tojson }}, this)'>
+                                            <i class="fas fa-copy" aria-hidden="true"></i>
+                                        </button>
                                     </div>
                                     <div class="small text-muted">
                                         {% if property.description %}
@@ -390,7 +480,7 @@
                             {# Краткое отображение параметров валидации #}
                                 <div class="small text-muted mt-1">
                                     {% if property.params['min'] or property.params['max'] %}
-                                        <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
+                                        <span class="badge text-bg-warning me-1" style="font-size:0.65rem;">
                                             {% if property.params['min']!='' %}
                                                 {{ _('Minimum Value')}}: {{ property.params['min'] }}
                                             {% endif %}
@@ -401,49 +491,101 @@
                                         </span>
                                     {% endif %}
                                     {% if property.params['step'] %}
-                                        <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
+                                        <span class="badge text-bg-warning me-1" style="font-size:0.65rem;">
                                             {{ _('Step')}}: {{ property.params['step'] }}
                                         </span>
                                     {% endif %}
                                     {% if property.params['decimals'] %}
-                                        <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
+                                        <span class="badge text-bg-warning me-1" style="font-size:0.65rem;">
                                             {{ _('Decimals')}}: {{ property.params['decimals'] }}
                                         </span>
                                     {% endif %}
                                     {% if property.params['allowed_values'] %}
-                                        <span class="badge bg-info text-dark me-1" style="font-size:0.65rem;">
+                                        <span class="badge text-bg-info me-1" style="font-size:0.65rem;">
                                             {{ _('Allowed values')}}: {{ property.params['allowed_values']|length }}
                                         </span>
                                     {% endif %}
                                     {% if property.params['enum_values'] %}
-                                        <span class="badge bg-info text-dark me-1" style="font-size:0.65rem;">
+                                        <span class="badge text-bg-info me-1" style="font-size:0.65rem;">
                                             {{ _('Enum Values (JSON)')}}: {{ property.params['enum_values']|length }}
                                         </span>
                                     {% endif %}
                                     {% if property.params['default_value'] %}
-                                        <span class="badge bg-success text-light me-1" style="font-size:0.65rem;">
+                                        <span class="badge text-bg-success me-1" style="font-size:0.65rem;">
                                             {{ _('Default Value')}}: {{ property.params['default_value'] }}
                                         </span>
                                     {% endif %}
                                     {% if property.params['regexp'] %}
-                                        <span class="badge bg-dark text-light me-1" style="font-size:0.65rem;">
+                                        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">
                                             {{ _('RegExp Pattern')}}
                                         </span>
                                     {% endif %}
                                     {% if property.params['rate_limit'] %}
-                                        <span class="badge bg-danger text-dark me-1" style="font-size:0.65rem;">
+                                        <span class="badge text-bg-danger me-1" style="font-size:0.65rem;">
                                             {{ _('Rate Limit (seconds)')}}: {{ property.params['rate_limit'] }}
                                         </span>
                                     {% endif %}
                                     {% if property.params['read_only'] %}
-                                        <span class="badge bg-secondary text-light me-1" style="font-size:0.65rem;">
+                                        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">
                                             {{ _('Read Only')}}
                                         </span>
+                                    {% endif %}
+                                    {% if property.params.get('password') %}
+                                        <span class="badge text-bg-dark me-1" style="font-size:0.65rem;">
+                                            {{ _('Password')}}
+                                        </span>
+                                    {% endif %}
+                                    {% if property.params.get('unit') %}
+                                        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">
+                                            {{ _('Unit')}}: {{ property.params.get('unit') }}
+                                        </span>
+                                    {% endif %}
+                                    {% if property.params.get('format') %}
+                                        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">
+                                            {{ _('Format')}}: {{ property.params.get('format') }}
+                                        </span>
+                                    {% endif %}
+                                    {% if property.params.get('group') %}
+                                        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">
+                                            {{ _('Group')}}: {{ property.params.get('group') }}
+                                        </span>
+                                    {% endif %}
+                                    {% if property.params.get('multiline') %}
+                                        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">
+                                            {{ _('Multiline')}}: {{ property.params.get('multiline') }}
+                                        </span>
+                                    {% endif %}
+                                    {% if property.params.get('advanced') %}
+                                        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Advanced')}}</span>
+                                    {% endif %}
+                                    {% if property.params.get('hidden') %}
+                                        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Hidden')}}</span>
+                                    {% endif %}
+                                    {% if property.params.get('url') %}
+                                        <span class="badge text-bg-info me-1" style="font-size:0.65rem;">URL</span>
+                                    {% endif %}
+                                    {% if property.params.get('qr') %}
+                                        <span class="badge text-bg-info me-1" style="font-size:0.65rem;">QR</span>
+                                    {% endif %}
+                                    {% if property.params.get('image') %}
+                                        <span class="badge text-bg-info me-1" style="font-size:0.65rem;">{{ _('Image') }}</span>
                                     {% endif %}
                                 </div>
                         </td>
                         <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            <div class="input-group">
+                            {% set is_password = property.params.get('password') %}
+                            {% set prop_raw_value = property.value if property.value is not none else '' %}
+                            {% set ml_param = property.params.get('multiline') %}
+                            {% if ml_param is number and ml_param > 0 %}
+                                {% set prop_rows = ml_param %}
+                            {% elif ml_param %}
+                                {% set prop_rows = 3 %}
+                            {% else %}
+                                {% set prop_rows = 1 %}
+                            {% endif %}
+                            {% set show_url_btn = property.params.get('url') or ((prop_raw_value|string).startswith('http://') or (prop_raw_value|string).startswith('https://')) %}
+                            {% set is_relative = (property.params.get('format')|string) == 'relative' and not is_password and property.type != 'list' %}
+                            <div class="input-group{% if prop_rows > 1 %} align-items-stretch{% endif %}">
                                 <button
                                     class="btn btn-outline-secondary"
                                     type="button"
@@ -451,7 +593,7 @@
                                         disabled
                                         title="{{ _('Read only property') }}"
                                     {% else %}
-                                        onclick="openModal('{{form.name.data}}.{{property.name}}')"
+                                        onclick='openModal({{ prop_full_name|tojson }})'
                                     {% endif %}
                                 >
                                     <i class="fas fa-edit mt-0"></i>
@@ -460,22 +602,70 @@
                                     {{ render_property_type_icon(property.type) }}
                                 </span>
                                 {% if property.type == 'color' %}
-                                <span class="input-group-text py-1 px-2" id="prop_swatch:{{form.name.data}}.{{property.name}}" title="{{ property.color_preview or property.value }}">
+                                <span class="input-group-text py-1 px-2" id="prop_swatch:{{prop_full_name}}" title="{{ property.color_preview or property.value }}">
                                     <span class="property-color-swatch" style="background-color: {{ property.color_preview or color_css(property.value) }};"></span>
                                 </span>
                                 {% endif %}
-                                {% if property.type == 'list' %}
-                                <div class="form-control property-list-input" id="prop_list:{{form.name.data}}.{{property.name}}" aria-readonly="true"></div>
-                                <textarea class="d-none" id="prop:{{form.name.data}}.{{property.name}}" rows="1" readonly>{{ property.value }}</textarea>
-                                {% else %}
-                                <textarea class="form-control" id="prop:{{form.name.data}}.{{property.name}}" rows="1" readonly>
-                                    {% if property.type == 'enum' and property.params.get('enum_values') and property.value and property.value in property.params['enum_values'] %}
-                                    {{ property.params['enum_values'][property.value] }} ({{ property.value }})
-                                    {% else %}
-                                    {{ property.value }}
-                                    {% endif %}
-                                </textarea>
+                                {% if property.params.get('image') and not is_password %}
+                                <span class="input-group-text py-1 px-2 property-image-thumb-wrap{% if not prop_raw_value %} d-none{% endif %}"
+                                      id="prop_img_wrap:{{prop_full_name}}"
+                                      title="{{ _('Image') }}">
+                                    <img class="property-image-thumb"
+                                         id="prop_img:{{prop_full_name}}"
+                                         src="{{ prop_raw_value }}"
+                                         alt=""
+                                         loading="lazy"
+                                         referrerpolicy="no-referrer"
+                                         onclick='showPropertyImage({{ prop_full_name|tojson }})'>
+                                </span>
                                 {% endif %}
+                                {% if property.type == 'list' %}
+                                <div class="form-control property-list-input" id="prop_list:{{prop_full_name}}" aria-readonly="true"></div>
+                                <textarea class="d-none" id="prop:{{prop_full_name}}" rows="1" readonly data-raw-value="{{ prop_raw_value }}">{{ prop_raw_value }}</textarea>
+                                {% elif is_password %}
+                                <input type="password" class="form-control" id="prop:{{prop_full_name}}" value="{{ prop_raw_value }}" readonly autocomplete="off" data-password="1" data-raw-value="{{ prop_raw_value }}">
+                                {% elif is_relative %}
+                                <div class="form-control d-flex align-items-center">
+                                    <span class="time-component"
+                                          id="prop_rel:{{prop_full_name}}"
+                                          data-start-time="{{ prop_raw_value }}"
+                                          data-time-property="{{ prop_full_name }}"></span>
+                                </div>
+                                <textarea class="d-none" id="prop:{{prop_full_name}}" rows="1" readonly data-raw-value="{{ prop_raw_value }}">{{ prop_raw_value }}</textarea>
+                                {% else %}
+                                <textarea class="form-control" id="prop:{{prop_full_name}}" rows="{{ prop_rows }}" readonly data-raw-value="{{ prop_raw_value }}">{% if property.type == 'enum' and property.params.get('enum_values') and property.value and property.value in property.params['enum_values'] %}{{ property.params['enum_values'][property.value] }} ({{ property.value }}){% else %}{{ prop_raw_value }}{% endif %}</textarea>
+                                {% endif %}
+                                {% if property.params.get('unit') %}
+                                <span class="input-group-text" id="prop_unit:{{prop_full_name}}">{{ property.params.get('unit') }}</span>
+                                {% endif %}
+                                {% if is_password and property.type != 'list' %}
+                                <button type="button" class="btn btn-outline-secondary" title="{{ _('Password') }}" aria-label="{{ _('Password') }}" onclick='togglePropertyPassword({{ prop_full_name|tojson }}, this)'>
+                                    <i class="fas fa-eye" aria-hidden="true"></i>
+                                </button>
+                                {% endif %}
+                                {% if show_url_btn and not is_password %}
+                                <button type="button" class="btn btn-outline-secondary" title="URL" aria-label="URL" onclick='openPropertyUrl({{ prop_full_name|tojson }})'>
+                                    <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                                </button>
+                                {% endif %}
+                                {% if property.params.get('qr') %}
+                                <button type="button" class="btn btn-outline-secondary" title="QR" aria-label="QR" onclick='showPropertyQr({{ prop_full_name|tojson }})'>
+                                    <i class="fas fa-qrcode" aria-hidden="true"></i>
+                                </button>
+                                {% endif %}
+                                {% if property.params.get('image') and not is_password %}
+                                <button type="button" class="btn btn-outline-secondary" title="{{ _('Image') }}" aria-label="{{ _('Image') }}" onclick='showPropertyImage({{ prop_full_name|tojson }})'>
+                                    <i class="fas fa-image" aria-hidden="true"></i>
+                                </button>
+                                {% endif %}
+                                {% if property.params.get('default_value') is not none and not property.read_only %}
+                                <button type="button" class="btn btn-outline-secondary" title="{{ _('Default Value') }}" aria-label="{{ _('Default Value') }}" onclick='resetPropertyToDefault({{ prop_full_name|tojson }})'>
+                                    <i class="fas fa-undo" aria-hidden="true"></i>
+                                </button>
+                                {% endif %}
+                                <button type="button" class="btn btn-outline-secondary" title="{{ _('Copy') }}" aria-label="{{ _('Copy') }}" onclick='copyPropertyValue({{ prop_full_name|tojson }}, this)'>
+                                    <i class="fas fa-copy" aria-hidden="true"></i>
+                                </button>
                             </div>
                             <div class="meta-runtime">
                                 {% if memory_property_history_on %}
@@ -516,8 +706,9 @@
         <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade {% if tab == 'methods'%}show active{%endif%}" id="methods" role="tabpanel" aria-labelledby="methods-tab">
+        {% set ns_methods = namespace(prev_group='__none__', col_count=(4 if show_id else 3)) %}
         <div class="table-responsive">
-            <table class="table table-hover methods-table">
+            <table class="table table-hover methods-table" id="objectMethodsTable">
                 <thead>
                     <tr>
                         {% if show_id %}
@@ -536,7 +727,20 @@
                     {% else %}
                         {% set row_bg = _color ~ '26' if _color else '' %}
                     {% endif %}
-                    <tr>
+                    {% set method_group = method.params.get('group') or method.group or '' %}
+                    {% set is_advanced = method.params.get('advanced') or method.advanced %}
+                    {% set is_hidden = method.params.get('hidden') or method.hidden %}
+                    {% if method_group and method_group != ns_methods.prev_group %}
+                    <tr class="property-group-header{% if is_advanced %} property-row-advanced{% endif %}{% if is_hidden %} property-row-hidden{% endif %}">
+                        <td colspan="{{ ns_methods.col_count }}" class="fw-semibold py-1 text-start">
+                            <i class="fas fa-folder me-1" aria-hidden="true"></i>{{ method_group }}
+                        </td>
+                    </tr>
+                    {% set ns_methods.prev_group = method_group %}
+                    {% elif not method_group %}
+                    {% set ns_methods.prev_group = '' %}
+                    {% endif %}
+                    <tr class="{% if is_advanced %} property-row-advanced{% endif %}{% if is_hidden %} property-row-hidden{% endif %}">
                         {% if show_id %}
                         <th scope="row" style="width:1%; white-space:nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
                             <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ method.id }}</span>
@@ -564,6 +768,12 @@
                                             {{method.description}}
                                         {% else %}
                                             {{ _('Description is empty')}}
+                                        {% endif %}
+                                        {% if is_advanced %}
+                                            <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Advanced')}}</span>
+                                        {% endif %}
+                                        {% if is_hidden %}
+                                            <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Hidden')}}</span>
                                         {% endif %}
                                         {% if method.overrides_class %}
                                             <div class="mt-1">
@@ -647,14 +857,15 @@
 
                     {% set parent_methods = methods | selectattr('class_id') | rejectattr('redefined') | list %}
                     {% if parent_methods %}
-                    <tr>
-                        <td colspan="{{ 3 + (1 if show_id else 0) }}" class="pt-3 pb-1">
+                    <tr class="methods-section-header">
+                        <td colspan="{{ ns_methods.col_count }}" class="pt-3 pb-1 text-start">
                             <span class="text-muted" style="font-size:0.8rem; border-top: 1px solid rgba(255,255,255,0.08); display:block; padding-top:0.35rem;">
                                 {{ _('Parent methods') }}
                             </span>
                         </td>
                     </tr>
                     {% endif %}
+                    {% set ns_methods.prev_group = '__none__' %}
 
                     {% for method in parent_methods %}
                     {% set _color = method.color|lower if method.color else '' %}
@@ -663,7 +874,20 @@
                     {% else %}
                         {% set row_bg = _color ~ '26' if _color else '' %}
                     {% endif %}
-                    <tr>
+                    {% set method_group = method.params.get('group') or method.group or '' %}
+                    {% set is_advanced = method.params.get('advanced') or method.advanced %}
+                    {% set is_hidden = method.params.get('hidden') or method.hidden %}
+                    {% if method_group and method_group != ns_methods.prev_group %}
+                    <tr class="property-group-header{% if is_advanced %} property-row-advanced{% endif %}{% if is_hidden %} property-row-hidden{% endif %}">
+                        <td colspan="{{ ns_methods.col_count }}" class="fw-semibold py-1 text-start">
+                            <i class="fas fa-folder me-1" aria-hidden="true"></i>{{ method_group }}
+                        </td>
+                    </tr>
+                    {% set ns_methods.prev_group = method_group %}
+                    {% elif not method_group %}
+                    {% set ns_methods.prev_group = '' %}
+                    {% endif %}
+                    <tr class="{% if is_advanced %} property-row-advanced{% endif %}{% if is_hidden %} property-row-hidden{% endif %}">
                         {% if show_id %}
                         <th scope="row" style="width:1%; white-space:nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
                             <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ method.id }}</span>
@@ -689,6 +913,12 @@
                                             {{method.description}}
                                         {% else %}
                                             {{ _('Description is empty')}}
+                                        {% endif %}
+                                        {% if is_advanced %}
+                                            <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Advanced')}}</span>
+                                        {% endif %}
+                                        {% if is_hidden %}
+                                            <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Hidden')}}</span>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -1092,7 +1322,13 @@
             
             <!-- string editor -->
             <div id="editor-str" class="property-editor" style="display: none;">
-              <textarea type="text" id="newValue" class="form-control" placeholder="{{ _('Enter new value')}}"></textarea>
+              <div class="input-group" id="value-str-text-group">
+                <textarea type="text" id="newValue" class="form-control" placeholder="{{ _('Enter new value')}}"></textarea>
+                <input type="password" id="newValuePassword" class="form-control" style="display: none;" placeholder="{{ _('Enter new value')}}" autocomplete="new-password">
+                <button type="button" class="btn btn-outline-secondary" id="toggleModalPasswordBtn" style="display: none;" title="{{ _('Password') }}">
+                  <i class="fas fa-eye" aria-hidden="true"></i>
+                </button>
+              </div>
               <select id="value-str-select" class="form-select" style="display: none;">
                 <option value="">{{ _('Select value')}}...</option>
               </select>
@@ -1137,13 +1373,19 @@
 
             <!-- color editor -->
             <div id="editor-color" class="property-editor" style="display: none;">
-              <div class="row g-2">
+              <div class="row g-2 align-items-end">
                 <div class="col-md-6">
-                  <label class="form-label">{{ _('Color HEX') }}</label>
-                  <input type="color" id="value-color-hex-picker" class="form-control form-control-color" value="#ffffff">
+                  {{ color_picker_field(
+                      'value-color-hex-picker',
+                      label=_('Color HEX'),
+                      value='#ffffff',
+                      wrapper_class='mb-0',
+                      name=None,
+                      show_clear=True
+                  ) }}
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">{{ _('Color HEX') }}</label>
+                  <label class="form-label" for="value-color-hex-text">{{ _('Color HEX') }}</label>
                   <input type="text" id="value-color-hex-text" class="form-control" placeholder="#547CFF">
                 </div>
               </div>
@@ -1204,6 +1446,47 @@
           <button type="button" class="btn btn-primary" id="saveCronButton"><i class="fas fa-save me-2"></i>{{ _('Save')}}</button>
         </div>
         
+      </div>
+    </div>
+</div>
+
+<div class="modal fade" id="propertyQrModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-qrcode me-2"></i>QR</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+        </div>
+        <div class="modal-body text-center">
+          <div id="propertyQrCode" class="d-inline-block bg-white border rounded p-2" style="min-width:256px;min-height:256px;"></div>
+          <pre id="propertyQrText" class="small text-muted text-break mt-3 mb-0" style="white-space: pre-wrap;"></pre>
+          <div id="propertyQrError" class="alert alert-danger mt-3 d-none mb-0"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i>{{ _('Close')}}</button>
+        </div>
+      </div>
+    </div>
+</div>
+
+<div class="modal fade" id="propertyImageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-image me-2"></i>{{ _('Image') }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+        </div>
+        <div class="modal-body text-center">
+          <img id="propertyImagePreview" class="img-fluid rounded border bg-body-tertiary" alt="" referrerpolicy="no-referrer" style="max-height:70vh;">
+          <pre id="propertyImageText" class="small text-muted text-break mt-3 mb-0" style="white-space: pre-wrap;"></pre>
+          <div id="propertyImageError" class="alert alert-danger mt-3 d-none mb-0"></div>
+        </div>
+        <div class="modal-footer">
+          <a class="btn btn-outline-primary me-auto" id="propertyImageOpenLink" href="#" target="_blank" rel="noopener noreferrer">
+            <i class="fas fa-external-link-alt me-1"></i>URL
+          </a>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i>{{ _('Close')}}</button>
+        </div>
       </div>
     </div>
 </div>
@@ -1312,6 +1595,15 @@
         {% for property in properties %}
         "{{form.name.data}}.{{property.name}}": {
             type: "{{property.type}}",
+            password: {{ 'true' if property.params.get('password') else 'false' }},
+            unit: {{ property.params.get('unit')|tojson if property.params.get('unit') else 'null' }},
+            format: {{ property.params.get('format')|tojson if property.params.get('format') else 'null' }},
+            multiline: {{ property.params.get('multiline')|tojson if property.params.get('multiline') is not none else 'null' }},
+            url: {{ 'true' if property.params.get('url') else 'false' }},
+            qr: {{ 'true' if property.params.get('qr') else 'false' }},
+            image: {{ 'true' if property.params.get('image') else 'false' }},
+            default_value: {% if 'default_value' in property.params %}{{ property.params.get('default_value')|tojson }}{% else %}null{% endif %},
+            read_only: {{ 'true' if property.read_only or property.params.get('read_only') else 'false' }},
             enum_values: {% if property.type == 'enum' and property.params.get('enum_values') %}{{ property.params['enum_values']|tojson }}{% else %}null{% endif %},
             options_source: {{ property.params.get('options_source')|tojson if property.params.get('options_source') else 'null' }},
             options_class: {{ property.params.get('options_class')|tojson if property.params.get('options_class') else 'null' }},
@@ -1325,6 +1617,453 @@
         }{% if not loop.last %},{% endif %}
         {% endfor %}
     };
+
+    function getPropertyRawValue(propertyName) {
+        var element = document.getElementById('prop:' + propertyName);
+        if (!element) {
+            return '';
+        }
+        if (element.hasAttribute('data-raw-value')) {
+            return element.getAttribute('data-raw-value');
+        }
+        return getPropertyFieldValue(element);
+    }
+
+    function getPropertyFieldValue(element) {
+        if (!element) {
+            return '';
+        }
+        if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+            return element.value;
+        }
+        return element.textContent || '';
+    }
+
+    function setPropertyFieldValue(element, value) {
+        if (!element) {
+            return;
+        }
+        if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+            element.value = value == null ? '' : value;
+        } else {
+            element.textContent = value == null ? '' : value;
+        }
+    }
+
+    function flashActionButton(btn) {
+        if (!btn) {
+            return;
+        }
+        var icon = btn.querySelector('i');
+        if (!icon) {
+            return;
+        }
+        var prev = icon.className;
+        icon.className = 'fas fa-check';
+        setTimeout(function() {
+            icon.className = prev;
+        }, 1200);
+    }
+
+    function copyTextToClipboard(text, btn) {
+        text = text == null ? '' : String(text);
+        var fallback = function(value) {
+            var ta = document.createElement('textarea');
+            ta.value = value;
+            ta.style.position = 'fixed';
+            ta.style.top = '-9999px';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            try {
+                document.execCommand('copy');
+                flashActionButton(btn);
+            } catch (err) {
+                console.warn('Clipboard copy failed', err);
+            }
+            document.body.removeChild(ta);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function() {
+                flashActionButton(btn);
+            }).catch(function(err) {
+                console.warn('navigator.clipboard failed', err);
+                fallback(text);
+            });
+        } else {
+            fallback(text);
+        }
+    }
+
+    function formatDurationSeconds(sec) {
+        var n = Number(sec);
+        if (!isFinite(n)) {
+            return String(sec);
+        }
+        var sign = n < 0 ? '-' : '';
+        n = Math.abs(Math.round(n));
+        var h = Math.floor(n / 3600);
+        var m = Math.floor((n % 3600) / 60);
+        var s = n % 60;
+        if (h > 0) {
+            return sign + h + 'h ' + m + 'm ' + s + 's';
+        }
+        if (m > 0) {
+            return sign + m + 'm ' + s + 's';
+        }
+        return sign + s + 's';
+    }
+
+    function formatRelativeTime(value) {
+        var d = new Date(value);
+        if (isNaN(d.getTime())) {
+            d = new Date(String(value).replace(' ', 'T'));
+        }
+        if (isNaN(d.getTime())) {
+            return String(value);
+        }
+        var diffSec = Math.round((d.getTime() - Date.now()) / 1000);
+        var abs = Math.abs(diffSec);
+        var unit = 'second';
+        var amount = abs;
+        if (abs >= 86400) {
+            unit = 'day';
+            amount = Math.round(abs / 86400);
+        } else if (abs >= 3600) {
+            unit = 'hour';
+            amount = Math.round(abs / 3600);
+        } else if (abs >= 60) {
+            unit = 'minute';
+            amount = Math.round(abs / 60);
+        }
+        try {
+            if (typeof Intl !== 'undefined' && Intl.RelativeTimeFormat) {
+                var rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+                return rtf.format(diffSec < 0 ? -amount : amount, unit);
+            }
+        } catch (e) {}
+        return (diffSec < 0 ? '-' : '+') + amount + unit[0];
+    }
+
+    function formatPropertyDisplay(propertyName, rawValue) {
+        var info = propertiesInfo[propertyName];
+        if (rawValue == null) {
+            return '';
+        }
+        if (info && info.password) {
+            return rawValue;
+        }
+        var display = formatEnumValue(propertyName, rawValue);
+        if (!info || !info.format) {
+            return display;
+        }
+        var fmt = String(info.format);
+        if (fmt === 'duration') {
+            return formatDurationSeconds(rawValue);
+        }
+        // relative — через .time-component (realtime), здесь не форматируем
+        if (fmt === 'relative') {
+            return rawValue;
+        }
+        var numPattern = fmt.match(/^0+(\.(0+))?$/);
+        if (numPattern) {
+            var decimals = numPattern[2] ? numPattern[2].length : 0;
+            var num = parseFloat(rawValue);
+            if (!isNaN(num)) {
+                return num.toFixed(decimals);
+            }
+        }
+        if (fmt.indexOf('{value}') !== -1) {
+            return fmt.split('{value}').join(String(display));
+        }
+        return display;
+    }
+
+    function applyPropertyValueToUi(propertyName, rawValue) {
+        var element = document.getElementById('prop:' + propertyName);
+        if (!element) {
+            return;
+        }
+        var rawStr = typeof rawValue === 'object' && rawValue !== null
+            ? JSON.stringify(rawValue)
+            : (rawValue == null ? '' : String(rawValue));
+        element.setAttribute('data-raw-value', rawStr);
+        var info = propertiesInfo[propertyName];
+        if (info && info.password) {
+            setPropertyFieldValue(element, rawStr);
+            return;
+        }
+        if (info && info.image) {
+            updatePropertyImageThumb(propertyName, rawStr);
+        }
+        if (info && String(info.format || '') === 'relative') {
+            setPropertyFieldValue(element, rawStr);
+            var relEl = document.getElementById('prop_rel:' + propertyName);
+            if (relEl) {
+                if (typeof updateTimeComponentElement === 'function') {
+                    updateTimeComponentElement(relEl, rawStr);
+                } else {
+                    relEl.setAttribute('data-start-time', rawStr);
+                }
+            }
+            return;
+        }
+        setPropertyFieldValue(element, formatPropertyDisplay(propertyName, rawStr));
+    }
+
+    function updatePropertyImageThumb(propertyName, rawValue) {
+        var wrap = document.getElementById('prop_img_wrap:' + propertyName);
+        var img = document.getElementById('prop_img:' + propertyName);
+        var src = String(rawValue || '').trim();
+        if (!wrap || !img) {
+            return;
+        }
+        if (!src) {
+            wrap.classList.add('d-none');
+            img.removeAttribute('src');
+            return;
+        }
+        wrap.classList.remove('d-none');
+        if (img.getAttribute('src') !== src) {
+            img.setAttribute('src', src);
+        }
+    }
+
+    function showPropertyImage(propertyName) {
+        var raw = String(getPropertyRawValue(propertyName) || '').trim();
+        var modalEl = document.getElementById('propertyImageModal');
+        var img = document.getElementById('propertyImagePreview');
+        var textEl = document.getElementById('propertyImageText');
+        var errEl = document.getElementById('propertyImageError');
+        var linkEl = document.getElementById('propertyImageOpenLink');
+        if (textEl) {
+            textEl.textContent = raw;
+        }
+        if (errEl) {
+            errEl.classList.add('d-none');
+            errEl.textContent = '';
+        }
+        if (linkEl) {
+            if (raw) {
+                linkEl.href = raw;
+                linkEl.classList.remove('disabled');
+            } else {
+                linkEl.href = '#';
+                linkEl.classList.add('disabled');
+            }
+        }
+        if (img) {
+            img.onload = function() {
+                if (errEl) {
+                    errEl.classList.add('d-none');
+                }
+            };
+            img.onerror = function() {
+                if (errEl) {
+                    errEl.textContent = '{{ _("Failed to load image") }}';
+                    errEl.classList.remove('d-none');
+                }
+            };
+            if (raw) {
+                img.src = raw;
+                img.classList.remove('d-none');
+            } else {
+                img.removeAttribute('src');
+                img.classList.add('d-none');
+                if (errEl) {
+                    errEl.textContent = '{{ _("No image URL") }}';
+                    errEl.classList.remove('d-none');
+                }
+            }
+        }
+        if (modalEl && typeof bootstrap !== 'undefined') {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+    }
+
+    function togglePropertyPassword(propertyName, btn) {
+        var element = document.getElementById('prop:' + propertyName);
+        if (!element || element.tagName !== 'INPUT') {
+            return;
+        }
+        var icon = btn ? btn.querySelector('i') : null;
+        if (element.type === 'password') {
+            element.type = 'text';
+            if (icon) {
+                icon.className = 'fas fa-eye-slash';
+            }
+        } else {
+            element.type = 'password';
+            if (icon) {
+                icon.className = 'fas fa-eye';
+            }
+        }
+    }
+
+    function copyPropertyValue(propertyName, btn) {
+        copyTextToClipboard(getPropertyRawValue(propertyName), btn);
+    }
+
+    function copyPropertyName(propertyName, btn) {
+        copyTextToClipboard(propertyName, btn);
+    }
+
+    function resetPropertyToDefault(propertyName) {
+        var info = propertiesInfo[propertyName];
+        if (!info || info.default_value === undefined || info.default_value === null) {
+            return;
+        }
+        if (info.read_only) {
+            return;
+        }
+        if (!confirm('{{ _("Reset to default value?") }}')) {
+            return;
+        }
+        if (typeof setProperty !== 'function') {
+            console.warn('setProperty is unavailable');
+            return;
+        }
+        setProperty(propertyName, info.default_value);
+    }
+
+    function openPropertyUrl(propertyName) {
+        var raw = String(getPropertyRawValue(propertyName) || '').trim();
+        if (!raw) {
+            return;
+        }
+        if (!/^https?:\/\//i.test(raw)) {
+            raw = 'https://' + raw;
+        }
+        window.open(raw, '_blank', 'noopener,noreferrer');
+    }
+
+    function showPropertyQr(propertyName) {
+        var raw = String(getPropertyRawValue(propertyName) || '');
+        var modalEl = document.getElementById('propertyQrModal');
+        var box = document.getElementById('propertyQrCode');
+        var textEl = document.getElementById('propertyQrText');
+        var errEl = document.getElementById('propertyQrError');
+        if (textEl) {
+            textEl.textContent = raw;
+        }
+        if (errEl) {
+            errEl.classList.add('d-none');
+            errEl.textContent = '';
+        }
+        if (modalEl && typeof bootstrap !== 'undefined') {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+        if (!box) {
+            return;
+        }
+        box.innerHTML = '';
+        if (typeof QRCode !== 'function') {
+            if (errEl) {
+                errEl.textContent = '{{ _("Failed to generate QR") }}';
+                errEl.classList.remove('d-none');
+            }
+            return;
+        }
+        try {
+            new QRCode(box, {
+                text: raw || ' ',
+                width: 256,
+                height: 256,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        } catch (err) {
+            console.warn(err);
+            if (errEl) {
+                errEl.textContent = '{{ _("Failed to generate QR") }}';
+                errEl.classList.remove('d-none');
+            }
+        }
+    }
+
+    function toggleTableFilterClass(tableId, className, btnId, iconShow, labelShow, iconHide, labelHide) {
+        var table = document.getElementById(tableId);
+        var btn = document.getElementById(btnId);
+        if (!table || !btn) {
+            return;
+        }
+        var next = !table.classList.contains(className);
+        table.classList.toggle(className, next);
+        btn.setAttribute('aria-expanded', next ? 'true' : 'false');
+        btn.classList.toggle('active', next);
+        btn.title = next ? labelHide : labelShow;
+        var icon = btn.querySelector('i');
+        if (icon) {
+            icon.className = 'fas ' + (next ? iconHide : iconShow);
+        }
+    }
+
+    function toggleAdvancedProperties() {
+        toggleTableFilterClass(
+            'objectPropertiesTable',
+            'show-advanced',
+            'toggleAdvancedPropertiesBtn',
+            'fa-layer-group', '{{ _("Show advanced") }}',
+            'fa-layer-group', '{{ _("Hide advanced") }}'
+        );
+    }
+
+    function toggleHiddenProperties() {
+        toggleTableFilterClass(
+            'objectPropertiesTable',
+            'show-hidden',
+            'toggleHiddenPropertiesBtn',
+            'fa-eye-slash', '{{ _("Show hidden") }}',
+            'fa-eye', '{{ _("Hide hidden") }}'
+        );
+    }
+
+    function toggleAdvancedMethods() {
+        toggleTableFilterClass(
+            'objectMethodsTable',
+            'show-advanced',
+            'toggleAdvancedMethodsBtn',
+            'fa-layer-group', '{{ _("Show advanced") }}',
+            'fa-layer-group', '{{ _("Hide advanced") }}'
+        );
+    }
+
+    function toggleHiddenMethods() {
+        toggleTableFilterClass(
+            'objectMethodsTable',
+            'show-hidden',
+            'toggleHiddenMethodsBtn',
+            'fa-eye-slash', '{{ _("Show hidden") }}',
+            'fa-eye', '{{ _("Hide hidden") }}'
+        );
+    }
+
+    function syncPropertiesFilterActionsVisibility(targetSelector) {
+        var actions = document.getElementById('propertiesFilterActions');
+        if (!actions) {
+            return;
+        }
+        var onProperties = targetSelector === '#properties' ||
+            (document.getElementById('properties') && document.getElementById('properties').classList.contains('active'));
+        if (targetSelector) {
+            onProperties = targetSelector === '#properties';
+        }
+        actions.classList.toggle('d-none', !onProperties);
+    }
+
+    function syncMethodsFilterActionsVisibility(targetSelector) {
+        var actions = document.getElementById('methodsFilterActions');
+        if (!actions) {
+            return;
+        }
+        var onMethods = targetSelector === '#methods' ||
+            (document.getElementById('methods') && document.getElementById('methods').classList.contains('active'));
+        if (targetSelector) {
+            onMethods = targetSelector === '#methods';
+        }
+        actions.classList.toggle('d-none', !onMethods);
+    }
 
     // Функция для форматирования значения enum с описанием
     function formatEnumValue(propertyName, value) {
@@ -2007,11 +2746,15 @@
                 }
                 var pane = tabContent.querySelector(targetSelector);
                 activateSingleConfigTabPane(pane);
+                syncPropertiesFilterActionsVisibility(targetSelector);
+                syncMethodsFilterActionsVisibility(targetSelector);
                 if (targetSelector === '#template_tab') {
                     resizeObjectTemplateEditors();
                 }
             });
         });
+        syncPropertiesFilterActionsVisibility({{ ('"#properties"' if tab == 'properties' else 'null')|safe }});
+        syncMethodsFilterActionsVisibility({{ ('"#methods"' if tab == 'methods' else 'null')|safe }});
 
         var urlTab = new URLSearchParams(window.location.search).get('tab');
         var paneIdByTab = {
@@ -2048,18 +2791,7 @@
         //
         // Важно: НЕ используем socket.off('changeProperty'), чтобы не ломать глобальные биндинги (data-prop-*) и общий обработчик.
         socket.on('changeProperty', function (msg) {
-            var elements = document.querySelectorAll(`[id^="prop:${msg.property}"]`);
-            elements.forEach(function(element) {
-                if (element.id === `prop:${msg.property}`) {
-                    var displayValue = typeof msg.value === "object" ? JSON.stringify(msg.value) : msg.value;
-                    displayValue = formatEnumValue(msg.property, displayValue);
-                    if (element.tagName === 'TEXTAREA') {
-                        element.value = displayValue;
-                    } else {
-                        element.textContent = displayValue;
-                    }
-                }
-            });
+            applyPropertyValueToUi(msg.property, msg.value);
             var propInfo = propertiesInfo[msg.property];
             if (propInfo && propInfo.type === 'color') {
                 updatePropertyColorSwatch(msg.property, msg.value);
@@ -2067,6 +2799,51 @@
             if (propInfo && propInfo.type === 'list') {
                 updatePropertyListBadges(msg.property, msg.value);
             }
+        });
+
+        var advancedBtn = document.getElementById('toggleAdvancedPropertiesBtn');
+        if (advancedBtn) {
+            advancedBtn.addEventListener('click', toggleAdvancedProperties);
+        }
+        var hiddenBtn = document.getElementById('toggleHiddenPropertiesBtn');
+        if (hiddenBtn) {
+            hiddenBtn.addEventListener('click', toggleHiddenProperties);
+        }
+        var advancedMethodsBtn = document.getElementById('toggleAdvancedMethodsBtn');
+        if (advancedMethodsBtn) {
+            advancedMethodsBtn.addEventListener('click', toggleAdvancedMethods);
+        }
+        var hiddenMethodsBtn = document.getElementById('toggleHiddenMethodsBtn');
+        if (hiddenMethodsBtn) {
+            hiddenMethodsBtn.addEventListener('click', toggleHiddenMethods);
+        }
+
+        // realtime для format=relative (.time-component)
+        if (typeof updateAllTimeComponents === 'function') {
+            updateAllTimeComponents();
+            setInterval(updateAllTimeComponents, 1000);
+        }
+
+        Object.keys(propertiesInfo).forEach(function(propertyName) {
+            var info = propertiesInfo[propertyName];
+            if (!info || info.password || info.type === 'list') {
+                return;
+            }
+            if (!info.format && info.type !== 'enum') {
+                return;
+            }
+            if (String(info.format || '') === 'relative') {
+                return;
+            }
+            var element = document.getElementById('prop:' + propertyName);
+            if (!element) {
+                return;
+            }
+            var raw = element.getAttribute('data-raw-value');
+            if (raw == null) {
+                raw = getPropertyFieldValue(element);
+            }
+            applyPropertyValueToUi(propertyName, raw);
         });
 
         Object.keys(propertiesInfo).forEach(function(propertyName) {
@@ -2078,7 +2855,7 @@
             if (!element) {
                 return;
             }
-            var rawValue = element.tagName === 'TEXTAREA' ? element.value : element.textContent;
+            var rawValue = getPropertyFieldValue(element);
             if (propType === 'color') {
                 updatePropertyColorSwatch(propertyName, rawValue);
             } else if (propType === 'list') {
@@ -2109,16 +2886,14 @@
                 if (!element) {
                     return;
                 }
-                var rawValue = element.tagName === 'TEXTAREA' ? element.value : element.textContent;
+                var rawValue = element.getAttribute('data-raw-value');
+                if (rawValue == null) {
+                    rawValue = getPropertyFieldValue(element);
+                }
                 if (info.type === 'list') {
                     updatePropertyListBadges(propertyName, rawValue);
                 } else if (info.type === 'enum') {
-                    var displayValue = formatEnumValue(propertyName, rawValue);
-                    if (element.tagName === 'TEXTAREA') {
-                        element.value = displayValue;
-                    } else {
-                        element.textContent = displayValue;
-                    }
+                    applyPropertyValueToUi(propertyName, rawValue);
                 }
             }).catch(function(err) {
                 console.error('Failed to preload options for', propertyName, err);
@@ -2238,6 +3013,10 @@
                 if (strSelect && strSelect.style.display !== 'none') {
                     return strSelect.value;
                 }
+                var passInput = document.getElementById('newValuePassword');
+                if (passInput && passInput.style.display !== 'none') {
+                    return passInput.value;
+                }
                 return document.getElementById('newValue').value;
             case 'bool':
                 // Отправляем логическое значение, Socket.IO сериализует его как JSON boolean
@@ -2310,7 +3089,14 @@
                 if (strSelect && strSelect.style.display !== 'none') {
                     strSelect.value = value || '';
                 } else {
-                    document.getElementById('newValue').value = value || '';
+                    var passInputSet = document.getElementById('newValuePassword');
+                    var textAreaSet = document.getElementById('newValue');
+                    if (passInputSet && passInputSet.style.display !== 'none') {
+                        passInputSet.value = value || '';
+                    }
+                    if (textAreaSet) {
+                        textAreaSet.value = value || '';
+                    }
                 }
                 break;
             case 'bool':
@@ -2610,12 +3396,29 @@
             if (type === 'str') {
                 var hintStr = document.getElementById('hint-str');
                 var hintTextStr = [];
+                var textArea = document.getElementById('newValue');
+                var passInput = document.getElementById('newValuePassword');
+                var passToggle = document.getElementById('toggleModalPasswordBtn');
+                var strSelect = document.getElementById('value-str-select');
+                var usePassword = !!params.password;
+
+                function resetModalPasswordToggle() {
+                    if (!passInput || !passToggle) {
+                        return;
+                    }
+                    passInput.type = 'password';
+                    var icon = passToggle.querySelector('i');
+                    if (icon) {
+                        icon.className = 'fas fa-eye';
+                    }
+                }
+
                 // Проверяем наличие allowed_values
                 if (params.allowed_values && params.allowed_values.length > 0) {
                     // Показываем select вместо input
-                    var textArea = document.getElementById('newValue');
                     if (textArea) textArea.style.display = 'none';
-                    var strSelect = document.getElementById('value-str-select');
+                    if (passInput) passInput.style.display = 'none';
+                    if (passToggle) passToggle.style.display = 'none';
                     if (strSelect) {
                         strSelect.style.display = 'block';
                         strSelect.innerHTML = '<option value="">{{ _("Select value")}}...</option>';
@@ -2630,11 +3433,17 @@
 
                     hintTextStr.push('{{ _("Allowed values")}}: ' + params.allowed_values.length);
                 } else {
-                    // Показываем обычный input
-                    var textAreaPlain = document.getElementById('newValue');
-                    if (textAreaPlain) textAreaPlain.style.display = 'block';
-                    var strSelectPlain = document.getElementById('value-str-select');
-                    if (strSelectPlain) strSelectPlain.style.display = 'none';
+                    if (strSelect) strSelect.style.display = 'none';
+                    resetModalPasswordToggle();
+                    if (usePassword) {
+                        if (textArea) textArea.style.display = 'none';
+                        if (passInput) passInput.style.display = 'block';
+                        if (passToggle) passToggle.style.display = '';
+                    } else {
+                        if (textArea) textArea.style.display = 'block';
+                        if (passInput) passInput.style.display = 'none';
+                        if (passToggle) passToggle.style.display = 'none';
+                    }
                 }
 
                 if (params.regexp) {
@@ -2705,9 +3514,21 @@
         }
     }
 
+    function setColorHexPicker(hex, options) {
+        var opts = options || {};
+        var value = hex || '';
+        if (window.ColorPicker) {
+            window.ColorPicker.setValue('value-color-hex-picker', value, { silent: !!opts.silent });
+            return;
+        }
+        var hexPicker = document.getElementById('value-color-hex-picker');
+        if (hexPicker && value) {
+            hexPicker.value = value;
+        }
+    }
+
     function setColorEditorValue(value) {
         var hexText = document.getElementById('value-color-hex-text');
-        var hexPicker = document.getElementById('value-color-hex-picker');
         var jsonField = document.getElementById('value-color-json');
 
         if (value && typeof value === 'string' && value.trim().startsWith('{')) {
@@ -2717,10 +3538,10 @@
                 var previewHex = colorValueToCss(parsed);
                 if (previewHex) {
                     hexText.value = previewHex;
-                    hexPicker.value = previewHex;
+                    setColorHexPicker(previewHex, { silent: true });
                 } else if (parsed.color && parsed.color.hex) {
                     hexText.value = parsed.color.hex;
-                    hexPicker.value = parsed.color.hex;
+                    setColorHexPicker(parsed.color.hex, { silent: true });
                 }
             } catch (e) {}
             return;
@@ -2728,7 +3549,7 @@
 
         if (value && typeof value === 'string' && value.trim().startsWith('#')) {
             hexText.value = value.trim();
-            hexPicker.value = value.trim();
+            setColorHexPicker(value.trim(), { silent: true });
             jsonField.value = '';
             return;
         }
@@ -2737,7 +3558,7 @@
             if (value.r !== undefined && value.g !== undefined && value.b !== undefined) {
                 var hex = rgbToHex(value.r, value.g, value.b);
                 hexText.value = hex;
-                hexPicker.value = hex;
+                setColorHexPicker(hex, { silent: true });
                 jsonField.value = '';
                 return;
             }
@@ -2745,27 +3566,32 @@
             jsonField.value = JSON.stringify(value, null, 2);
             if (objectHex) {
                 hexText.value = objectHex;
-                hexPicker.value = objectHex;
+                setColorHexPicker(objectHex, { silent: true });
             }
             return;
         }
 
         hexText.value = '#ffffff';
-        hexPicker.value = '#ffffff';
+        setColorHexPicker('#ffffff', { silent: true });
         jsonField.value = '';
     }
 
-    var colorPickerEl = document.getElementById('value-color-hex-picker');
     var colorTextEl = document.getElementById('value-color-hex-text');
-    if (colorPickerEl && colorTextEl) {
-        colorPickerEl.addEventListener('input', function() {
-            colorTextEl.value = colorPickerEl.value;
-            syncColorJsonFromHex();
+    if (window.ColorPicker) {
+        window.ColorPicker.register('value-color-hex-picker', {
+            onChange: function(v) {
+                if (colorTextEl) {
+                    colorTextEl.value = v || '';
+                }
+                syncColorJsonFromHex();
+            }
         });
+    }
+    if (colorTextEl) {
         colorTextEl.addEventListener('input', function() {
             var v = colorTextEl.value.trim();
             if (/^#?[0-9a-fA-F]{6}$/.test(v)) {
-                colorPickerEl.value = v.startsWith('#') ? v : ('#' + v);
+                setColorHexPicker(v.startsWith('#') ? v : ('#' + v), { silent: true });
             }
             syncColorJsonFromHex();
         });
@@ -2786,12 +3612,11 @@
             bootstrap.Modal.getOrCreateInstance(modalEl).show();
         }
         
-        // Получить текущее значение
+        // Получить текущее значение (сырое, не отображаемый format/enum)
         var element = document.getElementById("prop:" + name);
         var currentValue = '';
         if (element) {
-            // Для textarea используем value, для других элементов textContent
-            currentValue = element.tagName === 'TEXTAREA' ? element.value : element.textContent;
+            currentValue = getPropertyRawValue(name);
             // Если значение содержит формат enum "description (value)", извлекаем только ключ из скобок
             if (currentValue && currentValue.indexOf(' (') !== -1 && currentValue.endsWith(')')) {
                 var match = currentValue.match(/\(([^)]+)\)$/);
@@ -3250,6 +4075,28 @@
 
     if (copyValueButton) {
         copyValueButton.addEventListener('click', copyValueToClipboard);
+    }
+
+    var toggleModalPasswordBtn = document.getElementById('toggleModalPasswordBtn');
+    if (toggleModalPasswordBtn) {
+        toggleModalPasswordBtn.addEventListener('click', function() {
+            var passInput = document.getElementById('newValuePassword');
+            if (!passInput) {
+                return;
+            }
+            var icon = toggleModalPasswordBtn.querySelector('i');
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                if (icon) {
+                    icon.className = 'fas fa-eye-slash';
+                }
+            } else {
+                passInput.type = 'password';
+                if (icon) {
+                    icon.className = 'fas fa-eye';
+                }
+            }
+        });
     }
 
     var objectToolsBaseUrl = '?view=object_tool&object={{ id }}';
@@ -3918,6 +4765,7 @@
 {% block javascripts %}
 {{ super() }}
 <script src="{{ url_for('Objects.static', filename='choices/choices.min.js') }}"></script>
+<script src="{{ url_for('Objects.static', filename='js/qrcode.min.js') }}?v=1"></script>
 <script src="{{ url_for('Objects.static', filename='js/object-property-history.js') }}?v=2"></script>
 <script>
 /* Fallback, если static js не загрузился */

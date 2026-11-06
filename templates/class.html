@@ -2,6 +2,73 @@
 {% from "macros/code_editor.html" import render_editor %}
 {% from "includes/objects_breadcrumb.html" import breadcrumb_class with context %}
 {% from "macros/icon_picker.html" import icon_picker_field, icon_picker_modal, icon_picker_assets %}
+{% from "macros/color_picker.html" import color_picker_field, color_picker_assets %}
+
+{% macro render_class_property_params_badges(property) -%}
+{%- set p = property.params if property.params is mapping else {} -%}
+<div class="small text-muted mt-1 objects-params-badges">
+    {% if p.get('min') or p.get('max') %}
+        <span class="badge text-bg-warning me-1" style="font-size:0.65rem;">
+            {% if p.get('min') != '' and p.get('min') is not none %}{{ _('Minimum Value')}}: {{ p.get('min') }}{% endif %}
+            {% if p.get('max') != '' and p.get('max') is not none %}{% if p.get('min') or p.get('min') == 0 %} / {% endif %}{{ _('Maximum Value')}}: {{ p.get('max') }}{% endif %}
+        </span>
+    {% endif %}
+    {% if p.get('step') %}
+        <span class="badge text-bg-warning me-1" style="font-size:0.65rem;">{{ _('Step')}}: {{ p.get('step') }}</span>
+    {% endif %}
+    {% if p.get('decimals') %}
+        <span class="badge text-bg-warning me-1" style="font-size:0.65rem;">{{ _('Decimals')}}: {{ p.get('decimals') }}</span>
+    {% endif %}
+    {% if p.get('allowed_values') %}
+        <span class="badge text-bg-info me-1" style="font-size:0.65rem;">{{ _('Allowed values')}}: {{ p.get('allowed_values')|length }}</span>
+    {% endif %}
+    {% if p.get('enum_values') %}
+        <span class="badge text-bg-info me-1" style="font-size:0.65rem;">{{ _('Enum Values (JSON)')}}: {{ p.get('enum_values')|length }}</span>
+    {% endif %}
+    {% if p.get('default_value') is not none and p.get('default_value') != '' %}
+        <span class="badge text-bg-success me-1" style="font-size:0.65rem;">{{ _('Default Value')}}: {{ p.get('default_value') }}</span>
+    {% endif %}
+    {% if p.get('regexp') %}
+        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('RegExp Pattern')}}</span>
+    {% endif %}
+    {% if p.get('rate_limit') %}
+        <span class="badge text-bg-danger me-1" style="font-size:0.65rem;">{{ _('Rate Limit (seconds)')}}: {{ p.get('rate_limit') }}</span>
+    {% endif %}
+    {% if p.get('read_only') %}
+        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Read Only')}}</span>
+    {% endif %}
+    {% if p.get('password') %}
+        <span class="badge text-bg-dark me-1" style="font-size:0.65rem;">{{ _('Password')}}</span>
+    {% endif %}
+    {% if p.get('unit') %}
+        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Unit')}}: {{ p.get('unit') }}</span>
+    {% endif %}
+    {% if p.get('format') %}
+        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Format')}}: {{ p.get('format') }}</span>
+    {% endif %}
+    {% if p.get('group') %}
+        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Group')}}: {{ p.get('group') }}</span>
+    {% endif %}
+    {% if p.get('multiline') %}
+        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Multiline')}}: {{ p.get('multiline') }}</span>
+    {% endif %}
+    {% if p.get('url') %}
+        <span class="badge text-bg-info me-1" style="font-size:0.65rem;">URL</span>
+    {% endif %}
+    {% if p.get('qr') %}
+        <span class="badge text-bg-info me-1" style="font-size:0.65rem;">QR</span>
+    {% endif %}
+    {% if p.get('image') %}
+        <span class="badge text-bg-info me-1" style="font-size:0.65rem;">{{ _('Image') }}</span>
+    {% endif %}
+    {% if p.get('advanced') %}
+        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Advanced')}}</span>
+    {% endif %}
+    {% if p.get('hidden') %}
+        <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Hidden')}}</span>
+    {% endif %}
+</div>
+{%- endmacro %}
 
 {% block title %} Class {% endblock %} 
 
@@ -309,6 +376,36 @@
 <script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism.min.js"></script>
 <script src="{{ config.ASSETS_ROOT }}/plugins/prism/prism-python.min.js"></script>
 
+{% set ns_class_filters = namespace(has_advanced=false, has_hidden=false) %}
+{% set ns_class_methods_filters = namespace(has_advanced=false, has_hidden=false) %}
+{% set ns_class_entities_filters = namespace(has_advanced=false, has_hidden=false) %}
+{% set can_show_hidden = current_user.role in ['admin', 'root'] %}
+{% if id %}
+{% for property in properties %}
+    {% if property.params.get('advanced') or property.advanced %}{% set ns_class_filters.has_advanced = true %}{% endif %}
+    {% if property.params.get('hidden') or property.hidden %}{% set ns_class_filters.has_hidden = true %}{% endif %}
+{% endfor %}
+{% for property in parent_properties %}
+    {% if property.params.get('advanced') or property.advanced %}{% set ns_class_filters.has_advanced = true %}{% endif %}
+    {% if property.params.get('hidden') or property.hidden %}{% set ns_class_filters.has_hidden = true %}{% endif %}
+{% endfor %}
+{% for method in methods %}
+    {% if method.params.get('advanced') or method.advanced %}{% set ns_class_methods_filters.has_advanced = true %}{% endif %}
+    {% if method.params.get('hidden') or method.hidden %}{% set ns_class_methods_filters.has_hidden = true %}{% endif %}
+{% endfor %}
+{% for method in parent_methods %}
+    {% if method.params.get('advanced') or method.advanced %}{% set ns_class_methods_filters.has_advanced = true %}{% endif %}
+    {% if method.params.get('hidden') or method.hidden %}{% set ns_class_methods_filters.has_hidden = true %}{% endif %}
+{% endfor %}
+{% for class in child_classes %}
+    {% if class.advanced %}{% set ns_class_entities_filters.has_advanced = true %}{% endif %}
+    {% if class.hidden %}{% set ns_class_entities_filters.has_hidden = true %}{% endif %}
+{% endfor %}
+{% for obj in objects %}
+    {% if obj.advanced %}{% set ns_class_entities_filters.has_advanced = true %}{% endif %}
+    {% if obj.hidden %}{% set ns_class_entities_filters.has_hidden = true %}{% endif %}
+{% endfor %}
+{% endif %}
 <ul class="nav nav-tabs align-items-center" id="configTabs" role="tablist">
     <li class="nav-item">
         <a class="nav-link tab-button {% if tab == ''%}active{%endif%}" href="#general" data-bs-toggle="tab" role="tab">{{ _('General')}}</a>
@@ -333,6 +430,48 @@
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'template'%} active{%endif%}" href="#template_tab" data-bs-toggle="tab" role="tab">{{ _('Template')}}</a></li>
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'permissions'%} active{%endif%}" href="#permissions_tab" data-bs-toggle="tab" role="tab">{{ _('Permissions')}}</a></li>
     <li class="nav-item flex-grow-1"></li>
+    {% if ns_class_filters.has_advanced or (ns_class_filters.has_hidden and can_show_hidden) %}
+    <li class="nav-item properties-filter-actions me-1{% if tab != 'properties' %} d-none{% endif %}" id="classPropertiesFilterActions">
+        {% if ns_class_filters.has_advanced %}
+        <button type="button" class="btn btn-sm btn-outline-secondary properties-filter-btn" id="toggleAdvancedClassPropertiesBtn" aria-expanded="false" title="{{ _('Show advanced') }}">
+            <i class="fas fa-layer-group" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+        {% if ns_class_filters.has_hidden and can_show_hidden %}
+        <button type="button" class="btn btn-sm btn-outline-secondary properties-filter-btn" id="toggleHiddenClassPropertiesBtn" aria-expanded="false" title="{{ _('Show hidden') }}">
+            <i class="fas fa-eye-slash" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+    </li>
+    {% endif %}
+    {% if ns_class_methods_filters.has_advanced or (ns_class_methods_filters.has_hidden and can_show_hidden) %}
+    <li class="nav-item properties-filter-actions me-1{% if tab != 'methods' %} d-none{% endif %}" id="classMethodsFilterActions">
+        {% if ns_class_methods_filters.has_advanced %}
+        <button type="button" class="btn btn-sm btn-outline-secondary properties-filter-btn" id="toggleAdvancedClassMethodsBtn" aria-expanded="false" title="{{ _('Show advanced') }}">
+            <i class="fas fa-layer-group" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+        {% if ns_class_methods_filters.has_hidden and can_show_hidden %}
+        <button type="button" class="btn btn-sm btn-outline-secondary properties-filter-btn" id="toggleHiddenClassMethodsBtn" aria-expanded="false" title="{{ _('Show hidden') }}">
+            <i class="fas fa-eye-slash" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+    </li>
+    {% endif %}
+    {% if ns_class_entities_filters.has_advanced or (ns_class_entities_filters.has_hidden and can_show_hidden) %}
+    <li class="nav-item properties-filter-actions me-1{% if tab != 'classes' and tab != 'objects' %} d-none{% endif %}" id="classEntitiesFilterActions">
+        {% if ns_class_entities_filters.has_advanced %}
+        <button type="button" class="btn btn-sm btn-outline-secondary properties-filter-btn" id="toggleAdvancedClassEntitiesBtn" aria-expanded="false" title="{{ _('Show advanced') }}">
+            <i class="fas fa-layer-group" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+        {% if ns_class_entities_filters.has_hidden and can_show_hidden %}
+        <button type="button" class="btn btn-sm btn-outline-secondary properties-filter-btn" id="toggleHiddenClassEntitiesBtn" aria-expanded="false" title="{{ _('Show hidden') }}">
+            <i class="fas fa-eye-slash" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+    </li>
+    {% endif %}
     <li class="nav-item"><a class="nav-link tab-button{% if tab == 'tools'%} active{%endif%}" id="tools-tab" href="#tools" data-bs-toggle="tab" role="tab" aria-controls="tools">{{ _('Tools')}}</a></li>
     {%endif%}
 </ul>
@@ -387,9 +526,18 @@
                         <div class="col-md-6 col-lg-4">
                             {{ icon_picker_field('param-icon', label=_('Icon'), wrapper_class='mb-3') }}
                         </div>
-                        <div class="col-md-6 col-lg-3 mb-3">
-                            <label class="form-label">{{ _('Color') }}</label>
-                            <input type="color" class="form-control form-control-color w-100" id="param-color">
+                        <div class="col-md-6 col-lg-3">
+                            {{ color_picker_field('param-color', label=_('Color'), wrapper_class='mb-3') }}
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="param-advanced">
+                            <label class="form-check-label" for="param-advanced">{{ _('Advanced') }}</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="param-hidden">
+                            <label class="form-check-label" for="param-hidden">{{ _('Hidden') }}</label>
                         </div>
                     </div>
                 </div>
@@ -403,29 +551,45 @@
         </form>
         {{ icon_picker_modal() }}
         {{ icon_picker_assets() }}
+        {{ color_picker_assets() }}
         <script>
         document.addEventListener('DOMContentLoaded', function() {
             const paramsJsonField = document.getElementById('params-json');
             const iconField = document.getElementById('param-icon');
-            const colorField = document.getElementById('param-color');
+            const advancedField = document.getElementById('param-advanced');
+            const hiddenField = document.getElementById('param-hidden');
 
             function buildClassParamsJson() {
                 const params = {};
                 if (iconField && iconField.value) params.icon = iconField.value;
-                if (colorField && colorField.value) params.color = colorField.value;
+                if (window.ColorPicker) {
+                    const color = ColorPicker.getValue('param-color');
+                    if (color) params.color = color;
+                }
+                if (advancedField && advancedField.checked) params.advanced = true;
+                if (hiddenField && hiddenField.checked) params.hidden = true;
                 if (paramsJsonField) {
                     paramsJsonField.value = Object.keys(params).length > 0 ? JSON.stringify(params) : '';
                 }
             }
 
             function loadParamsFromJson() {
-                if (!paramsJsonField || !paramsJsonField.value) return;
+                if (!paramsJsonField || !paramsJsonField.value) {
+                    if (window.ColorPicker) ColorPicker.clear('param-color', { silent: true });
+                    return;
+                }
                 try {
                     const params = JSON.parse(paramsJsonField.value);
                     if (iconField && params.icon) iconField.value = params.icon;
-                    if (colorField && params.color) colorField.value = params.color;
+                    if (window.ColorPicker) {
+                        if (params.color) ColorPicker.setValue('param-color', params.color, { silent: true });
+                        else ColorPicker.clear('param-color', { silent: true });
+                    }
+                    if (advancedField && params.advanced) advancedField.checked = true;
+                    if (hiddenField && params.hidden) hiddenField.checked = true;
                 } catch (e) {
                     console.error('Error loading class params:', e);
+                    if (window.ColorPicker) ColorPicker.clear('param-color', { silent: true });
                 }
             }
 
@@ -434,7 +598,10 @@
             if (window.IconPicker) {
                 IconPicker.register('param-icon', { onChange: buildClassParamsJson });
             }
-            [iconField, colorField].forEach(function(field) {
+            if (window.ColorPicker) {
+                ColorPicker.register('param-color', { onChange: buildClassParamsJson });
+            }
+            [iconField, advancedField, hiddenField].forEach(function(field) {
                 if (field) {
                     field.addEventListener('change', buildClassParamsJson);
                     field.addEventListener('input', buildClassParamsJson);
@@ -444,8 +611,9 @@
         </script>
     </div>
     <div class="tab-pane fade {% if tab == 'properties'%}show active{%endif%}" id="properties" role="tabpanel" aria-labelledby="properties-tab">
+        {% set ns_class_props = namespace(prev_group='__none__', col_count=(5 if show_id else 4)) %}
         <div class="table-responsive">
-            <table class="table table-hover align-middle properties-table">
+            <table class="table table-hover align-middle properties-table" id="classPropertiesTable">
                 <thead>
                     <tr>
                         {% if show_id %}
@@ -466,10 +634,23 @@
                     {% else %}
                         {% set row_bg = _color ~ '26' if _color else '' %}
                     {% endif %}
-                    <tr>
+                    {% set prop_group = property.params.get('group') or property.group or '' %}
+                    {% set is_advanced = property.params.get('advanced') or property.advanced %}
+                    {% set is_hidden = property.params.get('hidden') or property.hidden %}
+                    {% if prop_group and prop_group != ns_class_props.prev_group %}
+                    <tr class="property-group-header{% if is_advanced %} property-row-advanced{% endif %}{% if is_hidden %} property-row-hidden{% endif %}">
+                        <td colspan="{{ ns_class_props.col_count }}" class="fw-semibold py-1">
+                            <i class="fas fa-folder me-1" aria-hidden="true"></i>{{ prop_group }}
+                        </td>
+                    </tr>
+                    {% set ns_class_props.prev_group = prop_group %}
+                    {% elif not prop_group %}
+                    {% set ns_class_props.prev_group = '' %}
+                    {% endif %}
+                    <tr class="{% if is_advanced %} property-row-advanced{% endif %}{% if is_hidden %} property-row-hidden{% endif %}">
                         {% if show_id %}
                         <td style="width:1%; white-space:nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
-                            <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ property.id }}</span>
+                            <span class="badge text-bg-secondary" style="font-size:0.65rem;">{{ property.id }}</span>
                         </td>
                         {% endif %}
                         <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
@@ -491,7 +672,7 @@
                                         {% endif %}
                                         {% if property.overrides_parent %}
                                             <div class="mt-1">
-                                                <span class="badge bg-info text-dark">{{ _('Overrides parent property') }}</span>
+                                                <span class="badge text-bg-info">{{ _('Overrides parent property') }}</span>
                                             </div>
                                         {% endif %}
                                     </div>
@@ -501,75 +682,22 @@
                         <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             {% if property.history %}
                                 <div class="small text-muted mb-1">
-                                    <span class="badge bg-warning text-dark" style="font-size:0.65rem;">
+                                    <span class="badge text-bg-warning" style="font-size:0.65rem;">
                                         {{ _('History')}}: {{property.history}} {{ _('days')}}
                                     </span>
                                 </div>
                             {% endif %}
                             {% if property.method %}
                                 <div class="mt-1">
-                                    <span class="badge bg-primary text-light" style="font-size:0.7rem;">
+                                    <span class="badge text-bg-primary" style="font-size:0.7rem;">
                                         {{ _('Method')}}: {{property.method}}
                                     </span>
                                 </div>
                             {% endif %}
-                            {# Краткое отображение параметров валидации #}
-                            <div class="small text-muted mt-1">
-                                {% if property.params['min'] or property.params['max'] %}
-                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
-                                        {% if property.params['min']!='' %}
-                                            {{ _('Minimum Value')}}: {{ property.params['min'] }}
-                                        {% endif %}
-                                        {% if property.params['max']!=''%}
-                                            {% if property.params['min'] %} / {% endif %}
-                                            {{ _('Maximum Value')}}: {{ property.params['max'] }}
-                                        {% endif %}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['step'] %}
-                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
-                                        {{ _('Step')}}: {{ property.params['step'] }}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['decimals'] %}
-                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
-                                        {{ _('Decimals')}}: {{ property.params['decimals'] }}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['allowed_values'] %}
-                                    <span class="badge bg-info text-dark me-1" style="font-size:0.65rem;">
-                                        {{ _('Allowed values')}}: {{ property.params['allowed_values']|length }}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['enum_values'] %}
-                                    <span class="badge bg-info text-dark me-1" style="font-size:0.65rem;">
-                                        {{ _('Enum Values (JSON)')}}: {{ property.params['enum_values']|length }}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['default_value'] %}
-                                    <span class="badge bg-success text-light me-1" style="font-size:0.65rem;">
-                                        {{ _('Default Value')}}: {{ property.params['default_value'] }}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['regexp'] %}
-                                    <span class="badge bg-dark text-light me-1" style="font-size:0.65rem;">
-                                        {{ _('RegExp Pattern')}}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['rate_limit'] %}
-                                    <span class="badge bg-danger text-dark me-1" style="font-size:0.65rem;">
-                                        {{ _('Rate Limit (seconds)')}}: {{ property.params['rate_limit'] }}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['read_only'] %}
-                                    <span class="badge bg-secondary text-light me-1" style="font-size:0.65rem;">
-                                        {{ _('Read Only')}}
-                                    </span>
-                                {% endif %}
-                            </div>
+                            {{ render_class_property_params_badges(property) }}
                         </td>
                         <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            <span class="badge bg-secondary">{{ property.type }}</span>
+                            <span class="badge text-bg-secondary">{{ property.type }}</span>
                         </td>
                         <td class="text-end"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             <div class="btn-group btn-group-sm" role="group">
@@ -594,13 +722,14 @@
                     {% endfor %}
                     {% if parent_properties %}
                     <tr>
-                        <td colspan="{{ 4 + (1 if show_id else 0) }}" class="pt-3 pb-1">
-                            <span class="text-muted" style="font-size:0.8rem; border-top: 1px solid rgba(255,255,255,0.08); display:block; padding-top:0.35rem;">
+                        <td colspan="{{ ns_class_props.col_count }}" class="pt-3 pb-1">
+                            <span class="text-muted" style="font-size:0.8rem; border-top: 1px solid var(--bs-border-color); display:block; padding-top:0.35rem;">
                                 {{ _('Parent properties') }}
                             </span>
                         </td>
                     </tr>
                     {% endif %}
+                    {% set ns_class_props.prev_group = '__none__' %}
                     {% for property in parent_properties %}
                     {# Для родительских свойств используем те же icon/color, если заданы #}
                     {% set _color = property.color|lower if property.color else '' %}
@@ -609,10 +738,23 @@
                     {% else %}
                         {% set row_bg = _color ~ '26' if _color else '' %}
                     {% endif %}
-                    <tr>
+                    {% set prop_group = property.params.get('group') or property.group or '' %}
+                    {% set is_advanced = property.params.get('advanced') or property.advanced %}
+                    {% set is_hidden = property.params.get('hidden') or property.hidden %}
+                    {% if prop_group and prop_group != ns_class_props.prev_group %}
+                    <tr class="property-group-header{% if is_advanced %} property-row-advanced{% endif %}{% if is_hidden %} property-row-hidden{% endif %}">
+                        <td colspan="{{ ns_class_props.col_count }}" class="fw-semibold py-1">
+                            <i class="fas fa-folder me-1" aria-hidden="true"></i>{{ prop_group }}
+                        </td>
+                    </tr>
+                    {% set ns_class_props.prev_group = prop_group %}
+                    {% elif not prop_group %}
+                    {% set ns_class_props.prev_group = '' %}
+                    {% endif %}
+                    <tr class="{% if is_advanced %} property-row-advanced{% endif %}{% if is_hidden %} property-row-hidden{% endif %}">
                         {% if show_id %}
                         <td style="width:1%; white-space:nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
-                            <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ property.id }}</span>
+                            <span class="badge text-bg-secondary" style="font-size:0.65rem;">{{ property.id }}</span>
                         </td>
                         {% endif %}
                         <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
@@ -641,74 +783,22 @@
                         <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             {% if property.history %}
                                 <div class="small text-muted mb-1">
-                                    <span class="badge bg-warning text-dark" style="font-size:0.65rem;">
+                                    <span class="badge text-bg-warning" style="font-size:0.65rem;">
                                         {{ _('History')}}: {{property.history}} {{ _('days')}}
                                     </span>
                                 </div>
                             {% endif %}
                             {% if property.method %}
                                 <div class="mt-1">
-                                    <span class="badge bg-primary text-light" style="font-size:0.7rem;">
+                                    <span class="badge text-bg-primary" style="font-size:0.7rem;">
                                         {{ _('Method')}}: {{property.method}}
                                     </span>
                                 </div>
                             {% endif %}
-                            <div class="small text-muted mt-1">
-                                {% if property.params['min'] or property.params['max'] %}
-                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
-                                        {% if property.params['min']!='' %}
-                                            {{ _('Minimum Value')}}: {{ property.params['min'] }}
-                                        {% endif %}
-                                        {% if property.params['max']!=''%}
-                                            {% if property.params['min'] %} / {% endif %}
-                                            {{ _('Maximum Value')}}: {{ property.params['max'] }}
-                                        {% endif %}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['step'] %}
-                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
-                                        {{ _('Step')}}: {{ property.params['step'] }}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['decimals'] %}
-                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">
-                                        {{ _('Decimals')}}: {{ property.params['decimals'] }}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['allowed_values'] %}
-                                    <span class="badge bg-info text-dark me-1" style="font-size:0.65rem;">
-                                        {{ _('Allowed values')}}: {{ property.params['allowed_values']|length }}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['enum_values'] %}
-                                    <span class="badge bg-info text-dark me-1" style="font-size:0.65rem;">
-                                        {{ _('Enum Values (JSON)')}}: {{ property.params['enum_values']|length }}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['default_value'] %}
-                                    <span class="badge bg-success text-light me-1" style="font-size:0.65rem;">
-                                        {{ _('Default Value')}}: {{ property.params['default_value'] }}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['regexp'] %}
-                                    <span class="badge bg-dark text-light me-1" style="font-size:0.65rem;">
-                                        {{ _('RegExp Pattern')}}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['rate_limit'] %}
-                                    <span class="badge bg-danger text-dark me-1" style="font-size:0.65rem;">
-                                        {{ _('Rate Limit (seconds)')}}: {{ property.params['rate_limit'] }}
-                                    </span>
-                                {% endif %}
-                                {% if property.params['read_only'] %}
-                                    <span class="badge bg-secondary text-light me-1" style="font-size:0.65rem;">
-                                        {{ _('Read Only')}}
-                                    </span>
-                                {% endif %}
-                            </div>
+                            {{ render_class_property_params_badges(property) }}
                         </td>
                         <td{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
-                            <span class="badge bg-secondary">{{ property.type }}</span>
+                            <span class="badge text-bg-secondary">{{ property.type }}</span>
                         </td>
                         <td class="text-end"{% if row_bg %} style="background-color: {{ row_bg }};"{% endif %}>
                             {% if not property.protected %}
@@ -718,7 +808,7 @@
                                 <i class="fas fa-redo me-1"></i>{{ _('Redefine')}}
                             </a>
                             {% else %}
-                            <span class="badge bg-warning text-dark" title="{{ _('Protected')}}"><i class="fas fa-lock"></i></span>
+                            <span class="badge text-bg-warning" title="{{ _('Protected')}}"><i class="fas fa-lock"></i></span>
                             {% endif %}
                         </td>
                     </tr>
@@ -730,8 +820,9 @@
         <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade {% if tab == 'methods'%}show active{%endif%}" id="methods" role="tabpanel" aria-labelledby="methods-tab">
+        {% set ns_class_methods = namespace(prev_group='__none__', col_count=(4 if show_id else 3)) %}
         <div class="table-responsive">
-            <table class="table table-hover align-middle methods-table">
+            <table class="table table-hover align-middle methods-table" id="classMethodsTable">
                 <thead>
                     <tr>
                         {% if show_id %}
@@ -750,7 +841,20 @@
                     {% else %}
                         {% set row_bg = _color ~ '26' if _color else '' %}
                     {% endif %}
-                    <tr>
+                    {% set method_group = method.params.get('group') or method.group or '' %}
+                    {% set is_advanced = method.params.get('advanced') or method.advanced %}
+                    {% set is_hidden = method.params.get('hidden') or method.hidden %}
+                    {% if method_group and method_group != ns_class_methods.prev_group %}
+                    <tr class="property-group-header{% if is_advanced %} property-row-advanced{% endif %}{% if is_hidden %} property-row-hidden{% endif %}">
+                        <td colspan="{{ ns_class_methods.col_count }}" class="fw-semibold py-1 text-start">
+                            <i class="fas fa-folder me-1" aria-hidden="true"></i>{{ method_group }}
+                        </td>
+                    </tr>
+                    {% set ns_class_methods.prev_group = method_group %}
+                    {% elif not method_group %}
+                    {% set ns_class_methods.prev_group = '' %}
+                    {% endif %}
+                    <tr class="{% if is_advanced %} property-row-advanced{% endif %}{% if is_hidden %} property-row-hidden{% endif %}">
                         {% if show_id %}
                         <td style="width:1%; white-space:nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
                             <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ method.id }}</span>
@@ -781,6 +885,12 @@
                                     {{ method.description }}
                                 {% else %}
                                     {{ _('Description is empty')}}
+                                {% endif %}
+                                {% if is_advanced %}
+                                    <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Advanced')}}</span>
+                                {% endif %}
+                                {% if is_hidden %}
+                                    <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Hidden')}}</span>
                                 {% endif %}
                             </div>
                             {% if method.redefined %}
@@ -817,14 +927,15 @@
                     </tr>
                     {% endfor %}
                     {% if parent_methods %}
-                    <tr>
-                        <td colspan="{{ 3 + (1 if show_id else 0) }}" class="pt-3 pb-1">
+                    <tr class="methods-section-header">
+                        <td colspan="{{ ns_class_methods.col_count }}" class="pt-3 pb-1 text-start">
                             <span class="text-muted" style="font-size:0.8rem; border-top: 1px solid rgba(255,255,255,0.08); display:block; padding-top:0.35rem;">
                                 {{ _('Parent methods') }}
                             </span>
                         </td>
                     </tr>
                     {% endif %}
+                    {% set ns_class_methods.prev_group = '__none__' %}
                     {% for method in parent_methods %}
                     {% set _color = method.color|lower if method.color else '' %}
                     {% if _color in ['#000', '#000000', 'black'] %}
@@ -832,7 +943,20 @@
                     {% else %}
                         {% set row_bg = _color ~ '26' if _color else '' %}
                     {% endif %}
-                    <tr>
+                    {% set method_group = method.params.get('group') or method.group or '' %}
+                    {% set is_advanced = method.params.get('advanced') or method.advanced %}
+                    {% set is_hidden = method.params.get('hidden') or method.hidden %}
+                    {% if method_group and method_group != ns_class_methods.prev_group %}
+                    <tr class="property-group-header{% if is_advanced %} property-row-advanced{% endif %}{% if is_hidden %} property-row-hidden{% endif %}">
+                        <td colspan="{{ ns_class_methods.col_count }}" class="fw-semibold py-1 text-start">
+                            <i class="fas fa-folder me-1" aria-hidden="true"></i>{{ method_group }}
+                        </td>
+                    </tr>
+                    {% set ns_class_methods.prev_group = method_group %}
+                    {% elif not method_group %}
+                    {% set ns_class_methods.prev_group = '' %}
+                    {% endif %}
+                    <tr class="{% if is_advanced %} property-row-advanced{% endif %}{% if is_hidden %} property-row-hidden{% endif %}">
                         {% if show_id %}
                         <td style="width:1%; white-space:nowrap;{% if row_bg %} background-color: {{ row_bg }};{% endif %}">
                             <span class="badge bg-secondary text-light" style="font-size:0.65rem;">{{ method.id }}</span>
@@ -862,6 +986,12 @@
                                     {{ method.description }}
                                 {% else %}
                                     {{ _('Description is empty')}}
+                                {% endif %}
+                                {% if is_advanced %}
+                                    <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Advanced')}}</span>
+                                {% endif %}
+                                {% if is_hidden %}
+                                    <span class="badge text-bg-secondary me-1" style="font-size:0.65rem;">{{ _('Hidden')}}</span>
                                 {% endif %}
                             </div>
                         </td>
@@ -906,7 +1036,7 @@
         {% else %}
         <p class="px-3 ml-2 mt-2" id="classObjectsEmptyHint">{{ _('No objects')}}</p>
         {% endif %}
-        <a href="Objects" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
+        <a href="Objects" class="btn btn-secondary mt-3"><i class="fas fa-arrow-left me-2"></i>{{ _('Cancel')}}</a>
     </div>
     <div class="tab-pane fade {% if tab == 'template'%}show active{%endif%}" id="template_tab" role="tabpanel" aria-labelledby="template-tab">
         <form id="formTemplate" method="POST">
@@ -1679,6 +1809,167 @@
           }
         });
       }
+      function toggleClassTableFilter(tableId, className, btnId, iconShow, labelShow, iconHide, labelHide) {
+        var table = document.getElementById(tableId);
+        var btn = document.getElementById(btnId);
+        if (!table || !btn) {
+          return;
+        }
+        var next = !table.classList.contains(className);
+        table.classList.toggle(className, next);
+        btn.setAttribute('aria-expanded', next ? 'true' : 'false');
+        btn.classList.toggle('active', next);
+        btn.title = next ? labelHide : labelShow;
+        var icon = btn.querySelector('i');
+        if (icon) {
+          icon.className = 'fas ' + (next ? iconHide : iconShow);
+        }
+      }
+      function syncClassPropertiesFilterActionsVisibility(targetSelector) {
+        var actions = document.getElementById('classPropertiesFilterActions');
+        if (!actions) {
+          return;
+        }
+        var onProperties = targetSelector === '#properties';
+        if (!targetSelector) {
+          var pane = document.getElementById('properties');
+          onProperties = !!(pane && pane.classList.contains('active'));
+        }
+        actions.classList.toggle('d-none', !onProperties);
+      }
+      function syncClassMethodsFilterActionsVisibility(targetSelector) {
+        var actions = document.getElementById('classMethodsFilterActions');
+        if (!actions) {
+          return;
+        }
+        var onMethods = targetSelector === '#methods';
+        if (!targetSelector) {
+          var pane = document.getElementById('methods');
+          onMethods = !!(pane && pane.classList.contains('active'));
+        }
+        actions.classList.toggle('d-none', !onMethods);
+      }
+      function syncClassEntitiesFilterActionsVisibility(targetSelector) {
+        var actions = document.getElementById('classEntitiesFilterActions');
+        if (!actions) {
+          return;
+        }
+        var onEntities = targetSelector === '#classes' || targetSelector === '#objects';
+        if (!targetSelector) {
+          var classesPane = document.getElementById('classes');
+          var objectsPane = document.getElementById('objects');
+          onEntities = !!(
+            (classesPane && classesPane.classList.contains('active')) ||
+            (objectsPane && objectsPane.classList.contains('active'))
+          );
+        }
+        actions.classList.toggle('d-none', !onEntities);
+      }
+      function toggleClassEntityFilter(className, btnId, iconShow, labelShow, iconHide, labelHide) {
+        var btn = document.getElementById(btnId);
+        if (!btn) {
+          return;
+        }
+        var panes = [document.getElementById('classes'), document.getElementById('objects')].filter(Boolean);
+        if (!panes.length) {
+          return;
+        }
+        var next = !panes[0].classList.contains(className);
+        panes.forEach(function(pane) {
+          pane.classList.toggle(className, next);
+        });
+        btn.setAttribute('aria-expanded', next ? 'true' : 'false');
+        btn.classList.toggle('active', next);
+        btn.title = next ? labelHide : labelShow;
+        var icon = btn.querySelector('i');
+        if (icon) {
+          icon.className = 'fas ' + (next ? iconHide : iconShow);
+        }
+      }
+      var advancedBtn = document.getElementById('toggleAdvancedClassPropertiesBtn');
+      if (advancedBtn) {
+        advancedBtn.addEventListener('click', function() {
+          toggleClassTableFilter(
+            'classPropertiesTable',
+            'show-advanced',
+            'toggleAdvancedClassPropertiesBtn',
+            'fa-layer-group', '{{ _("Show advanced") }}',
+            'fa-layer-group', '{{ _("Hide advanced") }}'
+          );
+        });
+      }
+      var hiddenBtn = document.getElementById('toggleHiddenClassPropertiesBtn');
+      if (hiddenBtn) {
+        hiddenBtn.addEventListener('click', function() {
+          toggleClassTableFilter(
+            'classPropertiesTable',
+            'show-hidden',
+            'toggleHiddenClassPropertiesBtn',
+            'fa-eye-slash', '{{ _("Show hidden") }}',
+            'fa-eye', '{{ _("Hide hidden") }}'
+          );
+        });
+      }
+      var advancedMethodsBtn = document.getElementById('toggleAdvancedClassMethodsBtn');
+      if (advancedMethodsBtn) {
+        advancedMethodsBtn.addEventListener('click', function() {
+          toggleClassTableFilter(
+            'classMethodsTable',
+            'show-advanced',
+            'toggleAdvancedClassMethodsBtn',
+            'fa-layer-group', '{{ _("Show advanced") }}',
+            'fa-layer-group', '{{ _("Hide advanced") }}'
+          );
+        });
+      }
+      var hiddenMethodsBtn = document.getElementById('toggleHiddenClassMethodsBtn');
+      if (hiddenMethodsBtn) {
+        hiddenMethodsBtn.addEventListener('click', function() {
+          toggleClassTableFilter(
+            'classMethodsTable',
+            'show-hidden',
+            'toggleHiddenClassMethodsBtn',
+            'fa-eye-slash', '{{ _("Show hidden") }}',
+            'fa-eye', '{{ _("Hide hidden") }}'
+          );
+        });
+      }
+      var advancedEntitiesBtn = document.getElementById('toggleAdvancedClassEntitiesBtn');
+      if (advancedEntitiesBtn) {
+        advancedEntitiesBtn.addEventListener('click', function() {
+          toggleClassEntityFilter(
+            'show-entity-advanced',
+            'toggleAdvancedClassEntitiesBtn',
+            'fa-layer-group', '{{ _("Show advanced") }}',
+            'fa-layer-group', '{{ _("Hide advanced") }}'
+          );
+        });
+      }
+      var hiddenEntitiesBtn = document.getElementById('toggleHiddenClassEntitiesBtn');
+      if (hiddenEntitiesBtn) {
+        hiddenEntitiesBtn.addEventListener('click', function() {
+          toggleClassEntityFilter(
+            'show-entity-hidden',
+            'toggleHiddenClassEntitiesBtn',
+            'fa-eye-slash', '{{ _("Show hidden") }}',
+            'fa-eye', '{{ _("Hide hidden") }}'
+          );
+        });
+      }
+      document.querySelectorAll('#configTabs [data-bs-toggle="tab"]').forEach(function(tabLink) {
+        tabLink.addEventListener('shown.bs.tab', function(event) {
+          var link = event.target.closest ? event.target.closest('[data-bs-toggle="tab"]') : event.target;
+          var targetSelector = (link && (link.getAttribute('data-bs-target') || link.getAttribute('href'))) || '';
+          if (targetSelector && targetSelector.charAt(0) === '#') {
+            syncClassPropertiesFilterActionsVisibility(targetSelector);
+            syncClassMethodsFilterActionsVisibility(targetSelector);
+            syncClassEntitiesFilterActionsVisibility(targetSelector);
+          }
+        });
+      });
+      syncClassPropertiesFilterActionsVisibility({{ ('"#properties"' if tab == 'properties' else 'null')|safe }});
+      syncClassMethodsFilterActionsVisibility({{ ('"#methods"' if tab == 'methods' else 'null')|safe }});
+      syncClassEntitiesFilterActionsVisibility({{ ('"#classes"' if tab == 'classes' else ('"#objects"' if tab == 'objects' else 'null'))|safe }});
     });
   </script>
 {% if id %}

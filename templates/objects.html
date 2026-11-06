@@ -358,6 +358,16 @@
           </div>
         </div>
         <div class="d-flex gap-2 flex-wrap flex-shrink-0">
+          {% if tree_has_advanced %}
+          <button type="button" class="btn btn-outline-secondary properties-filter-btn" id="toggleAdvancedEntitiesBtn" aria-expanded="false" title="{{ _('Show advanced') }}">
+            <i class="fas fa-layer-group" aria-hidden="true"></i>
+          </button>
+          {% endif %}
+          {% if tree_has_hidden and can_show_hidden %}
+          <button type="button" class="btn btn-outline-secondary properties-filter-btn" id="toggleHiddenEntitiesBtn" aria-expanded="false" title="{{ _('Show hidden') }}">
+            <i class="fas fa-eye-slash" aria-hidden="true"></i>
+          </button>
+          {% endif %}
           <button class="btn btn-outline-secondary" type="button" id="treeCompactViewButton" title="{{ _('Compact view') }}" aria-label="{{ _('Compact view') }}"><i class="fas fa-compress-alt"></i></button>
           <button class="btn btn-outline-secondary" type="button" id="treeMultiColumnViewButton" title="{{ _('Columns view') }}" aria-label="{{ _('Columns view') }}"><i class="fas fa-table-columns"></i></button>
           <button class="btn btn-outline-secondary" type="button" id="treeExpandAllButton" title="{{ _('Expand all') }}" aria-label="{{ _('Expand all') }}"><i class="fas fa-angle-double-down"></i></button>
@@ -1445,6 +1455,38 @@ $(document).ready(function() {
   loadConfiguration();
   restoreSavedOpenBranches().then(function() {
     filterObjects();
+  });
+  function toggleEntityFilter(className, btnId, iconShow, labelShow, iconHide, labelHide) {
+    var page = document.getElementById('objectsPage');
+    var btn = document.getElementById(btnId);
+    if (!page || !btn) {
+      return;
+    }
+    var next = !page.classList.contains(className);
+    page.classList.toggle(className, next);
+    btn.setAttribute('aria-expanded', next ? 'true' : 'false');
+    btn.classList.toggle('active', next);
+    btn.title = next ? labelHide : labelShow;
+    var icon = btn.querySelector('i');
+    if (icon) {
+      icon.className = 'fas ' + (next ? iconHide : iconShow);
+    }
+  }
+  $('#toggleAdvancedEntitiesBtn').on('click', function() {
+    toggleEntityFilter(
+      'show-entity-advanced',
+      'toggleAdvancedEntitiesBtn',
+      'fa-layer-group', '{{ _("Show advanced") }}',
+      'fa-layer-group', '{{ _("Hide advanced") }}'
+    );
+  });
+  $('#toggleHiddenEntitiesBtn').on('click', function() {
+    toggleEntityFilter(
+      'show-entity-hidden',
+      'toggleHiddenEntitiesBtn',
+      'fa-eye-slash', '{{ _("Show hidden") }}',
+      'fa-eye', '{{ _("Hide hidden") }}'
+    );
   });
   $('#treeCompactViewButton').on('click', function() {
     var isCompact = !$('#objectsPage').hasClass('compact-view');

@@ -172,10 +172,18 @@ body.objects-compact-view .object-stats-card {
 }
 
 .objects-object-page .methods-table > thead > tr > th:last-child,
-.objects-object-page .methods-table > tbody > tr > td:last-child {
+.objects-object-page .methods-table > tbody > tr:not(.property-group-header):not(.methods-section-header) > td:last-child {
   width: 1%;
   white-space: nowrap;
   text-align: right;
+}
+
+/* Заголовки групп/секций методов — как у свойств, слева */
+.objects-object-page .methods-table > tbody > tr.property-group-header > td,
+.objects-object-page .methods-table > tbody > tr.methods-section-header > td {
+  text-align: left;
+  width: auto;
+  white-space: normal;
 }
 
 .objects-object-page > .object-main-col {
@@ -657,14 +665,15 @@ body.objects-compact-view .object-stats-card {
   color: var(--bs-secondary-color);
 }
 
-.form-check-input {
+/* Крупный switch только в редакторе bool-свойства, не на всех чекбоксах страницы */
+.property-editor .form-check-input {
   width: 3rem;
   height: 1.5rem;
   cursor: pointer;
   transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
 }
 
-.form-check-label {
+.property-editor .form-check-label {
   cursor: pointer;
   margin-left: 0.5rem;
   font-size: 1.1rem;
